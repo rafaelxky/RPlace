@@ -1,0 +1,10 @@
+//- def a:
+
+    hello $b
+
+//- endef:
+
+// DDASH
+# HASH
+( LPAREN
+) RPAREN
