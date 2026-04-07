@@ -114,6 +114,15 @@ impl Parser {
                     body_data.push(Node::DATA { data: str.to_string() });
                     println!("ident");
                 },
+                Token::DD => {
+                    body_data.push(Node::DATA { data: ":".to_string() });
+                },  
+                Token::LPAREN => {
+                    body_data.push(Node::DATA { data: "(".to_string() });
+                },
+                Token::RPAREN => {
+                    body_data.push(Node::DATA { data: ")".to_string() });
+                }
                 _ => {
                     
                 }

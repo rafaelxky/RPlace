@@ -31,6 +31,9 @@ impl Lexer {
         self.ptr = self.ptr + 1;
         self.data[self.ptr - 1]
     }
+    fn peek_ahead(&self, i: usize) -> char{
+        self.data[self.ptr + i]
+    }
     fn can_pop(&self) -> bool {
         self.data.len() > self.ptr
     }
@@ -78,11 +81,12 @@ impl Lexer {
             '(' => true,
             ')' => true,
             '\n' => true,
-            '#' => true,
             '/' => true,
             '-' => true,
             '$' => true,
+            '#' => true,
             ':' => true,
+            '*' => true,
             _ => false
         }
     }
@@ -107,7 +111,7 @@ impl Lexer {
                     tokens.push(Token::HASH);
                 }
                 '/' => {
-                    if self.peek() == '/' {
+                    if self.peek() == '/'{
                         self.pop();
                         if self.peek() == '-' {
                             self.pop();
@@ -115,16 +119,38 @@ impl Lexer {
                         } else {
                             tokens.push(Token::IDENT { str: "//".to_string()});
                         }
-
-                    } else {
+                    } else if self.peek() == '*'{
+                        self.pop();
+                        if self.peek() == '-' {
+                            self.pop();
+                            tokens.push(Token::MARK);
+                        } else {
+                            tokens.push(Token::IDENT { str: "/*".to_string()});
+                        }
+                    } 
+                    else {
                         break;
+                    }
+                }
+                '*' => {
+                    if self.peek() == '/' {
+                        self.pop();
+                        if self.peek() == '-' {
+                            self.pop();
+                            tokens.push(Token::MARK);
+                        } else {
+                            tokens.push(Token::IDENT { str: "*/".to_string()});
+                        }
                     }
                 }
                 ':' => {
                     tokens.push(Token::DD);
                 }
                 '$' => {
-                    self.handle_var(tokens);
+                    if self.peek() == '#'{
+                        self.pop();
+                        self.handle_var(tokens);
+                    }
                 }
                 _ => {
                     self.handle_ident(current,tokens);

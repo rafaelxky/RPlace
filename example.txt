@@ -1,8 +1,10 @@
-//- def a:
+/*- def a:
 
-    hello $b
+   pub struct $#struct_name {
+        
+   } 
 
-//- endef:
+*/- endef:
 
 // DDASH
 # HASH
