@@ -15,6 +15,7 @@ impl Writer {
         let mut map: HashMap<String, String> = HashMap::new();
 
         val.iter().for_each(|(var_name, val)|{
+            println!("maped, {}", var_name.to_string());
             map.insert(var_name.to_string(), val.to_string());
         });
 
@@ -27,12 +28,11 @@ impl Writer {
                                 match node {
                                     Node::DATA { data } => {
                                         text.push_str(data);
-                                        text.push(' ');
                                     },
                                     Node::VARTEMPLATE { name } => {
                                         if map.contains_key(name) {
+                                            println!("replacing var with {}", map.get(name).unwrap());
                                             text.push_str(map.get(name).unwrap());
-                                            text.push(' ');
                                         } else {
 
                                         }

@@ -13,6 +13,24 @@ fn main() {
     let parser = Parser::new(tokens);
     let nodes = parser.parse();
     let writer = Writer::new(nodes);
-    let replaced = writer.replace(&[("b","world!"), ("struct_name", "vec")]);
+    let replaced = writer.replace(&[("b","world!"), ("struct_name", "vec"), ("var_type","String")]);
     println!("replaced: {}",replaced);
 }
+
+/*- def a:
+
+    pub struct $#struct_name {
+        str: String
+    }
+    pub impl $#struct_name {
+        pub fn new() -> Self{
+            Self {
+                "Hello world from $#struct_name !".to_string(),
+            }
+        }
+        pub fn print(&self){
+            println!("{}",self.str);
+        }
+    }
+
+*///- endef:

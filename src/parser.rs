@@ -1,3 +1,4 @@
+use core::panic;
 use std::process::exit;
 
 use crate::lexer::Token;
@@ -57,8 +58,7 @@ impl Parser {
                 return self.handle_def();
             }
             _ => {
-                println!("Error: {:?} isn't valid after //-", curr);
-                exit(1);
+                panic!("Error: {:?} isn't valid after //-", curr);
             }
         }
     }
@@ -69,39 +69,43 @@ impl Parser {
         // if can pop and is ident
         // we have //- def
         if !self.can_pop() {
-            println!("Expected IDENT found EOF");
-            exit(1);
+            panic!("Expected IDENT found EOF");
         }
         if let Token::IDENT{str} = self.peek() {
             def_name = str.to_string();
             self.pop();
         } else {
-            println!("Expected IDENT found {:?}", self.peek());
-            exit(1);
+            panic!("Expected IDENT found {:?}", self.peek());
         }
         if let Token::DD = self.peek() {
             self.pop();
         } else {
-            println!("Expected \":\" found {:?}", self.peek());
-            exit(1);
+            panic!("Expected \":\" found {:?}", self.peek());
         }
         
         // we have //- def ident:
         loop {
+            if !self.can_pop(){
+                panic!("found EOF, expected matching MARK");
+            }
             if matches!(self.peek(), Token::MARK){
                 self.pop();
+                if !self.can_pop() {
+                    panic!("expected ENDEF found EOF")
+                }
                 if matches!(self.peek(), Token::ENDEF){
                     self.pop();
+                    if !self.can_pop() {
+                        panic!("expected DD found EOF")
+                    }
                     if matches!(self.peek(), Token::DD){
                         self.pop();
                         //- endef:
                         break;
                     }
-                    println!("Expected \":\" after \"endef\" found {:?}", self.peek());
-                    exit(1);
+                    panic!("Expected \":\" after \"endef\" found {:?}", self.peek());
                 }
-                println!("Marks inside def blocks unimplemented");
-                exit(1);
+                panic!("Marks inside def blocks unimplemented");
             }
             let curr = self.pop();
             match curr {
