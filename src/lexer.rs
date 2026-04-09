@@ -103,27 +103,14 @@ impl Lexer {
         while self.can_pop() {
             let current = self.pop();
             match current {
-                ' ' => {
-                    continue;
-                }
-                '(' => {
-                    tokens.push(Token::LPAREN);
-                }
-                ')' => {
-                    tokens.push(Token::RPAREN);
-                }
-                '\n' => {
-                    continue;
-                }
-                '#' => {
-                    tokens.push(Token::HASH);
-                }
                 '/' => {
                     if self.peek() == '/' {
                         self.pop();
                         if self.peek() == '-' {
                             self.pop();
+                            // //-
                             tokens.push(Token::MARK);
+                            self.handle_instruction(tokens);
                         } else {
                             tokens.push(Token::IDENT {
                                 str: "//".to_string(),
@@ -131,11 +118,11 @@ impl Lexer {
                         }
                     } else if self.peek() == '*' {
                         self.pop();
+                        // /*-
                         if self.peek() == '-' {
                             self.pop();
                             tokens.push(Token::MARK);
                             self.handle_instruction(tokens);
-                            self.handle_code_block(tokens);
                         } else {
                             tokens.push(Token::IDENT {
                                 str: "/*".to_string(),
@@ -147,7 +134,6 @@ impl Lexer {
                 }
                 '*' => {
                     if self.pop() == '/' {
-
                         if self.pop() != '/' {
                             tokens.push(Token::IDENT {
                                 str: "*/".to_string(),
@@ -170,19 +156,6 @@ impl Lexer {
                     } else {
                         tokens.push(Token::IDENT {
                             str: "*".to_string(),
-                        });
-                    }
-                }
-                ':' => {
-                    tokens.push(Token::DD);
-                }
-                '$' => {
-                    if self.peek() == '#' {
-                        self.pop();
-                        self.handle_var(tokens);
-                    } else {
-                        tokens.push(Token::IDENT {
-                            str: '$'.to_string(),
                         });
                     }
                 }
@@ -216,6 +189,7 @@ impl Lexer {
         match instr.as_str() {
             "def" => {
                 tokens.push(Token::DEF);
+                self.handle_code_block(tokens);
             }
             _ => {
                 panic!("{} is an invalid instruction!", instr);
@@ -233,6 +207,32 @@ impl Lexer {
             self.pop();
         } else {
             // todo:
+        }
+    }
+
+    fn handle_closing(&mut self, tokens: &mut Vec<Token>) {
+        let mut ident_str = String::new();
+        let mut curr_isntr_char = self.pop();
+
+        while curr_isntr_char == ' ' {
+            curr_isntr_char = self.pop();
+        }
+        while !self.is_char_terminator(curr_isntr_char) {
+            ident_str.push(curr_isntr_char);
+            curr_isntr_char = self.pop();
+        }
+        match ident_str.as_str() {
+            "endef" => {
+                tokens.push(Token::ENDEF);
+                if curr_isntr_char == ':' {
+                    tokens.push(Token::DD);
+                    return;
+                } else {
+                }
+            }
+            _ => {
+                panic!("{} is not a valid instruction!", ident_str);
+            }
         }
     }
 
@@ -263,29 +263,7 @@ impl Lexer {
                                     self.pop();
                                     tokens.push(Token::IDENT { str: str.clone() });
                                     tokens.push(Token::MARK);
-                                    let mut ident_str = String::new();
-                                    let mut curr_isntr_char = self.pop();
-
-                                    while curr_isntr_char == ' ' {
-                                        curr_isntr_char = self.pop();
-                                    }
-                                    while !self.is_char_terminator(curr_isntr_char) {
-                                        ident_str.push(curr_isntr_char);
-                                        curr_isntr_char = self.pop();
-                                    }
-                                    match ident_str.as_str() {
-                                        "endef" => {
-                                            tokens.push(Token::ENDEF);
-                                            if curr_isntr_char == ':' {
-                                                tokens.push(Token::DD);
-                                                return;
-                                            } else {
-                                            }
-                                        }
-                                        _ => {
-                                            panic!("{} is not a valid instruction!", ident_str);
-                                        }
-                                    }
+                                    self.handle_closing(tokens);
                                 }
                                 _ => {
                                     str.push_str("*///");
@@ -297,7 +275,22 @@ impl Lexer {
                         }
                     }
                 }
-                '/' => {}
+                '/' => {
+                    if self.peek() == '/' {
+                        self.pop();
+                        // //-
+                        if self.peek() == '-' {
+                            self.pop();
+                            tokens.push(Token::IDENT { str: str.clone() });
+                            tokens.push(Token::MARK);
+                            self.handle_closing(tokens);
+                        } else {
+                            str.push_str("//");
+                        }
+                    } else {
+                        str.push('/');
+                    }
+                }
                 '$' => {
                     curr = self.peek();
                     match curr {
