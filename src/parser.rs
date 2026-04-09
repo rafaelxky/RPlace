@@ -45,7 +45,11 @@ impl Parser {
                         Token::DEF => {
                             self.pop();
                             self.handle_def(&mut nodes);
-                        },
+                        }
+                        Token::PLACE => {
+                            self.pop();
+                            self.handle_place(&mut nodes);
+                        }
                         _ => {
                             panic!("{:?} cannot go after a mark", self.peek());
                         }
@@ -54,6 +58,7 @@ impl Parser {
                 _ => continue,
             }
         }
+        println!("finished in parser");
         nodes
     }
 
@@ -81,13 +86,20 @@ impl Parser {
                 self.pop();
             }
             _ => {
-                panic!("{:?} is invalid in def declaration of name {}", self.peek(), def_name);
+                panic!(
+                    "{:?} is invalid in def declaration of name {}",
+                    self.peek(),
+                    def_name
+                );
             }
         }
 
         // body handling
         let body = self.build_body();
-        nodes.push(Node::DEF { name: def_name.to_string(), body: Box::new(body) });
+        nodes.push(Node::DEF {
+            name: def_name.to_string(),
+            body: Box::new(body),
+        });
     }
 
     fn remove_spaces(&mut self) {
@@ -132,18 +144,22 @@ impl Parser {
                             body.push(Node::VARTEMPLATE {
                                 name: str.to_string(),
                             });
+                            continue;
                         }
                         _ => {
                             panic!("expected IDENT found {:?}", self.peek())
                         }
                     }
-                },
+                }
                 Token::MARK => {
                     self.pop();
                     self.remove_spaces();
                     match self.peek() {
                         Token::ENDEF => {
                             self.pop();
+                            body.push(Node::DATA {
+                                data: body_str.to_string(),
+                            });
                             break;
                         }
                         _ => {
@@ -158,5 +174,26 @@ impl Parser {
             self.pop();
         }
         return Node::BODY { data: body };
+    }
+
+    fn handle_place(&mut self, nodes: &mut Vec<Node>) {
+        self.remove_spaces();
+        match self.peek() {
+            Token::IDENT { str } => {
+                self.pop();
+                nodes.push(Node::PLACE { name: str });
+            }
+            _ => {
+                panic!("{:?} cant go after DEF", self.peek())
+            }
+        }
+        match self.peek() {
+            Token::DD => {
+                self.pop();
+            }
+            _ => {
+                panic!("{:?} cant go after DEF name, forgot \":\" ?", self.peek())
+            }
+        }
     }
 }

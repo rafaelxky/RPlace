@@ -12,6 +12,11 @@ fn main() {
     }
     let parser = Parser::new(tokens);
     let nodes = parser.parse();
+
+    for elem in &nodes {
+        println!("{:?}", elem);
+    }
+
     let writer = Writer::new(nodes);
     let replaced = writer.replace(&[("b","world!"), ("struct_name", "vec"), ("var_type","String")]);
     println!("replaced: {}",replaced);

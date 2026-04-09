@@ -30,21 +30,27 @@ impl Writer {
                                     },
                                     Node::VARTEMPLATE { name } => {
                                         if map.contains_key(name) {
+                                            println!("replaced!");
                                             text.push_str(map.get(name).unwrap());
                                         } else {
-
+                                            println!("couldnt replace!");
                                         }
                                     }
-                                    _ => (),
+                                    _ => {
+                                        println!("incorrect match in body")
+                                    },
                                 }
                             });
                         }
-                        _ => (),
+                        _ => {
+                            println!("incorrect match")
+                        },
                     }
                 }
                 _ => (),
             }
         });
+        println!("finished in writer");
         text
     }
 }

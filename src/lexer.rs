@@ -51,6 +51,7 @@ impl Lexer {
         loop {
             if !self.can_pop() {
                 tokens.push(Token::EOF);
+                println!("eof");
                 return  tokens;
             }
 
@@ -131,6 +132,7 @@ impl Lexer {
                 },
                 '$' => {
                     if self.peek() == '#' {
+                        self.pop();
                         tokens.push(Token::VAR);
                     } else {
                         tokens.push(Token::IDENT {str: "$".to_string()});
