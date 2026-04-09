@@ -55,11 +55,18 @@ impl Parser {
         match curr {
             Token::DEF => {
                 return self.handle_def();
+            },
+            Token::PLACE => {
+                return  self.handle_place();
             }
             _ => {
                 panic!("Error: {:?} isn't valid after //-", curr);
             }
         }
+    }
+
+    fn handle_place(){
+        
     }
 
     fn handle_def(&mut self) -> Node{

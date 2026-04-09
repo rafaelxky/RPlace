@@ -14,11 +14,13 @@ pub enum Token {
     DD,
     EOF,
     PLACE,
+    WHERE
 }
 pub struct Lexer {
     ptr: usize,
     data: Vec<char>,
 }
+// this is all wrong, correctness is in parser not lexer
 impl Lexer {
     pub fn new<T: ToString>(path: T) -> Self {
         let data = fs::read_to_string(path.to_string())
@@ -65,7 +67,11 @@ impl Lexer {
             let curr = self.pop();
             str.push(curr);
         }
-        tokens.push(Token::IDENT { str });
+        match str {
+            _ => {
+                tokens.push(Token::IDENT { str });
+            }
+        }
     }
 
     fn is_char_terminator(&self, char: char) -> bool {
@@ -182,6 +188,7 @@ impl Lexer {
         while curr == ' ' {
             curr = self.pop();
         }
+
         while !self.is_char_terminator(curr) {
             instr.push(curr);
             curr = self.pop();
@@ -189,12 +196,14 @@ impl Lexer {
 
         match instr.as_str() {
             "def" => {
+                println!("curr def {}", curr);
                 tokens.push(Token::DEF);
-                self.handle_instr_sig(tokens);
+                self.handle_instr_sig(tokens, curr);
                 self.handle_code_block(tokens);
             }
             "place" => {
-                self.handle_instr_sig(tokens);
+                println!("curr {}", curr);
+                self.handle_instr_sig(tokens, curr);
                 tokens.push(Token::PLACE);
             }
             _ => {
@@ -203,7 +212,11 @@ impl Lexer {
         }
     }
 
-    fn handle_instr_sig(&mut self, tokens: &mut Vec<Token>) {
+    fn handle_instr_sig(&mut self, tokens: &mut Vec<Token>, tok: char) {
+        if tok == ':' {
+            tokens.push(Token::DD);
+            return;
+        }
         let mut curr = self.pop();
         self.handle_ident(curr, tokens);
         while curr == ' ' {
@@ -214,19 +227,22 @@ impl Lexer {
             self.pop();
         } else {
             // todo:
+            
         }
     }
 
     fn handle_closing(&mut self, tokens: &mut Vec<Token>) {
         let mut ident_str = String::new();
-        let mut curr_isntr_char = self.pop();
+        let mut curr_isntr_char = self.peek();
 
         while curr_isntr_char == ' ' {
-            curr_isntr_char = self.pop();
+            self.pop();
+            curr_isntr_char = self.peek();
         }
         while !self.is_char_terminator(curr_isntr_char) {
+            self.pop();
             ident_str.push(curr_isntr_char);
-            curr_isntr_char = self.pop();
+            curr_isntr_char = self.peek();
         }
         match ident_str.as_str() {
             "endef" => {
@@ -268,6 +284,7 @@ impl Lexer {
                                     tokens.push(Token::IDENT { str: str.clone() });
                                     tokens.push(Token::MARK);
                                     self.handle_closing(tokens);
+                                    return;
                                 }
                                 _ => {
                                     str.push_str("*///");
@@ -288,6 +305,7 @@ impl Lexer {
                             tokens.push(Token::IDENT { str: str.clone() });
                             tokens.push(Token::MARK);
                             self.handle_closing(tokens);
+                            return;
                         } else {
                             str.push_str("//");
                         }
