@@ -3,18 +3,17 @@ use std::{fs, str::Chars, thread::current};
 
 #[derive(Debug, Clone)]
 pub enum Token {
-    LPAREN,
-    RPAREN,
-    HASH,
     IDENT { str: String },
     DEF,
     ENDEF,
-    VAR { name: String },
+    VAR,
     MARK,
     DD,
     EOF,
     PLACE,
-    WHERE
+    WHERE,
+    SPACE,
+    NL,
 }
 pub struct Lexer {
     ptr: usize,
@@ -36,42 +35,150 @@ impl Lexer {
         self.ptr = self.ptr + 1;
         self.data[self.ptr - 1]
     }
+    fn unpop(&mut self){
+        self.ptr = self.ptr - 1;
+    }
     fn peek_ahead(&self, i: usize) -> char {
         self.data[self.ptr + i]
     }
     fn can_pop(&self) -> bool {
         self.ptr < self.data.len()
     }
+
     pub fn parse(mut self) -> Vec<Token> {
         let mut tokens: Vec<Token> = Vec::new();
 
-        // termination tokens
-        // //
-        // #
-        // (
-        // )
-        // \n
-        // space
+        loop {
+            if !self.can_pop() {
+                tokens.push(Token::EOF);
+                return  tokens;
+            }
 
-        // single char tokens
-        self.handle_interruption_tokens(&mut tokens);
-        return tokens;
-    }
+            let mut curr = self.pop();
 
-    fn handle_ident(&mut self, char: char, tokens: &mut Vec<Token>) {
-        let mut str = String::new();
-        // while not terminator, build ident
-        str.push(char);
+            match curr {
+                ':' => {
+                    tokens.push(Token::DD);
+                    continue;
+                },
+                '/' => {
+                    // //-
+                    if self.peek() == '/' {
+                        self.pop();
+                        if self.peek() == '-' {
+                            self.pop();
+                            tokens.push(Token::MARK);
+                        }
+                    } else
+                    // /*-
+                    if self.peek() == '*' {
+                        self.pop();
+                        if self.peek() == '-' {
+                            self.pop();
+                            tokens.push(Token::MARK);
+                        } else {
+                            tokens.push(Token::IDENT {
+                                str: "/*".to_string(),
+                            })
+                        }
+                    } else {
+                        tokens.push(Token::IDENT {
+                            str: "/".to_string(),
+                        });
+                    }
+                    continue;
+                }
+                // *///-
+                '*' => {
+                    if self.peek() == '/' {
+                        self.pop();
+                        if self.peek() == '/' {
+                            self.pop();
+                            if self.peek() == '/' {
+                                self.pop();
+                                if self.peek() == '-' {
+                                    self.pop();
+                                    tokens.push(Token::MARK);
+                                } else {
+                                    tokens.push(Token::IDENT {
+                                        str: "*///".to_string(),
+                                    });
+                                }
+                            } else {
+                                tokens.push(Token::IDENT {
+                                    str: "*//".to_string(),
+                                });
+                            }
+                        } else {
+                            tokens.push(Token::IDENT {
+                                str: "*/".to_string(),
+                            });
+                        }
+                    } else {
+                        tokens.push(Token::IDENT {
+                            str: "*".to_string(),
+                        });
+                    }
+                    continue;
+                },
+                ' ' => {
+                    tokens.push(Token::SPACE);
+                    continue;
+                },
+                '\n' => {
+                    tokens.push(Token::NL);
+                    continue;
+                },
+                '$' => {
+                    if self.peek() == '#' {
+                        tokens.push(Token::VAR);
+                    } else {
+                        tokens.push(Token::IDENT {str: "$".to_string()});
+                    }
+                    continue;
+                }
+                _ => (),
+            }
 
-        while self.can_pop() && !self.is_char_terminator(self.peek()) {
-            let curr = self.pop();
-            str.push(curr);
-        }
-        match str {
-            _ => {
-                tokens.push(Token::IDENT { str });
+            let mut str = String::new();
+
+            if self.is_char_terminator(curr) {
+                tokens.push(Token::IDENT { str: curr.to_string() });
+               continue;
+            }
+
+            while self.can_pop() && !self.is_char_terminator(curr) {
+                str.push(curr);
+                curr = self.pop();
+            }
+            self.unpop();
+
+            match str.as_str() {
+                "place" => {
+                    tokens.push(Token::PLACE);
+                    continue;
+                },
+                "def" => {
+                    tokens.push(Token::DEF);
+                    continue;
+                },
+                "endef" => {
+                    tokens.push(Token::ENDEF);
+                    continue;
+                },
+                "where" => {
+                    tokens.push(Token::WHERE);
+                    continue;
+                },
+                _ => {
+                    tokens.push(Token::IDENT { str });
+                    continue;
+                }
             }
         }
+
+        //self.handle_interruption_tokens(&mut tokens);
+        //return tokens;
     }
 
     fn is_char_terminator(&self, char: char) -> bool {
@@ -83,265 +190,5 @@ impl Lexer {
             return true;
         }
         false
-        /*
-        match char {
-            ' ' => true,
-            '(' => true,
-            ')' => true,
-            '\n' => true,
-            '/' => true,
-            '-' => true,
-            '$' => true,
-            '#' => true,
-            ':' => true,
-            '*' => true,
-            ',' => true,
-            '{' => true,
-            '}' => true,
-            '[' => true,
-            ']' => true,
-            '.' => true,
-            _ => false,
-        }
-        */
-    }
-
-    fn handle_interruption_tokens(&mut self, tokens: &mut Vec<Token>) {
-        while self.can_pop() {
-            let current = self.pop();
-            match current {
-                '/' => {
-                    if self.peek() == '/' {
-                        self.pop();
-                        if self.peek() == '-' {
-                            self.pop();
-                            // //-
-                            tokens.push(Token::MARK);
-                            self.handle_instruction(tokens);
-                        } else {
-                            tokens.push(Token::IDENT {
-                                str: "//".to_string(),
-                            });
-                        }
-                    } else if self.peek() == '*' {
-                        self.pop();
-                        // /*-
-                        if self.peek() == '-' {
-                            self.pop();
-                            tokens.push(Token::MARK);
-                            self.handle_instruction(tokens);
-                        } else {
-                            tokens.push(Token::IDENT {
-                                str: "/*".to_string(),
-                            });
-                        }
-                    } else {
-                        break;
-                    }
-                }
-                '*' => {
-                    if self.pop() == '/' {
-                        if self.pop() != '/' {
-                            tokens.push(Token::IDENT {
-                                str: "*/".to_string(),
-                            });
-                        }
-
-                        if self.pop() != '/' {
-                            tokens.push(Token::IDENT {
-                                str: "*//".to_string(),
-                            });
-                        }
-
-                        if self.pop() == '-' {
-                            tokens.push(Token::MARK);
-                        } else {
-                            tokens.push(Token::IDENT {
-                                str: "*///".to_string(),
-                            });
-                        }
-                    } else {
-                        tokens.push(Token::IDENT {
-                            str: "*".to_string(),
-                        });
-                    }
-                }
-                _ => {
-                    self.handle_ident(current, tokens);
-                }
-            }
-        }
-    }
-    fn handle_var(&mut self, tokens: &mut Vec<Token>) {
-        let mut var_name = String::new();
-        while self.can_pop() && !self.is_char_terminator(self.peek()) {
-            let char = self.pop();
-            var_name.push(char);
-        }
-
-        tokens.push(Token::VAR { name: var_name });
-    }
-
-    fn handle_instruction(&mut self, tokens: &mut Vec<Token>) {
-        let mut instr = String::new();
-        let mut curr = self.peek();
-        while curr == ' ' {
-            curr = self.pop();
-        }
-
-        while !self.is_char_terminator(curr) {
-            instr.push(curr);
-            curr = self.pop();
-        }
-
-        match instr.as_str() {
-            "def" => {
-                println!("curr def {}", curr);
-                tokens.push(Token::DEF);
-                self.handle_instr_sig(tokens, curr);
-                self.handle_code_block(tokens);
-            }
-            "place" => {
-                println!("curr {}", curr);
-                self.handle_instr_sig(tokens, curr);
-                tokens.push(Token::PLACE);
-            }
-            _ => {
-                panic!("{} is an invalid instruction!", instr);
-            }
-        }
-    }
-
-    fn handle_instr_sig(&mut self, tokens: &mut Vec<Token>, tok: char) {
-        if tok == ':' {
-            tokens.push(Token::DD);
-            return;
-        }
-        let mut curr = self.pop();
-        self.handle_ident(curr, tokens);
-        while curr == ' ' {
-            curr = self.pop();
-        }
-        if self.peek() == ':' {
-            tokens.push(Token::DD);
-            self.pop();
-        } else {
-            // todo:
-            
-        }
-    }
-
-    fn handle_closing(&mut self, tokens: &mut Vec<Token>) {
-        let mut ident_str = String::new();
-        let mut curr_isntr_char = self.peek();
-
-        while curr_isntr_char == ' ' {
-            self.pop();
-            curr_isntr_char = self.peek();
-        }
-        while !self.is_char_terminator(curr_isntr_char) {
-            self.pop();
-            ident_str.push(curr_isntr_char);
-            curr_isntr_char = self.peek();
-        }
-        match ident_str.as_str() {
-            "endef" => {
-                tokens.push(Token::ENDEF);
-                if curr_isntr_char == ':' {
-                    tokens.push(Token::DD);
-                    return;
-                } else {
-                }
-            }
-            _ => {
-                panic!("{} is not a valid instruction!", ident_str);
-            }
-        }
-    }
-
-    fn handle_code_block(&mut self, tokens: &mut Vec<Token>) {
-        let mut curr = self.pop();
-        let mut str = String::new();
-        loop {
-            match curr {
-                '*' => {
-                    let next = self.peek();
-                    match next {
-                        '/' => {
-                            self.pop();
-                            if self.pop() != '/' {
-                                str.push_str("*/");
-                            }
-                            if self.pop() != '/' {
-                                str.push_str("*//");
-                            }
-
-                            let next2 = self.peek();
-                            // *///-
-                            match next2 {
-                                '-' => {
-                                    self.pop();
-                                    tokens.push(Token::IDENT { str: str.clone() });
-                                    tokens.push(Token::MARK);
-                                    self.handle_closing(tokens);
-                                    return;
-                                }
-                                _ => {
-                                    str.push_str("*///");
-                                }
-                            }
-                        }
-                        _ => {
-                            str.push(curr);
-                        }
-                    }
-                }
-                '/' => {
-                    if self.peek() == '/' {
-                        self.pop();
-                        // //-
-                        if self.peek() == '-' {
-                            self.pop();
-                            tokens.push(Token::IDENT { str: str.clone() });
-                            tokens.push(Token::MARK);
-                            self.handle_closing(tokens);
-                            return;
-                        } else {
-                            str.push_str("//");
-                        }
-                    } else {
-                        str.push('/');
-                    }
-                }
-                '$' => {
-                    curr = self.peek();
-                    match curr {
-                        '#' => {
-                            self.pop();
-                            tokens.push(Token::IDENT { str });
-                            str = String::new();
-                            let mut var_name = String::new();
-                            curr = self.peek();
-                            while !self.is_char_terminator(curr) {
-                                self.pop();
-                                var_name.push(curr);
-                                curr = self.peek();
-                            }
-                            tokens.push(Token::VAR { name: var_name });
-                        }
-                        _ => {
-                            str.push('$');
-                        }
-                    }
-                }
-                _ => {
-                    str.push(curr);
-                }
-            }
-            if !self.can_pop() {
-                return;
-            }
-            curr = self.pop();
-        }
     }
 }

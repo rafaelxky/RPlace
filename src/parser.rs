@@ -3,140 +3,160 @@ use std::process::exit;
 
 use crate::lexer::Token;
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub enum Node {
     // - def template_1
-    DEF{name: String, body: Box<Node>},
+    DEF { name: String, body: Box<Node> },
     // either data or var ($a)
-    BODY{data: Vec<Node>},
+    BODY { data: Vec<Node> },
     // def body
-    DATA{data: String},
+    DATA { data: String },
     // def variables
-    VARTEMPLATE{name: String},
+    VARTEMPLATE { name: String },
+    PLACE { name: String },
 }
 pub struct Parser {
     tokens: Vec<Token>,
-    ptr: usize
+    ptr: usize,
 }
 impl Parser {
-    pub fn new(tokens: Vec<Token>) -> Self{ 
+    pub fn new(tokens: Vec<Token>) -> Self {
         Self { tokens, ptr: 0 }
     }
-    fn peek(&self) -> &Token{
-        &self.tokens[self.ptr]
+    fn peek(&self) -> Token {
+        self.tokens[self.ptr].clone()
     }
-    fn pop(&mut self) -> &Token{
-        self.ptr = self.ptr +1;
-        &self.tokens[self.ptr - 1]
+    fn pop(&mut self) -> Token {
+        self.ptr = self.ptr + 1;
+        self.tokens[self.ptr - 1].clone()
     }
-    fn can_pop(&self) -> bool{
+    fn can_pop(&self) -> bool {
         self.tokens.len() > self.ptr
     }
-    pub fn parse(mut self) -> Vec<Node>{
+
+    pub fn parse(mut self) -> Vec<Node> {
         let mut nodes: Vec<Node> = Vec::new();
         while self.can_pop() {
-            let curr = self.pop();
+            let mut curr = self.pop();
             match curr {
-                // starts with //-
                 Token::MARK => {
-                    nodes.push(self.handle_line());
+                    self.remove_spaces();
+                    match self.peek() {
+                        Token::DEF => {
+                            self.pop();
+                            self.handle_def(&mut nodes);
+                        },
+                        _ => {
+                            panic!("{:?} cannot go after a mark", self.peek());
+                        }
+                    }
                 }
-                _ => (),
+                _ => continue,
             }
         }
         nodes
     }
-    fn handle_line(&mut self) -> Node{
-        // we have //-
-        // possible
-        // def
-        // endef
-        let curr = self.pop();
-        match curr {
-            Token::DEF => {
-                return self.handle_def();
-            },
-            Token::PLACE => {
-                return  self.handle_place();
+
+    fn handle_def(&mut self, nodes: &mut Vec<Node>) {
+        //- def ...
+
+        self.remove_spaces();
+
+        let mut def_name = String::new();
+
+        match self.peek() {
+            Token::IDENT { str } => {
+                self.pop();
+                def_name = str;
             }
             _ => {
-                panic!("Error: {:?} isn't valid after //-", curr);
+                panic!("found {:?} expected definition name", self.peek());
             }
         }
-    }
 
-    fn handle_place(){
-        
-    }
+        self.remove_spaces();
 
-    fn handle_def(&mut self) -> Node{
-        let mut def_name : String = String::new();
-        let mut body_data: Vec<Node> = Vec::new();
-        // if can pop and is ident
-        // we have //- def
-        if !self.can_pop() {
-            panic!("Expected IDENT found EOF");
-        }
-        if let Token::IDENT{str} = self.peek() {
-            def_name = str.to_string();
-            self.pop();
-        } else {
-            panic!("Expected IDENT found {:?}", self.peek());
-        }
-        if let Token::DD = self.peek() {
-            self.pop();
-        } else {
-            panic!("Expected \":\" found {:?}", self.peek());
-        }
-        
-        // we have //- def ident:
-        loop {
-            if !self.can_pop(){
-                panic!("found EOF, expected matching MARK");
-            }
-            if matches!(self.peek(), Token::MARK){
+        match self.peek() {
+            Token::DD => {
                 self.pop();
-                if !self.can_pop() {
-                    panic!("expected ENDEF found EOF")
-                }
-                if matches!(self.peek(), Token::ENDEF){
-                    self.pop();
-                    if !self.can_pop() {
-                        panic!("expected DD found EOF")
-                    }
-                    if matches!(self.peek(), Token::DD){
-                        self.pop();
-                        //- endef:
-                        break;
-                    }
-                    panic!("Expected \":\" after \"endef\" found {:?}", self.peek());
-                }
-                panic!("Marks inside def blocks unimplemented");
             }
-            let curr = self.pop();
-            match curr {
-                // if its variable
-                Token::VAR { name } => {
-                    body_data.push(Node::VARTEMPLATE { name: name.to_string() });
-                },
+            _ => {
+                panic!("{:?} is invalid in def declaration of name {}", self.peek(), def_name);
+            }
+        }
+
+        // body handling
+        let body = self.build_body();
+        nodes.push(Node::DEF { name: def_name.to_string(), body: Box::new(body) });
+    }
+
+    fn remove_spaces(&mut self) {
+        loop {
+            match self.peek() {
+                Token::SPACE => {
+                    self.pop();
+                }
+                _ => return,
+            }
+        }
+    }
+
+    // ends at endef
+    fn build_body(&mut self) -> Node {
+        let mut body_str = String::new();
+        let mut body: Vec<Node> = Vec::new();
+        loop {
+            match self.peek() {
                 Token::IDENT { str } => {
-                    body_data.push(Node::DATA { data: str.to_string() });
-                },
+                    body_str.push_str(&str);
+                }
                 Token::DD => {
-                    body_data.push(Node::DATA { data: ":".to_string() });
-                },  
-                Token::LPAREN => {
-                    body_data.push(Node::DATA { data: "(".to_string() });
+                    body_str.push(':');
+                }
+                Token::SPACE => {
+                    body_str.push(' ');
+                }
+                Token::NL => {
+                    body_str.push('\n');
+                }
+                Token::VAR => {
+                    self.pop();
+                    body.push(Node::DATA {
+                        data: body_str.to_string(),
+                    });
+                    body_str = String::new();
+                    self.remove_spaces();
+                    match self.peek() {
+                        Token::IDENT { str } => {
+                            self.pop();
+                            body.push(Node::VARTEMPLATE {
+                                name: str.to_string(),
+                            });
+                        }
+                        _ => {
+                            panic!("expected IDENT found {:?}", self.peek())
+                        }
+                    }
                 },
-                Token::RPAREN => {
-                    body_data.push(Node::DATA { data: ")".to_string() });
+                Token::MARK => {
+                    self.pop();
+                    self.remove_spaces();
+                    match self.peek() {
+                        Token::ENDEF => {
+                            self.pop();
+                            break;
+                        }
+                        _ => {
+                            panic!("{:?} is not a valid inner instruction", self.peek())
+                        }
+                    }
                 }
                 _ => {
-                    
+                    panic!("unexpected inner token {:?}", self.peek());
                 }
             }
+            self.pop();
         }
-        let body = Node::BODY { data: body_data };
-        return Node::DEF { name: def_name, body: Box::new(body) };
+        return Node::BODY { data: body };
     }
 }
