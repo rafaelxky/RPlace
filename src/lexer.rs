@@ -27,12 +27,10 @@ impl Lexer {
         Self { ptr: 0, data }
     }
     fn peek(&self) -> char {
-        //println!("peek {}", self.data[self.ptr]);
         self.data[self.ptr]
     }
     fn pop(&mut self) -> char {
         self.ptr = self.ptr + 1;
-        //println!("pop {}", self.data[self.ptr - 1]);
         self.data[self.ptr - 1]
     }
     fn peek_ahead(&self, i: usize) -> char {
@@ -243,7 +241,6 @@ impl Lexer {
         let mut str = String::new();
         loop {
             if !self.can_pop() {
-                println!("returning from handle_code_block due to eof");
                 return;
             }
             match curr {
@@ -252,11 +249,9 @@ impl Lexer {
                     match next {
                         '/' => {
                             self.pop();
-                            println!("poped {}", self.peek());
                             if self.pop() != '/' {
                                 str.push_str("*/");
                             }
-                            println!("poped {}", self.peek());
                             if self.pop() != '/' {
                                 str.push_str("*//");
                             }
@@ -266,30 +261,23 @@ impl Lexer {
                             match next2 {
                                 '-' => {
                                     self.pop();
-                                    println!("-");
                                     tokens.push(Token::IDENT { str: str.clone() });
                                     tokens.push(Token::MARK);
                                     let mut ident_str = String::new();
                                     let mut curr_isntr_char = self.pop();
 
                                     while curr_isntr_char == ' ' {
-                                        println!("{} = ' '", curr_isntr_char);
                                         curr_isntr_char = self.pop();
                                     }
                                     while !self.is_char_terminator(curr_isntr_char) {
-                                        println!("{} not term", curr_isntr_char);
                                         ident_str.push(curr_isntr_char);
                                         curr_isntr_char = self.pop();
                                     }
-                                    println!("char term {}", curr_isntr_char);
                                     match ident_str.as_str() {
                                         "endef" => {
                                             tokens.push(Token::ENDEF);
                                             if curr_isntr_char == ':' {
                                                 tokens.push(Token::DD);
-                                                println!(
-                                                    "returning from handle_code_block due to endef"
-                                                );
                                                 return;
                                             } else {
                                             }
@@ -300,7 +288,6 @@ impl Lexer {
                                     }
                                 }
                                 _ => {
-                                    println!("!-");
                                     str.push_str("*///");
                                 }
                             }
@@ -319,14 +306,12 @@ impl Lexer {
                             tokens.push(Token::IDENT { str });
                             str = String::new();
                             let mut var_name = String::new();
-                            println!("is char term? {}", curr);
                             curr = self.peek();
                             while !self.is_char_terminator(curr) {
                                 self.pop();
                                 var_name.push(curr);
                                 curr = self.peek();
                             }
-                            println!("varname  {}", var_name);
                             tokens.push(Token::VAR { name: var_name });
                         }
                         _ => {

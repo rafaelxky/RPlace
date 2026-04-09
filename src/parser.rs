@@ -40,7 +40,6 @@ impl Parser {
                 // starts with //-
                 Token::MARK => {
                     nodes.push(self.handle_line());
-                    println!("Def declared {:?}", nodes.last());
                 }
                 _ => (),
             }
@@ -112,11 +111,9 @@ impl Parser {
                 // if its variable
                 Token::VAR { name } => {
                     body_data.push(Node::VARTEMPLATE { name: name.to_string() });
-                    println!("var");
                 },
                 Token::IDENT { str } => {
                     body_data.push(Node::DATA { data: str.to_string() });
-                    println!("ident");
                 },
                 Token::DD => {
                     body_data.push(Node::DATA { data: ":".to_string() });

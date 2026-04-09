@@ -1,11 +1,3 @@
-/*- def a:
-
-   pub struct $#struct_name {
-        str: $#var_type,
-   } 
-
-*///-endef:
-
 /*- def b:
 
     pub struct $#struct_name {
