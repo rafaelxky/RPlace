@@ -6,7 +6,7 @@
     pub impl $#struct_name {
         pub fn new() -> Self{
             Self {
-                "Hello world from $#struct_name !".to_string(),
+                "Hello world from $#struct_name!".to_string(),
             }
         }
         pub fn print(&self){
@@ -15,5 +15,3 @@
     }
 
 *///- endef:
-
-//- place b 

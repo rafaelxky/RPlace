@@ -13,6 +13,7 @@ pub enum Token {
     MARK,
     DD,
     EOF,
+    PLACE,
 }
 pub struct Lexer {
     ptr: usize,
@@ -64,20 +65,19 @@ impl Lexer {
             let curr = self.pop();
             str.push(curr);
         }
-        match str.as_str() {
-            "def" => {
-                tokens.push(Token::DEF);
-            }
-            "endef" => {
-                tokens.push(Token::ENDEF);
-            }
-            _ => {
-                tokens.push(Token::IDENT { str });
-            }
-        }
+        tokens.push(Token::IDENT { str });
     }
 
     fn is_char_terminator(&self, char: char) -> bool {
+        match char {
+            '_' => return false,
+            _ => (),
+        }
+        if !char.is_alphanumeric() {
+            return true;
+        }
+        false
+        /*
         match char {
             ' ' => true,
             '(' => true,
@@ -97,6 +97,7 @@ impl Lexer {
             '.' => true,
             _ => false,
         }
+        */
     }
 
     fn handle_interruption_tokens(&mut self, tokens: &mut Vec<Token>) {
@@ -189,16 +190,22 @@ impl Lexer {
         match instr.as_str() {
             "def" => {
                 tokens.push(Token::DEF);
+                self.handle_instr_sig(tokens);
                 self.handle_code_block(tokens);
+            }
+            "place" => {
+                self.handle_instr_sig(tokens);
+                tokens.push(Token::PLACE);
             }
             _ => {
                 panic!("{} is an invalid instruction!", instr);
             }
         }
+    }
 
-        curr = self.pop();
+    fn handle_instr_sig(&mut self, tokens: &mut Vec<Token>) {
+        let mut curr = self.pop();
         self.handle_ident(curr, tokens);
-
         while curr == ' ' {
             curr = self.pop();
         }
@@ -240,9 +247,6 @@ impl Lexer {
         let mut curr = self.pop();
         let mut str = String::new();
         loop {
-            if !self.can_pop() {
-                return;
-            }
             match curr {
                 '*' => {
                     let next = self.peek();
@@ -315,6 +319,9 @@ impl Lexer {
                 _ => {
                     str.push(curr);
                 }
+            }
+            if !self.can_pop() {
+                return;
             }
             curr = self.pop();
         }
