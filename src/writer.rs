@@ -36,7 +36,12 @@ impl Writer {
             }
             Node::PLACE { name, args } => {
                 let mut args_map: HashMap<String,String> = HashMap::new();
-                args.iter().for_each(|arg|{args_map.insert(arg.0.clone(), arg.1.clone());});
+
+                args.iter().for_each(|arg|{
+                    println!("Arg to replace, {}, {}", arg.0, arg.1);
+                    args_map.insert(arg.0.clone(), arg.1.clone());
+                });
+
                 match def_map.get(name) {
                 Some(val) => match val {
                     Node::DEF { name:_, body } => {
@@ -53,7 +58,7 @@ impl Writer {
                                                     val
                                                 },
                                                 None => {
-                                                    panic!("No variable to replace with name {}!",name)
+                                                    panic!("No value specified for \"{}\"!",name)
                                                 }
                                             };
                                             text.push_str(replacement);

@@ -156,6 +156,7 @@ impl Parser {
                     match self.peek() {
                         Token::IDENT { str } => {
                             self.pop();
+                            println!("var template: {}",str.to_string());
                             body.push(Node::VARTEMPLATE {
                                 name: str.to_string(),
                             });
@@ -214,9 +215,10 @@ impl Parser {
                 });
                 return;
             }
-            Token::WHERE => loop {
-                self.pop();
+            Token::WHERE => {
                 let mut args: Vec<(String, String)> = Vec::new();
+                loop {
+                self.pop();
                 self.remove_spaces();
                 match self.peek() {
                     Token::IDENT { str } => {
@@ -230,7 +232,7 @@ impl Parser {
                                 match self.peek() {
                                     Token::IDENT { str } => {
                                         self.pop();
-                                        println!("pushed, {} , {}", from, str);
+                                        println!("pushed arg in handle place, {} = {}", from, str);
                                         args.push((from, str));
                                         self.remove_spaces();
                                         match self.peek() {
@@ -275,7 +277,7 @@ impl Parser {
                         panic!("{:?} invalid after WHERE", self.peek());
                     }
                 }
-            },
+            }},
             _ => {
                 panic!("{:?} cant go after DEF name, forgot \":\" ?", self.peek())
             }
