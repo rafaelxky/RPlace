@@ -14,6 +14,8 @@ pub enum Token {
     WHERE,
     SPACE,
     NL,
+    EQUALS,
+    COMMA,
 }
 pub struct Lexer {
     ptr: usize,
@@ -62,6 +64,14 @@ impl Lexer {
                     tokens.push(Token::DD);
                     continue;
                 },
+                '=' => {
+                    tokens.push(Token::EQUALS);
+                    continue;
+                },
+                ',' => {
+                    tokens.push(Token::COMMA);
+                    continue;
+                }
                 '/' => {
                     // //-
                     if self.peek() == '/' {

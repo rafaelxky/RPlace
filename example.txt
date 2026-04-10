@@ -16,4 +16,5 @@
 
 *///- endef:
 
-//- place a:
+//- place b where struct_name = vec:
+//- place b where struct_name = vec2:

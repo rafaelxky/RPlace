@@ -18,7 +18,7 @@ fn main() {
     }
 
     let writer = Writer::new(nodes);
-    let replaced = writer.replace(&[("b","world!"), ("struct_name", "vec"), ("var_type","String")]);
+    let replaced = writer.replace();
     println!("replaced: {}",replaced);
 }
 

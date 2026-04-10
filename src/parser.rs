@@ -6,14 +6,26 @@ use crate::lexer::Token;
 #[derive(Debug, Clone)]
 pub enum Node {
     // - def template_1
-    DEF { name: String, body: Box<Node> },
+    DEF {
+        name: String,
+        body: Box<Node>,
+    },
     // either data or var ($a)
-    BODY { data: Vec<Node> },
+    BODY {
+        data: Vec<Node>,
+    },
     // def body
-    DATA { data: String },
+    DATA {
+        data: String,
+    },
     // def variables
-    VARTEMPLATE { name: String },
-    PLACE { name: String },
+    VARTEMPLATE {
+        name: String,
+    },
+    PLACE {
+        name: String,
+        args: Vec<(String, String)>,
+    },
 }
 pub struct Parser {
     tokens: Vec<Token>,
@@ -131,6 +143,9 @@ impl Parser {
                 Token::NL => {
                     body_str.push('\n');
                 }
+                Token::COMMA => {
+                    body_str.push(',');
+                }
                 Token::VAR => {
                     self.pop();
                     body.push(Node::DATA {
@@ -178,19 +193,89 @@ impl Parser {
 
     fn handle_place(&mut self, nodes: &mut Vec<Node>) {
         self.remove_spaces();
-        match self.peek() {
+
+        let place_id = match self.peek() {
             Token::IDENT { str } => {
                 self.pop();
-                nodes.push(Node::PLACE { name: str });
+                str
             }
             _ => {
                 panic!("{:?} cant go after DEF", self.peek())
             }
-        }
+        };
+
+        self.remove_spaces();
         match self.peek() {
             Token::DD => {
                 self.pop();
+                nodes.push(Node::PLACE {
+                    name: place_id,
+                    args: Vec::new(),
+                });
+                return;
             }
+            Token::WHERE => loop {
+                self.pop();
+                let mut args: Vec<(String, String)> = Vec::new();
+                self.remove_spaces();
+                match self.peek() {
+                    Token::IDENT { str } => {
+                        self.pop();
+                        self.remove_spaces();
+                        let from = str;
+                        match self.peek() {
+                            Token::EQUALS => {
+                                self.pop();
+                                self.remove_spaces();
+                                match self.peek() {
+                                    Token::IDENT { str } => {
+                                        self.pop();
+                                        println!("pushed, {} , {}", from, str);
+                                        args.push((from, str));
+                                        self.remove_spaces();
+                                        match self.peek() {
+                                            Token::COMMA => {
+                                                self.pop();
+                                            },
+                                            Token::DD => {
+                                                self.pop();
+                                                nodes.push(Node::PLACE {
+                                                    name: place_id.clone(),
+                                                    args: args,
+                                                });
+                                                return;
+                                            }
+                                            _ => {
+                                                panic!("expected , or : found {:?}", self.peek());
+                                            }
+                                        }
+                                    }
+                                    _ => {
+                                        panic!(
+                                            "expected argument value as ident, found {:?}",
+                                            self.peek()
+                                        );
+                                    }
+                                }
+                            }
+                            _ => {
+                                panic!("expected = found {:?}", self.peek());
+                            }
+                        }
+                    }
+                    Token::DD => {
+                        self.pop();
+                        nodes.push(Node::PLACE {
+                            name: place_id.clone(),
+                            args: Vec::new(),
+                        });
+                        return;
+                    }
+                    _ => {
+                        panic!("{:?} invalid after WHERE", self.peek());
+                    }
+                }
+            },
             _ => {
                 panic!("{:?} cant go after DEF name, forgot \":\" ?", self.peek())
             }
