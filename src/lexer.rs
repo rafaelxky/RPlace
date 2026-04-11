@@ -1,5 +1,5 @@
 use core::panic;
-use std::{fs, str::Chars, thread::current};
+use std::{fs, path::Path, str::Chars, thread::current};
 
 #[derive(Debug, Clone)]
 pub enum Token {
@@ -28,11 +28,14 @@ pub struct Lexer {
 // this is all wrong, correctness is in parser not lexer
 impl Lexer {
     pub fn new<T: ToString>(path: T) -> Self {
+        if !Path::new(&path.to_string()).exists() {
+            panic!("Couldnt find file {}", path.to_string());
+        }
         let data = fs::read_to_string(path.to_string())
             .unwrap()
             .chars()
             .collect();
-        Self { ptr: 0, data}
+        Self { ptr: 0, data }
     }
     fn peek(&self) -> char {
         self.data[self.ptr]
@@ -41,7 +44,7 @@ impl Lexer {
         self.ptr = self.ptr + 1;
         self.data[self.ptr - 1]
     }
-    fn unpop(&mut self){
+    fn unpop(&mut self) {
         self.ptr = self.ptr - 1;
     }
     fn peek_ahead(&self, i: usize) -> char {
@@ -58,7 +61,7 @@ impl Lexer {
             if !self.can_pop() {
                 tokens.push(Token::EOF);
                 println!("eof");
-                return  tokens;
+                return tokens;
             }
 
             let mut curr = self.pop();
@@ -67,24 +70,24 @@ impl Lexer {
                 ':' => {
                     tokens.push(Token::DD);
                     continue;
-                },
+                }
                 '=' => {
                     tokens.push(Token::EQUALS);
                     continue;
-                },
+                }
                 ',' => {
                     tokens.push(Token::COMMA);
                     continue;
-                },
+                }
                 '[' => {
                     tokens.push(Token::LSRQBRACK);
                     continue;
-                },
+                }
                 ']' => {
                     tokens.push(Token::RSRQBRACK);
                     continue;
-                },
-                '"'=> {
+                }
+                '"' => {
                     tokens.push(Token::DQUOTE);
                     continue;
                 }
@@ -147,21 +150,23 @@ impl Lexer {
                         });
                     }
                     continue;
-                },
+                }
                 ' ' => {
                     tokens.push(Token::SPACE);
                     continue;
-                },
+                }
                 '\n' => {
                     tokens.push(Token::NL);
                     continue;
-                },
+                }
                 '$' => {
                     if self.peek() == '#' {
                         self.pop();
                         tokens.push(Token::VAR);
                     } else {
-                        tokens.push(Token::IDENT {str: "$".to_string()});
+                        tokens.push(Token::IDENT {
+                            str: "$".to_string(),
+                        });
                     }
                     continue;
                 }
@@ -171,8 +176,10 @@ impl Lexer {
             let mut str = String::new();
 
             if self.is_char_terminator(curr) {
-                tokens.push(Token::IDENT { str: curr.to_string() });
-               continue;
+                tokens.push(Token::IDENT {
+                    str: curr.to_string(),
+                });
+                continue;
             }
 
             while self.can_pop() && !self.is_char_terminator(curr) {
@@ -185,23 +192,23 @@ impl Lexer {
                 "place" => {
                     tokens.push(Token::PLACE);
                     continue;
-                },
+                }
                 "def" => {
                     tokens.push(Token::DEF);
                     continue;
-                },
+                }
                 "endef" => {
                     tokens.push(Token::ENDEF);
                     continue;
-                },
+                }
                 "where" => {
                     tokens.push(Token::WHERE);
                     continue;
-                },
+                }
                 "include" => {
                     tokens.push(Token::INCLUDE);
                     continue;
-                },
+                }
                 _ => {
                     tokens.push(Token::IDENT { str });
                     continue;
