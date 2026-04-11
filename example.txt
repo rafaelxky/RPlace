@@ -16,6 +16,8 @@ if
 () {} [] , . - :
 Hello world
 
+//- include include.txt:
+
 /*- def b:
 
 () {} [] , . - :
@@ -38,6 +40,10 @@ Hello world
 
 *///- endef:
 
+/*- def c:
+    hello $#struct_name
+*///- endef:
+
 //- place b where struct_name = vec, fn_name=a, body=hello:
 
 //- place b where struct_name = vec2, fn_name=b, body="
@@ -45,3 +51,7 @@ Hello world
             return self.str;
         }
 //-":
+
+//- place c where struct_name = a:
+
+//- place n where text = "hello world":

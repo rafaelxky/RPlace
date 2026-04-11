@@ -26,14 +26,18 @@ pub enum Node {
         name: String,
         args: Vec<(String, String)>,
     },
+    INCLUDE {
+        path: String,
+    }
 }
 pub struct Parser {
     tokens: Vec<Token>,
     ptr: usize,
+    line: usize,
 }
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Self { tokens, ptr: 0 }
+        Self { tokens, ptr: 0 , line: 0}
     }
     fn peek(&self) -> Token {
         self.tokens[self.ptr].clone()
@@ -64,11 +68,18 @@ impl Parser {
                         Token::PLACE => {
                             self.pop();
                             self.handle_place(&mut nodes);
-                        }
+                        },
+                        Token::INCLUDE => {
+                            self.pop();
+                            self.handle_include(&mut nodes);
+                        },
                         _ => {
-                            panic!("{:?} cannot go after a mark", self.peek());
+                            panic!("{:?} cannot go after an initial mark in line {}, did you forget a mark?", self.peek(),self.line);
                         }
                     }
+                },
+                Token::INCLUDE => {
+                    body_str.push_str("include");
                 },
                 Token::IDENT { str } => {
                     body_str.push_str(&str);
@@ -101,6 +112,7 @@ impl Parser {
                     body_str.push_str("endef");
                 },
                 Token::NL => {
+                    self.line = self.line + 1;
                     body_str.push('\n');
                 },
                 Token::DEF => body_str.push_str("def"),
@@ -112,6 +124,35 @@ impl Parser {
         println!("finished in parser");
         nodes.push(Node::DATA { data: body_str.to_string() });
         nodes
+    }
+
+    fn handle_include(&mut self, nodes: &mut Vec<Node>){
+        let mut path = String::new();
+
+        self.remove_spaces();
+
+        loop {
+            match self.peek(){
+                Token::IDENT { str } => {
+                    path.push_str(&str);
+                },
+                Token::DD => {
+                    self.pop();
+                    nodes.push(Node::INCLUDE { path: path.clone() });
+                    return;
+                },
+                Token::INCLUDE => {
+                    path.push_str("include");
+                },
+                Token::WHERE => {
+                    path.push_str("where");
+                },
+                _ => {
+                    panic!("Unexpected token in include declaration {:?} in line {}", self.peek(),self.line);
+                }
+            }
+            self.pop();
+        }
     }
 
     fn handle_def(&mut self, nodes: &mut Vec<Node>) {
@@ -127,7 +168,7 @@ impl Parser {
                 def_name = str;
             }
             _ => {
-                panic!("found {:?} expected definition name", self.peek());
+                panic!("found {:?} expected definition name in line {}", self.peek(),self.line);
             }
         }
 
@@ -141,9 +182,10 @@ impl Parser {
             }
             _ => {
                 panic!(
-                    "{:?} is invalid in def declaration of name {}",
+                    "{:?} is invalid in def declaration of name {} in line {}",
                     self.peek(),
-                    def_name
+                    def_name,
+                    self.line
                 );
             }
         }
@@ -175,7 +217,10 @@ impl Parser {
             match self.peek() {
                 Token::IDENT { str } => {
                     body_str.push_str(&str);
-                }
+                },
+                Token::INCLUDE => {
+                    body_str.push_str("include");
+                },
                 Token::DD => {
                     body_str.push(':');
                 }
@@ -183,6 +228,7 @@ impl Parser {
                     body_str.push(' ');
                 }
                 Token::NL => {
+                    self.line = self.line + 1;
                     body_str.push('\n');
                 }
                 Token::COMMA => {
@@ -214,7 +260,7 @@ impl Parser {
                             continue;
                         }
                         _ => {
-                            panic!("expected IDENT found {:?}", self.peek())
+                            panic!("expected IDENT found {:?} in line {}", self.peek(), self.line)
                         }
                     }
                 }
@@ -233,13 +279,13 @@ impl Parser {
                                     self.pop();
                                 }
                                 _ => {
-                                    panic!("Endef found with no terminating \":\" or \",\" ");
+                                    panic!("Endef found with no terminating \":\" or \",\" in line {}", self.line);
                                 }
                             }
                             break;
                         }
                         _ => {
-                            panic!("{:?} is not a valid inner instruction", self.peek())
+                            panic!("{:?} is not a valid inner instruction in line {}", self.peek(), self.line)
                         }
                     }
                 },
@@ -264,7 +310,7 @@ impl Parser {
                 str
             }
             _ => {
-                panic!("{:?} cant go after DEF", self.peek())
+                panic!("{:?} cant go after DEF in line {}", self.peek(), self.line)
             }
         };
 
@@ -312,7 +358,7 @@ impl Parser {
                                                 return;
                                             }
                                             _ => {
-                                                panic!("expected , or : found {:?}", self.peek());
+                                                panic!("expected , or : found {:?} in line {}", self.peek(), self.line);
                                             }
                                         }
                                     },
@@ -324,11 +370,14 @@ impl Parser {
 
                                         loop {
                                             if !self.can_pop() {
-                                                panic!("unexpected EOF in \"quotation\" variable")
+                                                panic!("unexpected EOF in \"quotation\" variable in line {}", self.line)
                                             }
                                             match self.peek(){
                                                 Token::IDENT { str } => {
                                                     arg_str.push_str(&str);
+                                                },
+                                                Token::INCLUDE => {
+                                                    arg_str.push_str("include");
                                                 },
                                                 Token::COMMA => {
                                                     arg_str.push(',');
@@ -355,6 +404,7 @@ impl Parser {
                                                     arg_str.push_str("where");
                                                 },
                                                 Token::NL => {
+                                                    self.line = self.line + 1;
                                                     arg_str.push('\n');
                                                     has_new_line = true;
                                                 },
@@ -427,21 +477,22 @@ impl Parser {
                                                 self.pop();
                                             },
                                             _ => {
-                                                panic!("expected , or : found {:?}", self.peek());
+                                                panic!("expected , or : found {:?} in line {}", self.peek(), self.line);
                                             }
                                         }
                                         
                                     }
                                     _ => {
                                         panic!(
-                                            "expected argument value as ident, found {:?}",
-                                            self.peek()
+                                            "expected argument value as ident, found {:?} in line {}",
+                                            self.peek(),
+                                            self.line
                                         );
                                     }
                                 }
                             }
                             _ => {
-                                panic!("expected = found {:?}", self.peek());
+                                panic!("expected = found {:?} in line {}", self.peek(), self.line);
                             }
                         }
                     }
@@ -454,12 +505,12 @@ impl Parser {
                         return;
                     }
                     _ => {
-                        panic!("{:?} invalid after WHERE", self.peek());
+                        panic!("{:?} invalid after WHERE in line {}", self.peek(), self.line);
                     }
                 }
             }},
             _ => {
-                panic!("{:?} cant go after DEF name, forgot \":\" or \",\" ?", self.peek())
+                panic!("{:?} cant go after DEF name in line {}, forgot \":\" or \",\" ?", self.peek(), self.line)
             }
         }
     }

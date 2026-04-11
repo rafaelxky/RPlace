@@ -1,0 +1,7 @@
+/*- def n:
+
+    fn hello_from_include(){
+        println!("$#text");
+    }
+
+*///- endef:

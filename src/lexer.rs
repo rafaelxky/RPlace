@@ -19,6 +19,7 @@ pub enum Token {
     LSRQBRACK,
     RSRQBRACK,
     DQUOTE,
+    INCLUDE,
 }
 pub struct Lexer {
     ptr: usize,
@@ -31,7 +32,7 @@ impl Lexer {
             .unwrap()
             .chars()
             .collect();
-        Self { ptr: 0, data }
+        Self { ptr: 0, data}
     }
     fn peek(&self) -> char {
         self.data[self.ptr]
@@ -195,6 +196,10 @@ impl Lexer {
                 },
                 "where" => {
                     tokens.push(Token::WHERE);
+                    continue;
+                },
+                "include" => {
+                    tokens.push(Token::INCLUDE);
                     continue;
                 },
                 _ => {
