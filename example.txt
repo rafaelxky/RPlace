@@ -18,9 +18,12 @@ Hello world
         pub fn $#fn_name(&self){
             println!("{}",self.str);
         }
+        $#body
     }
 
 *///- endef:
 
-//- place b where struct_name = vec, fn_name=a:
-//- place b where struct_name = vec2, fn_name=b:
+//- place b where struct_name = vec, fn_name=a, body=hello:
+//- place b where struct_name = vec2, fn_name=b, body="
+        println!("hello world");
+//-":

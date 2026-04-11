@@ -18,6 +18,7 @@ pub enum Token {
     COMMA,
     LSRQBRACK,
     RSRQBRACK,
+    DQUOTE,
 }
 pub struct Lexer {
     ptr: usize,
@@ -80,6 +81,10 @@ impl Lexer {
                 },
                 ']' => {
                     tokens.push(Token::RSRQBRACK);
+                    continue;
+                },
+                '"'=> {
+                    tokens.push(Token::DQUOTE);
                     continue;
                 }
                 '/' => {

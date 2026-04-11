@@ -76,6 +76,9 @@ impl Parser {
                 Token::COMMA => {
                     body_str.push(',');
                 },
+                Token::DQUOTE => {
+                    body_str.push('"');
+                },
                 Token::DD => {
                     body_str.push(':');
                 },
@@ -99,8 +102,11 @@ impl Parser {
                 },
                 Token::NL => {
                     body_str.push('\n');
-                }
-                _ => continue,
+                },
+                Token::DEF => body_str.push_str("def"),
+                Token::VAR => body_str.push_str("var"),
+                Token::EOF => (),
+                Token::PLACE => body_str.push_str("place"),
             }
         }
         println!("finished in parser");
@@ -187,7 +193,10 @@ impl Parser {
                 },
                 Token::RSRQBRACK => {
                     body_str.push(']');
-                }
+                },
+                Token::DQUOTE => {
+                    body_str.push('"');
+                },
                 Token::VAR => {
                     self.pop();
                     body.push(Node::DATA {
@@ -224,7 +233,7 @@ impl Parser {
                                     self.pop();
                                 }
                                 _ => {
-                                    panic!("Endef found with no terminating \":\"");
+                                    panic!("Endef found with no terminating \":\" or \",\" ");
                                 }
                             }
                             break;
@@ -233,10 +242,13 @@ impl Parser {
                             panic!("{:?} is not a valid inner instruction", self.peek())
                         }
                     }
-                }
-                _ => {
-                    panic!("unexpected inner token {:?}", self.peek());
-                }
+                },
+                Token::DEF => body_str.push_str("def"),
+                Token::ENDEF => body_str.push_str("endef"),
+                Token::EOF => (),
+                Token::PLACE => body_str.push_str("place"),
+                Token::WHERE => body_str.push_str("where"),
+                Token::EQUALS => body_str.push('='),
             }
             self.pop();
         }
@@ -281,6 +293,7 @@ impl Parser {
                                 self.pop();
                                 self.remove_spaces();
                                 match self.peek() {
+                                    // ident = ident -> variable assignement
                                     Token::IDENT { str } => {
                                         self.pop();
                                         println!("pushed arg in handle place, {} = {}", from, str);
@@ -302,6 +315,122 @@ impl Parser {
                                                 panic!("expected , or : found {:?}", self.peek());
                                             }
                                         }
+                                    },
+                                    // ident = "ident" -> quotation handling for multiline values
+                                    Token::DQUOTE => {
+                                        self.pop();
+                                        let mut arg_str = String::new();
+                                        let mut has_new_line = false;
+
+                                        loop {
+                                            if !self.can_pop() {
+                                                panic!("unexpected EOF in \"quotation\" variable")
+                                            }
+                                            match self.peek(){
+                                                Token::IDENT { str } => {
+                                                    arg_str.push_str(&str);
+                                                },
+                                                Token::COMMA => {
+                                                    arg_str.push(',');
+                                                },
+                                                Token::DD => {
+                                                    arg_str.push(':');
+                                                },
+                                                Token::DEF => {
+                                                    arg_str.push_str("def");
+                                                },
+                                                Token::ENDEF => {
+                                                    arg_str.push_str("endef");
+                                                },
+                                                Token::EQUALS => {
+                                                    arg_str.push('=');
+                                                },
+                                                Token::LSRQBRACK => {
+                                                    arg_str.push('[');
+                                                },
+                                                Token::RSRQBRACK => {
+                                                    arg_str.push(']');
+                                                },
+                                                Token::WHERE => {
+                                                    arg_str.push_str("where");
+                                                },
+                                                Token::NL => {
+                                                    arg_str.push('\n');
+                                                    has_new_line = true;
+                                                },
+                                                Token::DQUOTE => {
+                                                    if has_new_line {
+                                                        arg_str.push('"');
+                                                    } else {
+                                                        self.pop();
+                                                        break;
+                                                    }
+                                                },
+                                                Token::VAR => {
+                                                    arg_str.push_str("#$");
+                                                },
+                                                Token::MARK => {
+                                                    self.pop();
+                                                    if !has_new_line {
+                                                        arg_str.push_str("//-");
+                                                    } else {
+                                                        // if value has a newline after the first ", then ends at mark + "
+                                                        let mut spaces = String::new();
+                                                        let mut ends = false;
+                                                        loop {
+                                                            match self.peek() {
+                                                                Token::SPACE => {
+                                                                    self.pop();
+                                                                    spaces.push(' ');
+                                                                },
+                                                                Token::DQUOTE => {
+                                                                    println!("dquote");
+                                                                    self.pop();
+                                                                    ends = true;
+                                                                    break;
+                                                                }
+                                                                _ => {
+                                                                    println!("No break {:?}", self.peek());
+                                                                    break;
+                                                                },
+                                                            }
+                                                        };
+                                                        if ends {
+                                                            println!("brake");
+                                                            break;
+                                                        } else {
+                                                            arg_str.push_str(&spaces);
+                                                        }
+                                                        // if has " after mark
+                                                    }
+                                                }
+                                                Token::EOF => (),
+                                                Token::PLACE => {
+                                                    arg_str.push_str("place");
+                                                },
+                                                Token::SPACE => arg_str.push(' '),
+                                            }
+                                            self.pop();
+                                        }
+                                        args.push((from, arg_str));
+                                        self.remove_spaces();
+                                        match self.peek() {
+                                            Token::DD => {
+                                                self.pop();
+                                                nodes.push(Node::PLACE {
+                                                    name: place_id.clone(),
+                                                    args: args,
+                                                });
+                                                return;
+                                            },
+                                            Token::COMMA => {
+                                                self.pop();
+                                            },
+                                            _ => {
+                                                panic!("expected , or : found {:?}", self.peek());
+                                            }
+                                        }
+                                        
                                     }
                                     _ => {
                                         panic!(
@@ -330,7 +459,7 @@ impl Parser {
                 }
             }},
             _ => {
-                panic!("{:?} cant go after DEF name, forgot \":\" ?", self.peek())
+                panic!("{:?} cant go after DEF name, forgot \":\" or \",\" ?", self.peek())
             }
         }
     }
