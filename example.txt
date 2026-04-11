@@ -16,7 +16,7 @@ if
 () {} [] , . - :
 Hello world
 
-//- include include.txt:
+//- include ~/include.txt:
 
 /*- def b:
 
@@ -54,4 +54,4 @@ Hello world
 
 //- place c where struct_name = a:
 
-//- place n where text = "hello world":
+//- place rd:

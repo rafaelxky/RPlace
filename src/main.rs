@@ -5,7 +5,7 @@ pub mod parser;
 pub mod writer;
 
 fn main() {
-    let lexer = Lexer::new("example.txt");
+    let lexer = Lexer::new("exaple.rs");
     let tokens = lexer.parse();
     for elem in &tokens {
         println!("{:?}", elem);

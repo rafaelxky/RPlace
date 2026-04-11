@@ -1,5 +1,5 @@
 use core::panic;
-use std::{collections::HashMap, hash::Hash, path::Path};
+use std::{collections::HashMap, hash::Hash, path::{Path, PathBuf}};
 
 use crate::{
     lexer::Lexer,
@@ -23,14 +23,19 @@ impl Writer {
                 def_map.insert(name.to_string(), node.clone());
             }
             Node::INCLUDE { path } => {
-                if !Path::new(path).exists() {
+                let mut path = path.clone();
+                if let Some(stripped) = path.strip_prefix("~") {
+                    let stripped = stripped.strip_prefix("/").unwrap_or(stripped);
+                    path = PathBuf::from(std::env::var("HOME").unwrap()).join(".rplace").join(stripped).to_string_lossy().to_string();
+                }
+                if !Path::new(&path).exists() {
                     panic!("Couldnt find import at {}", path);
                 }
                 let lexer = Lexer::new(path);
                 let parser = Parser::new(lexer.parse());
                 let nodes = parser.parse();
                 nodes.iter().for_each(|n| {
-                    if let Node::DEF { name, body:_ } = n {
+                    if let Node::DEF { name, body: _ } = n {
                         def_map.insert(name.clone(), n.clone());
                     }
                 });
