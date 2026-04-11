@@ -16,6 +16,8 @@ pub enum Token {
     NL,
     EQUALS,
     COMMA,
+    LSRQBRACK,
+    RSRQBRACK,
 }
 pub struct Lexer {
     ptr: usize,
@@ -70,6 +72,14 @@ impl Lexer {
                 },
                 ',' => {
                     tokens.push(Token::COMMA);
+                    continue;
+                },
+                '[' => {
+                    tokens.push(Token::LSRQBRACK);
+                    continue;
+                },
+                ']' => {
+                    tokens.push(Token::RSRQBRACK);
                     continue;
                 }
                 '/' => {

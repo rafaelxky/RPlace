@@ -48,10 +48,13 @@ impl Parser {
 
     pub fn parse(mut self) -> Vec<Node> {
         let mut nodes: Vec<Node> = Vec::new();
+        let mut body_str = String::new();
         while self.can_pop() {
-            let mut curr = self.pop();
+            let curr = self.pop();
             match curr {
                 Token::MARK => {
+                    nodes.push(Node::DATA { data: body_str.to_string() });
+                    body_str = String::new();
                     self.remove_spaces();
                     match self.peek() {
                         Token::DEF => {
@@ -66,11 +69,42 @@ impl Parser {
                             panic!("{:?} cannot go after a mark", self.peek());
                         }
                     }
+                },
+                Token::IDENT { str } => {
+                    body_str.push_str(&str);
+                },
+                Token::COMMA => {
+                    body_str.push(',');
+                },
+                Token::DD => {
+                    body_str.push(':');
+                },
+                Token::LSRQBRACK => {
+                    body_str.push('[');
+                },
+                Token::RSRQBRACK => {
+                    body_str.push(']');
+                },
+                Token::SPACE => {
+                    body_str.push(' ');
+                },
+                Token::EQUALS => {
+                    body_str.push('=');
+                },
+                Token::WHERE => {
+                    body_str.push_str("where");
+                },
+                Token::ENDEF => {
+                    body_str.push_str("endef");
+                },
+                Token::NL => {
+                    body_str.push('\n');
                 }
                 _ => continue,
             }
         }
         println!("finished in parser");
+        nodes.push(Node::DATA { data: body_str.to_string() });
         nodes
     }
 
@@ -95,6 +129,8 @@ impl Parser {
 
         match self.peek() {
             Token::DD => {
+                println!("Placed def {}", def_name);
+                println!("curr {:?}", self.peek());
                 self.pop();
             }
             _ => {
@@ -145,6 +181,12 @@ impl Parser {
                 }
                 Token::COMMA => {
                     body_str.push(',');
+                },
+                Token::LSRQBRACK => {
+                    body_str.push('[');
+                },
+                Token::RSRQBRACK => {
+                    body_str.push(']');
                 }
                 Token::VAR => {
                     self.pop();
@@ -176,6 +218,15 @@ impl Parser {
                             body.push(Node::DATA {
                                 data: body_str.to_string(),
                             });
+                            self.remove_spaces();
+                            match self.peek() {
+                                Token::DD => {
+                                    self.pop();
+                                }
+                                _ => {
+                                    panic!("Endef found with no terminating \":\"");
+                                }
+                            }
                             break;
                         }
                         _ => {

@@ -33,6 +33,9 @@ impl Writer {
                     }
                     _ => (),
                 });
+            },
+            Node::DATA { data } => {
+                text.push_str(data);
             }
             Node::PLACE { name, args } => {
                 let mut args_map: HashMap<String,String> = HashMap::new();

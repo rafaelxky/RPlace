@@ -1,4 +1,9 @@
+() {} [] , . - :
+Hello world
+
 /*- def b:
+
+() {} [] , . - :
 
     pub struct $#struct_name {
         str: String
