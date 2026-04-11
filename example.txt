@@ -1,3 +1,18 @@
+features:
+Template definition
+Variables
+Instantiation
+Language safe markers/delimiters
+
+
+todo:
+defaults
+for loops
+inner macros
+imports
+in place variables
+if 
+
 () {} [] , . - :
 Hello world
 
