@@ -24,6 +24,9 @@ Hello world
 *///- endef:
 
 //- place b where struct_name = vec, fn_name=a, body=hello:
+
 //- place b where struct_name = vec2, fn_name=b, body="
-        println!("hello world");
+        pub fn get_str(&self) -> String {
+            return self.str;
+        }
 //-":
