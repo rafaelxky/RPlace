@@ -24,5 +24,7 @@ place
     multiline variable 
 //- ":
 
+Inheritance is possible with def place
+//- def a place b where c=d:
 
 

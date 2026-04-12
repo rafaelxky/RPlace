@@ -43,7 +43,7 @@ Hello world
 *///- endef:
 
 /*- def c:
-    hello $#struct_name
+    hello $#name from $#origin
 *///- endef:
 
 //- place b where struct_name = vec, fn_name=a, body=hello, var_name=str:
@@ -54,5 +54,5 @@ Hello world
         }
 //-":
 
-//- def m place c where struct_name = a:
-//- place m:
+//- def m place c where name = world, origin = france:
+//- place m where origin = america:
