@@ -13,6 +13,10 @@ inner macros
 if
 track replacement for updates
 place + at + ident
+expose to terminal arguments
+replace in whole folder
+desambiguation
+file specification
 
 () {} [] , . - : <- testing special character catch -> $#
 Hello world
