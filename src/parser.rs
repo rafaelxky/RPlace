@@ -218,11 +218,26 @@ impl Parser {
         self.remove_spaces();
 
         match self.peek() {
+            // def name:
             Token::DD => {
-                println!("Placed def {}", def_name);
-                println!("curr {:?}", self.peek());
                 self.pop();
-            }
+            },
+            // def name place name where ...
+            Token::PLACE => {
+                self.pop();
+                self.remove_spaces();
+                match self.peek() {
+                    Token::IDENT { str } => {
+                        self.handle_place(nodes);
+                        let place = nodes.remove(nodes.len() - 1);
+                        nodes.push(Node::DEF { name: def_name, body: Box::new(place), line: self.line });
+                        return;
+                    },
+                    _ => {
+                        handle_error(format!("Expected ident found {:?} after def place", self.peek()), self.line, self.file_path.clone())
+                    }
+                }
+            },
             _ => {
                 panic!(
                     "{:?} is invalid in def declaration of name {} in line {}",
@@ -420,6 +435,7 @@ impl Parser {
     }
 
     fn handle_place(&mut self, nodes: &mut Vec<Node>) {
+        // reaches here as //- place 
         self.remove_spaces();
 
         let place_id = match self.peek() {
@@ -471,6 +487,7 @@ impl Parser {
                                                 Token::COMMA => {
                                                     self.pop();
                                                 }
+                                                // ident = ident
                                                 Token::DD => {
                                                     self.pop();
                                                     nodes.push(Node::PLACE {
@@ -600,6 +617,7 @@ impl Parser {
                                             }
                                             args.push((from, arg_str));
                                             self.remove_spaces();
+                                            // ident = "ident"
                                             match self.peek() {
                                                 Token::DD => {
                                                     self.pop();

@@ -25,7 +25,7 @@ impl Writer {
         }
     }
     // I need to save " " and \n data
-    pub fn replace(&self) -> String {
+    pub fn replace(mut self) -> String {
         let mut text = String::new();
         let mut def_map: HashMap<String, Node> = HashMap::new();
 
@@ -60,38 +60,63 @@ impl Writer {
                     }
                 });
             }
-
             _ => (),
         });
 
-        self.nodes.iter().for_each(|node| match node {
-            Node::BODY { data } => {
-                data.iter().for_each(|n| match n {
-                    Node::DATA { data } => {
-                        text.push_str(data);
-                    }
-                    Node::VARTEMPLATE { name } => {
-                        text.push_str(&format!("$#{}", name));
-                    }
-                    _ => (),
-                });
+        let nodes = &self.nodes;
+        for node in nodes {
+            match node {
+                Node::BODY { data } => {
+                    data.iter().for_each(|n| match n {
+                        Node::DATA { data } => {
+                            text.push_str(data);
+                        }
+                        Node::VARTEMPLATE { name } => {
+                            text.push_str(&format!("$#{}", name));
+                        }
+                        _ => (),
+                    });
+                }
+                Node::DATA { data } => {
+                    text.push_str(&data);
+                }
+                Node::PLACE { name, args, line } => {
+                    let mut args_map: HashMap<String,String> = HashMap::new();
+                    self.handle_place(&mut text, &def_map, name, args, line, &mut args_map);
+                }
+                _ => (),
             }
-            Node::DATA { data } => {
-                text.push_str(data);
+        }
+        text
+    }
+
+    fn handle_place(
+        &self,
+        text: &mut String,
+        def_map: &HashMap<String, Node>,
+        name: &String,
+        args: &Vec<(String, String)>,
+        line: &usize,
+        args_map: &mut HashMap<String, String>
+    ) {
+
+        args.iter().for_each(|arg| {
+            if !args_map.contains_key(&arg.0.clone()) {
+                args_map.insert(arg.0.clone(), arg.1.clone());
             }
-            Node::PLACE { name, args, line } => {
-                let mut args_map: HashMap<String, String> = HashMap::new();
+        });
 
-                args.iter().for_each(|arg| {
-                    args_map.insert(arg.0.clone(), arg.1.clone());
-                });
-
-                match def_map.get(name) {
-                    Some(val) => match val {
-                        Node::DEF { name: _, body, line } => match body.as_ref() {
-                            Node::BODY { data } => {
-                                // for each body node
-                                data.iter().for_each(|n| match n {
+        let def = def_map.get(name);
+        match def {
+            Some(val) => match val {
+                Node::DEF {
+                    name: _,
+                    body,
+                    line,
+                } => match body.as_ref() {
+                    Node::BODY { data } => {
+                        // for each body node
+                        data.iter().for_each(|n| match n {
                                     Node::DATA { data } => {
                                         text.push_str(data);
                                     }
@@ -120,22 +145,34 @@ impl Writer {
                                         handle_error(format!("Body should only have data or var def, instead found {:?}", n), *line, self.file_path.clone())
                                 },
                                 });
-                            }
-                            _ => {
-                            handle_error(format!("Internal error, def has a node {:?} wich is not of type body", body), *line, self.file_path.clone())
-                        },
-                        },
-                        _ => {
-                                handle_error(format!("Internal error, wrong insertion in map! Inserted node of type {:?} expected DEF", val), *line, self.file_path.clone())
-                            }
-                    },
-                    None => {
-                        handle_error(format!("No such template named {}", name), *line, self.file_path.clone())
                     }
-                }
-            }
-            _ => (),
-        });
-        text
+                    Node::PLACE { name, args, line } => {
+                        // def ident place ident ...
+                        self.handle_place(text, def_map, name, args, line, args_map);
+                    }
+                    _ => handle_error(
+                        format!(
+                            "Internal error, def has a node {:?} wich is not of type body",
+                            body
+                        ),
+                        *line,
+                        self.file_path.clone(),
+                    ),
+                },
+                _ => handle_error(
+                    format!(
+                        "Internal error, wrong insertion in map! Inserted node of type {:?} expected DEF",
+                        val
+                    ),
+                    *line,
+                    self.file_path.clone(),
+                ),
+            },
+            None => handle_error(
+                format!("No such template named {}", name),
+                *line,
+                self.file_path.clone(),
+            ),
+        }
     }
 }
