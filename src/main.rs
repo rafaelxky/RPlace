@@ -6,7 +6,7 @@ pub mod writer;
 pub mod error_handler;
 
 fn main() {
-    let lexer = Lexer::new("example.rs");
+    let lexer = Lexer::new("example.txt");
     let tokens = lexer.parse();
     for elem in &tokens.tokens {
         println!("{:?}", elem);

@@ -18,14 +18,14 @@ plaec + at + ident
 () {} [] , . - :
 Hello world
 
-//- include ~/include.txt:
+//- include ./example.rs:
 
 /*- def b:
 
 () {} [] , . - :
 
     pub struct $#struct_name {
-        str: String
+        /*- $#var_name -> -*/ str: String
     }
     
     pub impl $#struct_name {
@@ -46,7 +46,7 @@ Hello world
     hello $#struct_name
 *///- endef:
 
-//- place b where struct_name = vec, fn_name=a, body=hello:
+//- place b where struct_name = vec, fn_name=a, body=hello, var_name=str:
 
 //- place b where struct_name = vec2, fn_name=b, body="
         pub fn get_str(&self) -> String {
@@ -55,5 +55,3 @@ Hello world
 //-":
 
 //- place c where struct_name = a:
-
-//- place rd:
