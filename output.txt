@@ -1,0 +1,77 @@
+features:
+Template definition
+Variables
+Instantiation
+Language safe markers/delimiters
+
+
+todo:
+defaults
+for loops
+inner macros
+imports
+in place variables
+if
+track replacement for updates
+plaec + at + ident
+
+() {} [] , . -- : <-- testing special character catch -> var
+Hello world
+
+
+
+
+
+
+
+
+
+() {} [] , . -- :
+
+    pub struct vec {
+        str: String
+    }
+    
+    pub impl vec {
+        pub fn new() -> Self{
+            Self {
+                "Hello world from vec!".to_string(),
+            }
+        }
+        pub fn a(&self){
+            println!("{}",self.str);
+        }
+        hello
+    }
+
+
+
+
+
+() {} [] , . -- :
+
+    pub struct vec2 {
+        str: String
+    }
+    
+    pub impl vec2 {
+        pub fn new() -> Self{
+            Self {
+                "Hello world from vec2!".to_string(),
+            }
+        }
+        pub fn b(&self){
+            println!("{}",self.str);
+        }
+        
+        pub fn get_str(&self) -> String {
+            return self.str;
+        }
+
+    }
+
+
+
+
+    hello a
+
