@@ -7,7 +7,7 @@ pub enum Token {
     DEF,
     ENDEF,
     VAR,
-    MARK,
+    MARK { kind: String },
     DD,
     EOF,
     PLACE,
@@ -20,8 +20,9 @@ pub enum Token {
     RSRQBRACK,
     DQUOTE,
     INCLUDE,
+    RARROW,
 }
-pub struct TokenResult{
+pub struct TokenResult {
     pub tokens: Vec<Token>,
     pub file_path: String,
 }
@@ -40,7 +41,11 @@ impl Lexer {
             .unwrap()
             .chars()
             .collect();
-        Self { ptr: 0, data, file_path: path.to_string() }
+        Self {
+            ptr: 0,
+            data,
+            file_path: path.to_string(),
+        }
     }
     fn peek(&self) -> char {
         self.data[self.ptr]
@@ -68,7 +73,7 @@ impl Lexer {
                 println!("eof");
                 return TokenResult {
                     tokens: tokens,
-                    file_path: self.file_path
+                    file_path: self.file_path,
                 };
             }
 
@@ -105,7 +110,9 @@ impl Lexer {
                         self.pop();
                         if self.peek() == '-' {
                             self.pop();
-                            tokens.push(Token::MARK);
+                            tokens.push(Token::MARK {
+                                kind: "//-".to_string(),
+                            });
                         }
                     } else
                     // /*-
@@ -113,7 +120,9 @@ impl Lexer {
                         self.pop();
                         if self.peek() == '-' {
                             self.pop();
-                            tokens.push(Token::MARK);
+                            tokens.push(Token::MARK {
+                                kind: "/*-".to_string(),
+                            });
                         } else {
                             tokens.push(Token::IDENT {
                                 str: "/*".to_string(),
@@ -136,7 +145,9 @@ impl Lexer {
                                 self.pop();
                                 if self.peek() == '-' {
                                     self.pop();
-                                    tokens.push(Token::MARK);
+                                    tokens.push(Token::MARK {
+                                        kind: "*///-".to_string(),
+                                    });
                                 } else {
                                     tokens.push(Token::IDENT {
                                         str: "*///".to_string(),
@@ -177,6 +188,31 @@ impl Lexer {
                         });
                     }
                     continue;
+                }
+                '-' => {
+                    if self.peek() == '>' {
+                        self.pop();
+                        tokens.push(Token::RARROW);
+                        continue;
+                    } else if self.peek() == '*' {
+                        self.pop();
+                        if self.peek() == '/' {
+                            self.pop();
+                            tokens.push(Token::MARK {
+                                kind: "-*/".to_string(),
+                            });
+                            continue;
+                        } else {
+                            tokens.push(Token::IDENT {
+                                str: "-/".to_string(),
+                            });
+                            continue;
+                        }
+                    } else {
+                        tokens.push(Token::IDENT {
+                            str: "-".to_string(),
+                        });
+                    }
                 }
                 _ => (),
             }

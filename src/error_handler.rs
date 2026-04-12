@@ -5,7 +5,7 @@ pub fn handle_error<S: Into<String>>(msg: S, line: usize, file: S) -> ! {
         None => String::new(),
         Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
     };
-    panic!("{} at line {} in file {}", msg, line, file.into());
+    panic!("{} at line {} in file {}", msg, line + 1, file.into());
 }
 pub fn handle_expected_error<S: Into<String>>(expected: S, found: S, after: S, line: usize, file: S) -> ! {
     panic!(

@@ -90,12 +90,22 @@ impl Writer {
                     Some(val) => match val {
                         Node::DEF { name: _, body, line } => match body.as_ref() {
                             Node::BODY { data } => {
+                                // for each body node
                                 data.iter().for_each(|n| match n {
                                     Node::DATA { data } => {
                                         text.push_str(data);
                                     }
                                     Node::VARTEMPLATE { name } => {
                                         let replacement = match args_map.get(name) {
+                                            Some(val) => val,
+                                            None => {
+                                                handle_error(format!("No value specified for \"{}\"!", name), *line, self.file_path.clone())
+                                            }
+                                        };
+                                        text.push_str(replacement);
+                                    },
+                                    Node::RARROWVAR { name } => {
+                                         let replacement = match args_map.get(name) {
                                             Some(val) => val,
                                             None => {
                                                 handle_error(format!("No value specified for \"{}\"!", name), *line, self.file_path.clone())
