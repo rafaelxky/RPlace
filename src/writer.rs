@@ -104,11 +104,14 @@ impl Writer {
                                         };
                                         text.push_str(replacement);
                                     },
-                                    Node::RARROWVAR { name } => {
+                                    Node::RARROWVAR { name, default } => {
                                          let replacement = match args_map.get(name) {
                                             Some(val) => val,
                                             None => {
-                                                handle_error(format!("No value specified for \"{}\"!", name), *line, self.file_path.clone())
+                                                match default {
+                                                    Some(default) => default,
+                                                    None => handle_error(format!("No value specified for \"{}\"!", name), *line, self.file_path.clone())
+                                                }
                                             }
                                         };
                                         text.push_str(replacement);

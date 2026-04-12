@@ -24,10 +24,11 @@ pub enum Node {
     },
     // def variables
     VARTEMPLATE {
-        name: String,
+        name: String
     },
     RARROWVAR {
         name: String,
+        default: Option<String>,
     },
     PLACE {
         name: String,
@@ -347,18 +348,26 @@ impl Parser {
                             match self.peek() {
                                 /*- #$ident -> -*/
                                 Token::IDENT { str } => {
+                                    let name = str;
                                     self.pop();
                                     let spaces = self.collect_spaces();
                                     match self.peek() {
                                         Token::RARROW => {
                                             self.pop();
-                                            body.push(Node::RARROWVAR { name: str });
                                             self.remove_spaces();
                                             match self.peek() {
                                                 Token::MARK { kind } => {
                                                     self.pop();
                                                     self.remove_spaces();
                                                     self.pop();
+                                                    match self.pop() {
+                                                        Token::IDENT{str} => {
+                                                            body.push(Node::RARROWVAR { name, default: Some(str.clone())});
+                                                        },
+                                                        _ => {
+                                                            body.push(Node::RARROWVAR { name, default: None });
+                                                        }
+                                                    }
                                                     continue;
                                                 }
                                                 _ => handle_error(
