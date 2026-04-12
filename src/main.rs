@@ -3,17 +3,18 @@ use crate::{lexer::Lexer, parser::Parser, writer::Writer};
 pub mod lexer;
 pub mod parser;
 pub mod writer;
+pub mod error_handler;
 
 fn main() {
     let lexer = Lexer::new("example.rs");
     let tokens = lexer.parse();
-    for elem in &tokens {
+    for elem in &tokens.tokens {
         println!("{:?}", elem);
     }
     let parser = Parser::new(tokens);
     let nodes = parser.parse();
 
-    for elem in &nodes {
+    for elem in &nodes.nodes {
         println!("{:?}", elem);
     }
 

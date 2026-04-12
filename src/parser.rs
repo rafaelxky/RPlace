@@ -1,7 +1,7 @@
 use core::panic;
 use std::process::exit;
 
-use crate::lexer::Token;
+use crate::lexer::{Token, TokenResult};
 
 #[derive(Debug, Clone)]
 pub enum Node {
@@ -9,6 +9,7 @@ pub enum Node {
     DEF {
         name: String,
         body: Box<Node>,
+        line: usize,
     },
     // either data or var ($a)
     BODY {
@@ -25,19 +26,26 @@ pub enum Node {
     PLACE {
         name: String,
         args: Vec<(String, String)>,
+        line: usize,
     },
     INCLUDE {
         path: String,
+        line: usize,
     }
+}
+pub struct ParsingResult{
+    pub nodes: Vec<Node>,
+    pub file_path: String,
 }
 pub struct Parser {
     tokens: Vec<Token>,
     ptr: usize,
     line: usize,
+    file_path: String,
 }
 impl Parser {
-    pub fn new(tokens: Vec<Token>) -> Self {
-        Self { tokens, ptr: 0 , line: 0}
+    pub fn new(tokens: TokenResult) -> Self {
+        Self { tokens: tokens.tokens, ptr: 0 , line: 0, file_path: tokens.file_path}
     }
     fn peek(&self) -> Token {
         self.tokens[self.ptr].clone()
@@ -50,7 +58,7 @@ impl Parser {
         self.tokens.len() > self.ptr
     }
 
-    pub fn parse(mut self) -> Vec<Node> {
+    pub fn parse(mut self) -> ParsingResult {
         let mut nodes: Vec<Node> = Vec::new();
         let mut body_str = String::new();
         while self.can_pop() {
@@ -123,7 +131,7 @@ impl Parser {
         }
         println!("finished in parser");
         nodes.push(Node::DATA { data: body_str.to_string() });
-        nodes
+        ParsingResult { nodes, file_path: self.file_path }
     }
 
     fn handle_include(&mut self, nodes: &mut Vec<Node>){
@@ -138,7 +146,7 @@ impl Parser {
                 },
                 Token::DD => {
                     self.pop();
-                    nodes.push(Node::INCLUDE { path: path.clone() });
+                    nodes.push(Node::INCLUDE { path: path.clone(), line: self.line });
                     return;
                 },
                 Token::INCLUDE => {
@@ -195,6 +203,7 @@ impl Parser {
         nodes.push(Node::DEF {
             name: def_name.to_string(),
             body: Box::new(body),
+            line: self.line,
         });
     }
 
@@ -321,6 +330,7 @@ impl Parser {
                 nodes.push(Node::PLACE {
                     name: place_id,
                     args: Vec::new(),
+                    line: self.line
                 });
                 return;
             }
@@ -354,6 +364,7 @@ impl Parser {
                                                 nodes.push(Node::PLACE {
                                                     name: place_id.clone(),
                                                     args: args,
+                                                    line: self.line
                                                 });
                                                 return;
                                             }
@@ -470,6 +481,7 @@ impl Parser {
                                                 nodes.push(Node::PLACE {
                                                     name: place_id.clone(),
                                                     args: args,
+                                                    line: self.line
                                                 });
                                                 return;
                                             },
@@ -501,6 +513,7 @@ impl Parser {
                         nodes.push(Node::PLACE {
                             name: place_id.clone(),
                             args: Vec::new(),
+                            line: self.line
                         });
                         return;
                     }

@@ -21,9 +21,14 @@ pub enum Token {
     DQUOTE,
     INCLUDE,
 }
+pub struct TokenResult{
+    pub tokens: Vec<Token>,
+    pub file_path: String,
+}
 pub struct Lexer {
     ptr: usize,
     data: Vec<char>,
+    file_path: String,
 }
 // this is all wrong, correctness is in parser not lexer
 impl Lexer {
@@ -35,7 +40,7 @@ impl Lexer {
             .unwrap()
             .chars()
             .collect();
-        Self { ptr: 0, data }
+        Self { ptr: 0, data, file_path: path.to_string() }
     }
     fn peek(&self) -> char {
         self.data[self.ptr]
@@ -54,14 +59,17 @@ impl Lexer {
         self.ptr < self.data.len()
     }
 
-    pub fn parse(mut self) -> Vec<Token> {
+    pub fn parse(mut self) -> TokenResult {
         let mut tokens: Vec<Token> = Vec::new();
 
         loop {
             if !self.can_pop() {
                 tokens.push(Token::EOF);
                 println!("eof");
-                return tokens;
+                return TokenResult {
+                    tokens: tokens,
+                    file_path: self.file_path
+                };
             }
 
             let mut curr = self.pop();
