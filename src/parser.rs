@@ -359,12 +359,13 @@ impl Parser {
                                                 Token::MARK { kind } => {
                                                     self.pop();
                                                     self.remove_spaces();
-                                                    self.pop();
-                                                    match self.pop() {
+                                                    match self.peek() {
                                                         Token::IDENT{str} => {
+                                                            self.pop();
                                                             body.push(Node::RARROWVAR { name, default: Some(str.clone())});
                                                         },
                                                         _ => {
+                                                            self.pop();
                                                             body.push(Node::RARROWVAR { name, default: None });
                                                         }
                                                     }

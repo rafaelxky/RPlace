@@ -110,7 +110,7 @@ impl Writer {
                                             None => {
                                                 match default {
                                                     Some(default) => default,
-                                                    None => handle_error(format!("No value specified for \"{}\"!", name), *line, self.file_path.clone())
+                                                    None => handle_error(format!("No value specified for \"{}\" in right arrow variable declaration!", name), *line, self.file_path.clone())
                                                 }
                                             }
                                         };
