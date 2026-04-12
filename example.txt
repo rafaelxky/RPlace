@@ -15,7 +15,7 @@ if
 track replacement for updates
 plaec + at + ident
 
-() {} [] , . - :
+() {} [] , . - : <- testing special character catch -> $#
 Hello world
 
 //- include ./example.rs:
