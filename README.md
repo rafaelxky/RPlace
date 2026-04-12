@@ -26,5 +26,9 @@ place
 
 Inheritance is possible with def place
 //- def a place b where c=d:
+//- place a:
+here "a" will be placed with c=d, however, you can call
+//- place a were c=e:
+this will place with c=e so it allows overrides
 
 
