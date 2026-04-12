@@ -3,17 +3,16 @@ Template definition
 Variables
 Instantiation
 Language safe markers/delimiters
-
+imports
+in place variables
 
 todo:
 defaults
 for loops
 inner macros
-imports
-in place variables
 if
 track replacement for updates
-plaec + at + ident
+place + at + ident
 
 () {} [] , . -- : <-- testing special character catch -> var
 Hello world
@@ -74,5 +73,6 @@ Hello world
 
 
 
-    hello world from america
+
+    hello world from brazil
 

@@ -54,4 +54,5 @@ Hello world
 //-":
 
 //- def m place c where name = world, origin = france:
-//- place m where origin = america:
+//- def d place m where origin = america:
+//- place d where origin = brazil:
