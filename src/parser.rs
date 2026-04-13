@@ -7,9 +7,25 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
+pub enum Condition {
+    EQUALS,
+}
+impl Condition {
+    pub fn eval(&self, first: &str, sec: &str) -> bool {
+        match self {
+            Condition::EQUALS => {
+                println!("{} == {} ? ",first,sec);
+                return first == sec;
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum Node {
     // - def template_1
     DEF {
+        conditions: Option<Vec<(String, String, Condition)>>,
         name: String,
         body: Box<Node>,
         line: usize,
@@ -24,7 +40,7 @@ pub enum Node {
     },
     // def variables
     VARTEMPLATE {
-        name: String
+        name: String,
     },
     RARROWVAR {
         name: String,
@@ -200,6 +216,7 @@ impl Parser {
         self.remove_spaces();
 
         let mut def_name = String::new();
+        let mut conditions: Option<Vec<(String, String, Condition)>> = None;
 
         match self.peek() {
             Token::IDENT { str } => {
@@ -221,23 +238,102 @@ impl Parser {
             // def name:
             Token::DD => {
                 self.pop();
-            },
+            }
             // def name place name where ...
             Token::PLACE => {
                 self.pop();
                 self.remove_spaces();
                 match self.peek() {
-                    Token::IDENT { str } => {
+                    Token::IDENT { str: _ } => {
                         self.handle_place(nodes);
                         let place = nodes.remove(nodes.len() - 1);
-                        nodes.push(Node::DEF { name: def_name, body: Box::new(place), line: self.line });
+                        nodes.push(Node::DEF {
+                            name: def_name,
+                            body: Box::new(place),
+                            line: self.line,
+                            conditions: None,
+                        });
                         return;
-                    },
-                    _ => {
-                        handle_error(format!("Expected ident found {:?} after def place", self.peek()), self.line, self.file_path.clone())
+                    }
+                    _ => handle_error(
+                        format!("Expected ident found {:?} after def place", self.peek()),
+                        self.line,
+                        self.file_path.clone(),
+                    ),
+                }
+            }
+            // def name where condition
+            Token::WHERE => {
+                self.pop();
+                loop {
+                    if !self.can_pop() {
+                        break;
+                    }
+                    self.remove_spaces();
+                    match self.peek() {
+                        // def name were name
+                        Token::IDENT { str } => {
+                            let var = str;
+                            self.pop();
+                            self.remove_spaces();
+                            match self.peek() {
+                                // def name were name = 
+                                Token::EQUALS => {
+                                    self.pop();
+                                    self.remove_spaces();
+                                    match self.peek() {
+                                        // def name were name = val
+                                        Token::IDENT { str } => {
+                                            self.pop();
+                                            if conditions.is_none() {
+                                                conditions = Some(Vec::new());
+                                            }
+                                            conditions.as_mut().unwrap().push((var,str,Condition::EQUALS));
+                                            self.remove_spaces();
+                                            match self.peek() {
+                                                Token::DD => {
+                                                    self.pop();
+                                                    break;
+                                                },
+                                                Token::COMMA => {
+                                                    self.pop();
+                                                }
+                                                _ => {
+
+                                                }
+                                            }
+                                        },
+                                        _ => handle_error(
+                                            format!(
+                                                "Expected ident found {:?} in def <name> where <name><condition><here>",
+                                                self.peek()
+                                            ),
+                                            self.line,
+                                            self.file_path.clone(),
+                                        ),
+                                    }
+                                }
+                                _ => handle_error(
+                                    format!(
+                                        "Expected condition found {:?} in def <name> where <name><here>",
+                                        self.peek()
+                                    ),
+                                    self.line,
+                                    self.file_path.clone(),
+                                ),
+                            }
+                        }
+                        _ => handle_error(
+                            format!(
+                                "Expected ident found {:?} in def <name> where <here>",
+                                self.peek()
+                            ),
+                            self.line,
+                            self.file_path.clone(),
+                        ),
                     }
                 }
-            },
+            }
             _ => {
                 panic!(
                     "{:?} is invalid in def declaration of name {} in line {}",
@@ -254,6 +350,7 @@ impl Parser {
             name: def_name.to_string(),
             body: Box::new(body),
             line: self.line,
+            conditions: conditions,
         });
     }
 
@@ -375,13 +472,19 @@ impl Parser {
                                                     self.pop();
                                                     self.remove_spaces();
                                                     match self.peek() {
-                                                        Token::IDENT{str} => {
+                                                        Token::IDENT { str } => {
                                                             self.pop();
-                                                            body.push(Node::RARROWVAR { name, default: Some(str.clone())});
-                                                        },
+                                                            body.push(Node::RARROWVAR {
+                                                                name,
+                                                                default: Some(str.clone()),
+                                                            });
+                                                        }
                                                         _ => {
                                                             self.pop();
-                                                            body.push(Node::RARROWVAR { name, default: None });
+                                                            body.push(Node::RARROWVAR {
+                                                                name,
+                                                                default: None,
+                                                            });
                                                         }
                                                     }
                                                     continue;
@@ -435,7 +538,7 @@ impl Parser {
     }
 
     fn handle_place(&mut self, nodes: &mut Vec<Node>) {
-        // reaches here as //- place 
+        // reaches here as //- place
         self.remove_spaces();
 
         let place_id = match self.peek() {
@@ -459,6 +562,7 @@ impl Parser {
                 });
                 return;
             }
+            // place ident were 
             Token::WHERE => {
                 let mut args: Vec<(String, String)> = Vec::new();
                 loop {

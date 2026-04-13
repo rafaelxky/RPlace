@@ -27,11 +27,20 @@ impl Writer {
     // I need to save " " and \n data
     pub fn replace(mut self) -> String {
         let mut text = String::new();
-        let mut def_map: HashMap<String, Node> = HashMap::new();
+        let mut def_map: HashMap<String, Vec<Node>> = HashMap::new();
 
         self.nodes.iter().for_each(|node| match node {
-            Node::DEF { name, body, line } => {
-                def_map.insert(name.to_string(), node.clone());
+            Node::DEF {
+                name,
+                body,
+                line,
+                conditions,
+            } => {
+                let mut name = name.to_string();
+                def_map
+                    .entry(name)
+                    .or_insert_with(Vec::new)
+                    .push(node.clone());
             }
             Node::INCLUDE { path, line } => {
                 let mut path = path.clone();
@@ -54,9 +63,13 @@ impl Writer {
                         name,
                         body: _,
                         line,
+                        conditions,
                     } = n
                     {
-                        def_map.insert(name.clone(), n.clone());
+                        def_map
+                            .entry(name.clone())
+                            .or_insert_with(Vec::new)
+                            .push(n.clone());
                     }
                 });
             }
@@ -81,7 +94,7 @@ impl Writer {
                     text.push_str(&data);
                 }
                 Node::PLACE { name, args, line } => {
-                    let mut args_map: HashMap<String,String> = HashMap::new();
+                    let mut args_map: HashMap<String, String> = HashMap::new();
                     self.handle_place(&mut text, &def_map, name, args, line, &mut args_map);
                 }
                 _ => (),
@@ -93,11 +106,11 @@ impl Writer {
     fn handle_place(
         &self,
         text: &mut String,
-        def_map: &HashMap<String, Node>,
+        def_map: &HashMap<String, Vec<Node>>,
         name: &String,
         args: &Vec<(String, String)>,
         line: &usize,
-        args_map: &mut HashMap<String, String>
+        args_map: &mut HashMap<String, String>,
     ) {
 
         args.iter().for_each(|arg| {
@@ -107,16 +120,64 @@ impl Writer {
         });
 
         let def = def_map.get(name);
+        println!("Got {} from hasmap", name);
         match def {
-            Some(val) => match val {
-                Node::DEF {
-                    name: _,
-                    body,
-                    line,
-                } => match body.as_ref() {
-                    Node::BODY { data } => {
-                        // for each body node
-                        data.iter().for_each(|n| match n {
+            Some(val) => {
+                let mut has_conditions = false;
+                let mut matched = None;
+
+                // foreach def node in the 
+                for def in val {
+                    println!("iter {:?} ",args_map);
+                    if matched.is_some() && has_conditions {
+                        println!("match is some and conditions");
+                        break;
+                    }
+                    if let Node::DEF {
+                        conditions,
+                        name: _,
+                        body: _,
+                        line:_,
+                    } = def
+                    {
+                        match conditions {
+                            Some(vec) => {
+                                for eval in vec {
+                                    let val = args_map.get(&eval.0);
+                                    if val.is_none() {
+                                        break;
+                                    }
+                                    //- def struct where lang = rust:
+                                    //- place struct where lang = rust:
+                                    if !eval.2.eval(&val.unwrap(), &eval.1) {
+                                        println!("Eval {} and {} failed",&val.unwrap(), eval.1);
+                                        break;
+                                    }
+                                    println!("Eval {} and {} success",&val.unwrap(), eval.1);
+                                    matched = Some(def);
+                                    has_conditions = true;
+                                }
+                            }
+                            None => {
+                                matched = Some(def);
+                            }
+                        }
+                    }
+                }
+
+                if matched.is_none() {
+                    handle_error(format!("No available override for {:?}",def), *line, self.file_path.clone())                    
+                }
+                match matched.unwrap() {
+                    Node::DEF {
+                        name: _,
+                        body,
+                        line,
+                        conditions,
+                    } => match body.as_ref() {
+                        Node::BODY { data } => {
+                            // for each body node
+                            data.iter().for_each(|n| match n {
                                     Node::DATA { data } => {
                                         text.push_str(data);
                                     }
@@ -145,29 +206,30 @@ impl Writer {
                                         handle_error(format!("Body should only have data or var def, instead found {:?}", n), *line, self.file_path.clone())
                                 },
                                 });
-                    }
-                    Node::PLACE { name, args, line } => {
-                        // def ident place ident ...
-                        self.handle_place(text, def_map, name, args, line, args_map);
-                    }
+                        }
+                        Node::PLACE { name, args, line } => {
+                            // def ident place ident ...
+                            self.handle_place(text, def_map, name, args, line, args_map);
+                        }
+                        _ => handle_error(
+                            format!(
+                                "Internal error, def has a node {:?} wich is not of type body",
+                                body
+                            ),
+                            *line,
+                            self.file_path.clone(),
+                        ),
+                    },
                     _ => handle_error(
                         format!(
-                            "Internal error, def has a node {:?} wich is not of type body",
-                            body
+                            "Internal error, wrong insertion in map! Inserted node of type {:?} expected DEF",
+                            val
                         ),
                         *line,
                         self.file_path.clone(),
                     ),
-                },
-                _ => handle_error(
-                    format!(
-                        "Internal error, wrong insertion in map! Inserted node of type {:?} expected DEF",
-                        val
-                    ),
-                    *line,
-                    self.file_path.clone(),
-                ),
-            },
+                }
+            }
             None => handle_error(
                 format!("No such template named {}", name),
                 *line,

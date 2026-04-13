@@ -13,6 +13,10 @@ inner macros
 if
 track replacement for updates
 place + at + ident
+expose to terminal arguments
+replace in whole folder
+desambiguation
+file specification
 
 () {} [] , . -- : <-- testing special character catch -> var
 Hello world
@@ -76,3 +80,16 @@ Hello world
 
     hello world from brazil
 
+
+
+
+
+
+    pub struct rust_struct {
+
+    }
+
+
+    public class java_class {
+
+    }

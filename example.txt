@@ -60,3 +60,17 @@ Hello world
 //- def m place c where name = world, origin = france:
 //- def d place m where origin = america:
 //- place d where origin = brazil:
+
+//- def class where lang = rust:
+    pub struct $#name {
+
+    }
+//- endef:
+//- def class where lang = java:
+    public class $#name {
+
+    }
+//- endef:
+
+//- place class where lang = rust, name = rust_struct:
+//- place class where lang = java, name = java_class:
