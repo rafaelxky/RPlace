@@ -14,9 +14,9 @@ impl Condition {
     pub fn eval(&self, first: &str, sec: &str) -> bool {
         match self {
             Condition::EQUALS => {
-                println!("{} == {} ? ",first,sec);
+                println!("{} == {} ? ", first, sec);
                 return first == sec;
-            },
+            }
         }
     }
 }
@@ -217,7 +217,9 @@ impl Parser {
 
         let mut def_name = String::new();
         let mut conditions: Option<Vec<(String, String, Condition)>> = None;
+        let mut body: Option<Box<Node>> = None;
 
+        // get def name
         match self.peek() {
             Token::IDENT { str } => {
                 self.pop();
@@ -234,116 +236,134 @@ impl Parser {
 
         self.remove_spaces();
 
-        match self.peek() {
-            // def name:
-            Token::DD => {
-                self.pop();
-            }
-            // def name place name where ...
-            Token::PLACE => {
-                self.pop();
-                self.remove_spaces();
-                match self.peek() {
-                    Token::IDENT { str: _ } => {
-                        self.handle_place(nodes);
-                        let place = nodes.remove(nodes.len() - 1);
-                        nodes.push(Node::DEF {
-                            name: def_name,
-                            body: Box::new(place),
-                            line: self.line,
-                            conditions: None,
-                        });
-                        return;
-                    }
-                    _ => handle_error(
-                        format!("Expected ident found {:?} after def place", self.peek()),
-                        self.line,
-                        self.file_path.clone(),
-                    ),
+        loop {
+            match self.peek() {
+                // def name:
+                Token::DD => {
+                    self.pop();
+                    break;
                 }
-            }
-            // def name where condition
-            Token::WHERE => {
-                self.pop();
-                loop {
-                    if !self.can_pop() {
-                        break;
-                    }
+                // def name place name where ...
+                Token::PLACE => {
+                    self.pop();
                     self.remove_spaces();
                     match self.peek() {
-                        // def name were name
-                        Token::IDENT { str } => {
-                            let var = str;
-                            self.pop();
-                            self.remove_spaces();
-                            match self.peek() {
-                                // def name were name = 
-                                Token::EQUALS => {
-                                    self.pop();
-                                    self.remove_spaces();
-                                    match self.peek() {
-                                        // def name were name = val
-                                        Token::IDENT { str } => {
-                                            self.pop();
-                                            if conditions.is_none() {
-                                                conditions = Some(Vec::new());
-                                            }
-                                            conditions.as_mut().unwrap().push((var,str,Condition::EQUALS));
-                                            self.remove_spaces();
-                                            match self.peek() {
-                                                Token::DD => {
-                                                    self.pop();
-                                                    break;
-                                                },
-                                                Token::COMMA => {
-                                                    self.pop();
-                                                }
-                                                _ => {
-
-                                                }
-                                            }
-                                        },
-                                        _ => handle_error(
-                                            format!(
-                                                "Expected ident found {:?} in def <name> where <name><condition><here>",
-                                                self.peek()
-                                            ),
-                                            self.line,
-                                            self.file_path.clone(),
-                                        ),
-                                    }
-                                }
-                                _ => handle_error(
-                                    format!(
-                                        "Expected condition found {:?} in def <name> where <name><here>",
-                                        self.peek()
-                                    ),
-                                    self.line,
-                                    self.file_path.clone(),
-                                ),
-                            }
+                        Token::IDENT { str: _ } => {
+                            self.handle_place(nodes);
+                            let place = nodes.remove(nodes.len() - 1);
+                            body = Some(Box::new(place));
+                            break;
                         }
                         _ => handle_error(
-                            format!(
-                                "Expected ident found {:?} in def <name> where <here>",
-                                self.peek()
-                            ),
+                            format!("Expected ident found {:?} after def place", self.peek()),
                             self.line,
                             self.file_path.clone(),
                         ),
                     }
                 }
-            }
-            _ => {
-                panic!(
-                    "{:?} is invalid in def declaration of name {} in line {}",
-                    self.peek(),
-                    def_name,
-                    self.line
-                );
+                // def name where condition
+                Token::WHERE => {
+                    self.pop();
+                    loop {
+                        if !self.can_pop() {
+                            break;
+                        }
+                        self.remove_spaces();
+                        match self.peek() {
+                            // def name were name
+                            Token::IDENT { str } => {
+                                let var = str;
+                                self.pop();
+                                self.remove_spaces();
+                                match self.peek() {
+                                    // def name were name =
+                                    Token::EQUALS => {
+                                        self.pop();
+                                        self.remove_spaces();
+                                        match self.peek() {
+                                            // def name were name = val
+                                            Token::IDENT { str } => {
+                                                self.pop();
+                                                if conditions.is_none() {
+                                                    conditions = Some(Vec::new());
+                                                }
+                                                conditions.as_mut().unwrap().push((
+                                                    var,
+                                                    str,
+                                                    Condition::EQUALS,
+                                                ));
+                                                self.remove_spaces();
+                                                match self.peek() {
+                                                    Token::DD => {
+                                                        break;
+                                                    }
+                                                    Token::COMMA => {
+                                                        self.pop();
+                                                        break;
+                                                    }
+                                                    Token::PLACE => {
+                                                        break;
+                                                    }
+                                                    _ => {
+                                                        panic!("idk");
+                                                    }
+                                                }
+                                            }
+                                            _ => handle_error(
+                                                format!(
+                                                    "Expected ident found {:?} in def <name> where <name><condition><here>",
+                                                    self.peek()
+                                                ),
+                                                self.line,
+                                                self.file_path.clone(),
+                                            ),
+                                        }
+                                    }
+                                    _ => handle_error(
+                                        format!(
+                                            "Expected condition found {:?} in def <name> where <name><here>",
+                                            self.peek()
+                                        ),
+                                        self.line,
+                                        self.file_path.clone(),
+                                    ),
+                                }
+                            }
+                            Token::PLACE => {
+                                break;
+                            }
+                            _ => handle_error(
+                                format!(
+                                    "Expected ident found {:?} in def <name> where <here>",
+                                    self.peek()
+                                ),
+                                self.line,
+                                self.file_path.clone(),
+                            ),
+                        }
+                    }
+                }
+                _ => {
+                    panic!(
+                        "{:?} is invalid in def declaration of name {} in line {}",
+                        self.peek(),
+                        def_name,
+                        self.line
+                    );
+                }
             }
         }
 
+        // if body is already defined, then its def place
+        if body.is_some() {
+            nodes.push(Node::DEF {
+                name: def_name.to_string(),
+                body: body.unwrap(),
+                line: self.line,
+                conditions: conditions,
+            });
+            return;
+        }
         // body handling
         let body = self.build_body();
         nodes.push(Node::DEF {
@@ -562,7 +582,7 @@ impl Parser {
                 });
                 return;
             }
-            // place ident were 
+            // place ident were
             Token::WHERE => {
                 let mut args: Vec<(String, String)> = Vec::new();
                 loop {
@@ -783,7 +803,7 @@ impl Parser {
             }
             _ => {
                 panic!(
-                    "{:?} cant go after DEF name in line {}, forgot \":\" or \",\" ?",
+                    "{:?} cant go in //- place <name> <here> at line {}, forgot \":\" or \",\" ?",
                     self.peek(),
                     self.line
                 )

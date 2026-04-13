@@ -17,6 +17,7 @@ expose to terminal arguments
 replace in whole folder
 desambiguation
 file specification
+single token variable definition
 
 () {} [] , . - : <- testing special character catch -> $#
 Hello world
@@ -78,3 +79,15 @@ Hello world
 //- place class where lang = rust, name = rust_struct:
 //- place class where lang = java, name = java_class:
 //- place class where origin = "example.txt":
+
+//- def java:
+    pub fn hello_from_$#lang(); java
+//- endef:
+//- def rust:
+    pub fn hello_from_$#lang(); rust
+//- endef:
+
+//- def aa where lang=java place java:
+//- def aa place rust where lang=rust:
+//- place aa where lang=rust:
+//- place aa where lang=java:

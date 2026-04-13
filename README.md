@@ -64,5 +64,8 @@ ex:
 //- endef:
 this will place the value in the variable as normal
 
-
+inheritance and overloading can be used at the same time like
+//- def a where lang=java place java_class:
+//- def a place rust_struct where lang=rust:
+both are correct
 
