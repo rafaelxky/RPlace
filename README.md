@@ -38,12 +38,31 @@ this is how you call your definitions with value assignements
 it suports single line and multiline double quote variables
 if no value or default is provided the program will trow
 
-Inheritance is possible with def place
+inheritance is possible with def place
 //- def a place b where c=d:
 //- place a:
 here "a" will be placed with c=d, however, you can call
 //- place a were c=e:
 this will place with c=e so it allows overrides
 also usefull to provide defaults
+
+def overload is also possible like...
+//- def name where var=val:
+if var = val then this will be called
+//- place name where var=val:
+if it will trow if var is undefined
+but you can define a default def with no parameters 
+//- def name:
+if you call
+//- place name:
+it will call the default def
+variables still work as normal
+you can use the var name inside the body
+ex:
+//- def name where var=val:
+    $#var
+//- endef:
+this will place the value in the variable as normal
+
 
 

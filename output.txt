@@ -85,11 +85,15 @@ Hello world
 
 
 
-    pub struct rust_struct {
 
+    pub struct rust_struct {
+        rust
     }
 
 
     public class java_class {
-
+        java
     }
+
+
+    default class from example.txt
