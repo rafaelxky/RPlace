@@ -1,26 +1,3 @@
-features:
-Template definition
-Variables
-Instantiation
-Language safe markers/delimiters
-imports
-in place variables
-
-todo:
-defaults
-for loops
-inner macros
-if
-track replacement for updates
-place + at + ident
-expose to terminal arguments
-replace in whole folder
-desambiguation
-file specification
-single token variable definition
-
-() {} [] , . -- : <-- testing special character catch -> var
-Hello world
 
 
 
@@ -30,83 +7,27 @@ Hello world
 
 
 
-() {} [] , . -- :
 
-    pub struct vec {
-        str: String
-    }
+
+public class user controller {
     
-    pub impl vec {
-        pub fn new() -> Self{
-            Self {
-                "Hello world from vec!".to_string(),
-            }
-        }
-        pub fn a(&self){
-            println!("{}",self.str);
-        }
-        hello
+    public class get_#$method_name(){
+
     }
 
-
-
-
-
-() {} [] , . -- :
-
-    pub struct vec2 {
-        str: String
-    }
     
-    pub impl vec2 {
-        pub fn new() -> Self{
-            Self {
-                "Hello world from vec2!".to_string(),
-            }
-        }
-        pub fn b(&self){
-            println!("{}",self.str);
-        }
-        
-        pub fn get_str(&self) -> String {
-            return self.str;
-        }
+    public class add_#$method_name(){
 
     }
 
+}
 
 
+public class user2 controller {
+    
+    public class get_#$method_name(){
 
-
-
-    hello world from brazil
-
-
-
-
-
-
-
-    pub struct rust_struct {
-        rust
     }
 
-
-    public class java_class {
-        java
-    }
-
-
-    default class from example.txt
-
-
-
-
-
-
-
-
-    pub fn hello_from_rust(); rust
-
-
-    pub fn hello_from_java(); java
+    
+}

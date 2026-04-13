@@ -125,7 +125,10 @@ impl Parser {
                 }
                 Token::IDENT { str } => {
                     body_str.push_str(&str);
-                }
+                },
+                Token::WHEN => {
+                    body_str.push_str("when");
+                },
                 Token::COMMA => {
                     body_str.push(',');
                 }
@@ -261,8 +264,8 @@ impl Parser {
                         ),
                     }
                 }
-                // def name where condition
-                Token::WHERE => {
+                // def name when condition
+                Token::WHEN => {
                     self.pop();
                     loop {
                         if !self.can_pop() {
@@ -303,7 +306,13 @@ impl Parser {
                                                     }
                                                     Token::PLACE => {
                                                         break;
-                                                    }
+                                                    },
+                                                    Token::DEF => {
+                                                        break;
+                                                    },
+                                                    Token::WHERE => {
+                                                        break;
+                                                    },
                                                     _ => {
                                                         panic!("idk");
                                                     }
@@ -396,7 +405,10 @@ impl Parser {
                 }
                 Token::INCLUDE => {
                     body_str.push_str("include");
-                }
+                },
+                Token::WHEN => {
+                    body_str.push_str("when");
+                },
                 Token::DD => {
                     body_str.push(':');
                 }
@@ -620,7 +632,7 @@ impl Parser {
                                                         line: self.line,
                                                     });
                                                     return;
-                                                }
+                                                },
                                                 _ => {
                                                     panic!(
                                                         "expected , or : found {:?} in line {}",
@@ -655,7 +667,10 @@ impl Parser {
                                                     }
                                                     Token::COMMA => {
                                                         arg_str.push(',');
-                                                    }
+                                                    },
+                                                    Token::WHEN => {
+                                                        arg_str.push_str("when");
+                                                    },
                                                     Token::DD => {
                                                         arg_str.push(':');
                                                     }

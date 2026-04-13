@@ -21,6 +21,7 @@ pub enum Token {
     DQUOTE,
     INCLUDE,
     RARROW,
+    WHEN,
 }
 pub struct TokenResult {
     pub tokens: Vec<Token>,
@@ -252,7 +253,11 @@ impl Lexer {
                 "include" => {
                     tokens.push(Token::INCLUDE);
                     continue;
-                }
+                },
+                "when" => {
+                    tokens.push(Token::WHEN);
+                    continue;
+                },
                 _ => {
                     tokens.push(Token::IDENT { str });
                     continue;

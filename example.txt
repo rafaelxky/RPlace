@@ -18,6 +18,7 @@ replace in whole folder
 desambiguation
 file specification
 single token variable definition
+variable concatenation ex: $#name+controller
 
 () {} [] , . - : <- testing special character catch -> $#
 Hello world

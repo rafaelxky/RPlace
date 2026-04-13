@@ -1,0 +1,28 @@
+template composition example
+here you can call class with get and add options
+
+//- def controller:
+public class $#name controller {
+    $#get_body
+    $#add_body
+}
+//- endef:
+
+//- def get place controller where get_body="":
+//- def get when get=true place controller where get_body="
+    public class get_$#method_name(){
+
+    }
+//-":
+
+//- def add place get where add_body="":
+//- def add when add=true place get where add_body="
+    public class add_$#method_name(){
+
+    }
+//-":
+
+//- def class place add:
+
+//- place class where get=true, add=true, name=user:
+//- place class where get=true, name=user2:

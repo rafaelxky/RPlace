@@ -9,7 +9,7 @@ pub mod parser;
 pub mod writer;
 
 fn main() {
-    let lexer = Lexer::new("example.txt");
+    let lexer = Lexer::new("mvctest.txt");
     let tokens = lexer.parse();
     for elem in &tokens.tokens {
         println!("{:?}", elem);
