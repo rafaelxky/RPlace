@@ -84,4 +84,7 @@ this will declare a template "a" wich will replace the variable "var" with "val"
 - rplace allows for file text data and http
 - for http you must provide a file whose body is pure text similar to as if it was a file 
 
-
+# inner macros
+- when you call a macro, all inner macros will also execute
+- inner def will make so that a macro is only defined after its parent is called
+- inner place works as normal
