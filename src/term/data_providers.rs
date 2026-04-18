@@ -17,7 +17,7 @@ impl TextProvider {
     fn get_from_file(path: &str) -> (String, DataSouce) {
         let origin_path = Path::new(&path);
         if !Path::exists(origin_path) {
-            println!("No such file {}", path);
+            eprintln!("No such file {}", path);
             exit(1);
         }
         return (fs::read_to_string(path).unwrap(), DataSouce::FILE);

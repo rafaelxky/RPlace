@@ -14,7 +14,6 @@ impl Condition {
     pub fn eval(&self, first: &str, sec: &str) -> bool {
         match self {
             Condition::EQUALS => {
-                println!("{} == {} ? ", first, sec);
                 return first == sec;
             }
         }
@@ -86,8 +85,17 @@ impl Parser {
         self.tokens.len() > self.ptr
     }
 
-    pub fn parse(mut self) -> ParsingResult {
+    pub fn parse(mut self) -> ParsingResult{
         let mut nodes: Vec<Node> = Vec::new();
+        self.parse_inner(&mut nodes);
+        ParsingResult {
+            nodes,
+            file_path: self.file_path,
+        }
+    }
+
+    fn parse_inner(&mut self, nodes: &mut Vec<Node>){
+        let mut nodes = nodes;
         let mut body_str = String::new();
         while self.can_pop() {
             let curr = self.pop();
@@ -129,14 +137,10 @@ impl Parser {
                 }
             }
         }
-        println!("finished in parser");
         nodes.push(Node::DATA {
             data: body_str.to_string(),
         });
-        ParsingResult {
-            nodes,
-            file_path: self.file_path,
-        }
+      
     }
 
     fn handle_include(&mut self, nodes: &mut Vec<Node>) {
@@ -397,7 +401,6 @@ impl Parser {
                                 Token::PLUS => {self.pop();}
                                 _ => (),
                             }
-                            println!("var template: {}", str.to_string());
                             body.push(Node::VARTEMPLATE {
                                 name: str.to_string(),
                             });
@@ -571,10 +574,6 @@ impl Parser {
                                         // ident = ident -> variable assignement
                                         Token::IDENT { str } => {
                                             self.pop();
-                                            println!(
-                                                "pushed arg in handle place, {} = {}",
-                                                from, str
-                                            );
                                             args.push((from, str));
                                             self.remove_spaces();
                                             match self.peek() {
@@ -627,7 +626,7 @@ impl Parser {
                                                             self.pop();
                                                             break;
                                                         }
-                                                    }
+                                                    },
                                                     Token::MARK { kind } => {
                                                         self.pop();
                                                         if !has_new_line {
@@ -641,24 +640,18 @@ impl Parser {
                                                                     Token::SPACE => {
                                                                         self.pop();
                                                                         spaces.push(' ');
-                                                                    }
+                                                                    },
                                                                     Token::DQUOTE => {
-                                                                        println!("dquote");
                                                                         self.pop();
                                                                         ends = true;
                                                                         break;
                                                                     }
                                                                     _ => {
-                                                                        println!(
-                                                                            "No break {:?}",
-                                                                            self.peek()
-                                                                        );
                                                                         break;
                                                                     }
                                                                 }
                                                             }
                                                             if ends {
-                                                                println!("brake");
                                                                 break;
                                                             } else {
                                                                 arg_str.push_str(&spaces);

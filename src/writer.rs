@@ -120,7 +120,6 @@ impl Writer {
         });
 
         let def = def_map.get(name);
-        println!("Got {} from hasmap", name);
         match def {
             Some(val) => {
                 let mut has_conditions = false;
@@ -128,9 +127,7 @@ impl Writer {
 
                 // foreach def node in the 
                 for def in val {
-                    println!("iter {:?} ",args_map);
                     if matched.is_some() && has_conditions {
-                        println!("match is some and conditions");
                         break;
                     }
                     if let Node::DEF {
@@ -150,10 +147,8 @@ impl Writer {
                                     //- def struct where lang = rust:
                                     //- place struct where lang = rust:
                                     if !eval.2.eval(&val.unwrap(), &eval.1) {
-                                        println!("Eval {} and {} failed",&val.unwrap(), eval.1);
                                         break;
                                     }
-                                    println!("Eval {} and {} success",&val.unwrap(), eval.1);
                                     matched = Some(def);
                                     has_conditions = true;
                                 }
