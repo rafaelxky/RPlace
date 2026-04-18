@@ -85,7 +85,7 @@ impl Parser {
         self.tokens.len() > self.ptr
     }
 
-    pub fn parse(mut self) -> ParsingResult{
+    pub fn parse(mut self) -> ParsingResult {
         let mut nodes: Vec<Node> = Vec::new();
         self.parse_inner(&mut nodes);
         ParsingResult {
@@ -94,7 +94,7 @@ impl Parser {
         }
     }
 
-    fn parse_inner(&mut self, nodes: &mut Vec<Node>){
+    fn parse_inner(&mut self, nodes: &mut Vec<Node>) {
         let mut nodes = nodes;
         let mut body_str = String::new();
         while self.can_pop() {
@@ -105,28 +105,7 @@ impl Parser {
                         data: body_str.to_string(),
                     });
                     body_str = String::new();
-                    self.remove_spaces();
-                    match self.peek() {
-                        Token::DEF => {
-                            self.pop();
-                            self.handle_def(&mut nodes);
-                        }
-                        Token::PLACE => {
-                            self.pop();
-                            self.handle_place(&mut nodes);
-                        }
-                        Token::INCLUDE => {
-                            self.pop();
-                            self.handle_include(&mut nodes);
-                        }
-                        _ => {
-                            panic!(
-                                "{:?} cannot go after an initial mark in line {}, did you forget a mark?",
-                                self.peek(),
-                                self.line
-                            );
-                        }
-                    }
+                    self.handle_func(nodes);
                 }
                 Token::NL => {
                     self.line = self.line + 1;
@@ -140,7 +119,32 @@ impl Parser {
         nodes.push(Node::DATA {
             data: body_str.to_string(),
         });
-      
+    }
+
+    fn handle_func(&mut self, nodes: &mut Vec<Node>) {
+        let mut nodes = nodes;
+        self.remove_spaces();
+        match self.peek() {
+            Token::DEF => {
+                self.pop();
+                self.handle_def(&mut nodes);
+            }
+            Token::PLACE => {
+                self.pop();
+                self.handle_place(&mut nodes);
+            }
+            Token::INCLUDE => {
+                self.pop();
+                self.handle_include(&mut nodes);
+            }
+            _ => {
+                panic!(
+                    "{:?} cannot go after an initial mark in line {}, did you forget a mark?",
+                    self.peek(),
+                    self.line
+                );
+            }
+        }
     }
 
     fn handle_include(&mut self, nodes: &mut Vec<Node>) {
@@ -398,7 +402,9 @@ impl Parser {
                         Token::IDENT { str } => {
                             self.pop();
                             match self.peek() {
-                                Token::PLUS => {self.pop();}
+                                Token::PLUS => {
+                                    self.pop();
+                                }
                                 _ => (),
                             }
                             body.push(Node::VARTEMPLATE {
@@ -471,7 +477,9 @@ impl Parser {
                                                             });
                                                             /* $#var -> *///+
                                                             match self.peek() {
-                                                                Token::PLUS => {self.pop();}
+                                                                Token::PLUS => {
+                                                                    self.pop();
+                                                                }
                                                                 _ => (),
                                                             }
                                                         }
@@ -521,7 +529,9 @@ impl Parser {
                         }
                     }
                 }
-                tok => {body_str.push_str(&tok.val());}
+                tok => {
+                    body_str.push_str(&tok.val());
+                }
             }
             self.pop();
         }
@@ -626,7 +636,7 @@ impl Parser {
                                                             self.pop();
                                                             break;
                                                         }
-                                                    },
+                                                    }
                                                     Token::MARK { kind } => {
                                                         self.pop();
                                                         if !has_new_line {
@@ -640,7 +650,7 @@ impl Parser {
                                                                     Token::SPACE => {
                                                                         self.pop();
                                                                         spaces.push(' ');
-                                                                    },
+                                                                    }
                                                                     Token::DQUOTE => {
                                                                         self.pop();
                                                                         ends = true;
@@ -658,7 +668,7 @@ impl Parser {
                                                             }
                                                             // if has " after mark
                                                         }
-                                                    },
+                                                    }
                                                     tok => {
                                                         arg_str.push_str(&tok.val());
                                                     }
