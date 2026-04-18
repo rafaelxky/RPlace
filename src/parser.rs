@@ -80,6 +80,9 @@ impl Parser {
         self.ptr = self.ptr + 1;
         self.tokens[self.ptr - 1].clone()
     }
+    fn unpop(&mut self){
+        self.ptr = self.ptr - 1;
+    }
     fn can_pop(&self) -> bool {
         self.tokens.len() > self.ptr
     }
@@ -394,6 +397,7 @@ impl Parser {
         let mut body_str = String::new();
         let mut body: Vec<Node> = Vec::new();
         loop {
+            println!("peeked in body {:?}", self.peek());
             match self.peek() {
                 // regular var declaration
                 Token::VAR => {
@@ -533,6 +537,7 @@ impl Parser {
                             body.append(&mut nodes);
                         }
                         Token::PLACE => {
+                            // todo: inner place
                             self.pop();
                             body.push(Node::DATA {
                                 data: body_str.to_string(),
@@ -542,6 +547,8 @@ impl Parser {
                             println!("place inside body");
                             self.handle_place(&mut nodes);
                             body.append(&mut nodes);
+                            self.unpop();
+                            println!("curr {:?}",self.peek());
                         }
                         Token::INCLUDE => {
                             self.pop();
@@ -559,9 +566,11 @@ impl Parser {
                     }
                 }
                 tok => {
+                    println!("pushing to body {:?}", tok);
                     body_str.push_str(&tok.val());
                 }
             }
+            println!("Poped {:?}",self.peek());
             self.pop();
         }
         return Node::BODY { data: body };
@@ -575,9 +584,9 @@ impl Parser {
             Token::IDENT { str } => {
                 self.pop();
                 str
-            }
+            },
             _ => {
-                panic!("{:?} cant go after DEF in line {}", self.peek(), self.line)
+                panic!("{:?} cant go after PLACE in line {}", self.peek(), self.line)
             }
         };
 

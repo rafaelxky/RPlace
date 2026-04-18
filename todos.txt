@@ -4,3 +4,6 @@ folder scope replacement
 place tracking and updating taking into consideration changes
 for each
 better defaults
+inherit spaces when placing
+handle newline and space removal more consistently 
+add place+ident

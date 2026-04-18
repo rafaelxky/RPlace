@@ -1,8 +1,6 @@
-//- def a:
-    hello
-//- endef:
-//- def b:
-    I am //-place a: world
-//- endef:
+//- def a: hello //- endef:
+//- def b: I am //-place a: world //- endef:
 
 //- place b:
+
+nested def causes issues still
