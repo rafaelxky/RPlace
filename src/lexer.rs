@@ -22,6 +22,33 @@ pub enum Token {
     INCLUDE,
     RARROW,
     WHEN,
+    PLUS,
+}
+impl Token {
+    pub fn val(&self) -> String{
+        return match self {
+            Token::IDENT { str } => str,
+            Token::DEF => "def",
+            Token::ENDEF => "endef",
+            Token::VAR => "$#",
+            Token::MARK { kind } => kind,
+            Token::DD => ":",
+            Token::EOF => "",
+            Token::PLACE => "place",
+            Token::WHERE => "where",
+            Token::SPACE => " ",
+            Token::NL => "\n",
+            Token::EQUALS => "=",
+            Token::COMMA => ",",
+            Token::LSRQBRACK => "[",
+            Token::RSRQBRACK => "]",
+            Token::DQUOTE => "\"",
+            Token::INCLUDE => "include",
+            Token::RARROW => "->",
+            Token::WHEN => "when",
+            Token::PLUS => "+",
+        }.to_string();
+    }
 }
 pub struct TokenResult {
     pub tokens: Vec<Token>,
@@ -96,6 +123,10 @@ impl Lexer {
                 }
                 ']' => {
                     tokens.push(Token::RSRQBRACK);
+                    continue;
+                },
+                '+' => {
+                    tokens.push(Token::PLUS);
                     continue;
                 }
                 '"' => {

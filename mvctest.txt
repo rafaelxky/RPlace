@@ -18,7 +18,7 @@ public class $#name controller {
 //- def add place get where add_body="":
 //- def add when add=true place get where add_body="
     public class add_$#method_name(){
-
+        
     }
 //-":
 

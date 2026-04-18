@@ -120,51 +120,13 @@ impl Parser {
                         }
                     }
                 }
-                Token::INCLUDE => {
-                    body_str.push_str("include");
-                }
-                Token::IDENT { str } => {
-                    body_str.push_str(&str);
-                }
-                Token::WHEN => {
-                    body_str.push_str("when");
-                }
-                Token::COMMA => {
-                    body_str.push(',');
-                }
-                Token::DQUOTE => {
-                    body_str.push('"');
-                }
-                Token::DD => {
-                    body_str.push(':');
-                }
-                Token::LSRQBRACK => {
-                    body_str.push('[');
-                }
-                Token::RSRQBRACK => {
-                    body_str.push(']');
-                }
-                Token::SPACE => {
-                    body_str.push(' ');
-                }
-                Token::EQUALS => {
-                    body_str.push('=');
-                }
-                Token::WHERE => {
-                    body_str.push_str("where");
-                }
-                Token::ENDEF => {
-                    body_str.push_str("endef");
-                }
                 Token::NL => {
                     self.line = self.line + 1;
                     body_str.push('\n');
                 }
-                Token::DEF => body_str.push_str("def"),
-                Token::VAR => body_str.push_str("var"),
-                Token::EOF => (),
-                Token::PLACE => body_str.push_str("place"),
-                Token::RARROW => body_str.push_str("->"),
+                tok => {
+                    body_str.push_str(&tok.val());
+                }
             }
         }
         println!("finished in parser");
@@ -419,40 +381,6 @@ impl Parser {
         let mut body: Vec<Node> = Vec::new();
         loop {
             match self.peek() {
-                Token::IDENT { str } => {
-                    body_str.push_str(&str);
-                }
-                Token::INCLUDE => {
-                    body_str.push_str("include");
-                }
-                Token::WHEN => {
-                    body_str.push_str("when");
-                }
-                Token::DD => {
-                    body_str.push(':');
-                }
-                Token::RARROW => {
-                    body_str.push_str("->");
-                }
-                Token::SPACE => {
-                    body_str.push(' ');
-                }
-                Token::NL => {
-                    self.line = self.line + 1;
-                    body_str.push('\n');
-                }
-                Token::COMMA => {
-                    body_str.push(',');
-                }
-                Token::LSRQBRACK => {
-                    body_str.push('[');
-                }
-                Token::RSRQBRACK => {
-                    body_str.push(']');
-                }
-                Token::DQUOTE => {
-                    body_str.push('"');
-                }
                 // regular var declaration
                 Token::VAR => {
                     self.pop();
@@ -462,8 +390,13 @@ impl Parser {
                     body_str = String::new();
                     self.remove_spaces();
                     match self.peek() {
+                        // $#ident
                         Token::IDENT { str } => {
                             self.pop();
+                            match self.peek() {
+                                Token::PLUS => {self.pop();}
+                                _ => (),
+                            }
                             println!("var template: {}", str.to_string());
                             body.push(Node::VARTEMPLATE {
                                 name: str.to_string(),
@@ -483,6 +416,7 @@ impl Parser {
                     self.pop();
                     self.remove_spaces();
                     match self.peek() {
+                        //- endef:
                         Token::ENDEF => {
                             self.pop();
                             body.push(Node::DATA {
@@ -504,6 +438,7 @@ impl Parser {
                             }
                             break;
                         }
+                        /*- $#var -> -*/
                         Token::VAR => {
                             self.pop();
                             body.push(Node::DATA {
@@ -531,12 +466,17 @@ impl Parser {
                                                                 name,
                                                                 default: Some(str.clone()),
                                                             });
+                                                            /* $#var -> *///+
+                                                            match self.peek() {
+                                                                Token::PLUS => {self.pop();}
+                                                                _ => (),
+                                                            }
                                                         }
-                                                        _ => {
+                                                        tok => {
                                                             self.pop();
                                                             body.push(Node::RARROWVAR {
                                                                 name,
-                                                                default: None,
+                                                                default: Some(tok.val()),
                                                             });
                                                         }
                                                     }
@@ -578,12 +518,7 @@ impl Parser {
                         }
                     }
                 }
-                Token::DEF => body_str.push_str("def"),
-                Token::ENDEF => body_str.push_str("endef"),
-                Token::EOF => (),
-                Token::PLACE => body_str.push_str("place"),
-                Token::WHERE => body_str.push_str("where"),
-                Token::EQUALS => body_str.push('='),
+                tok => {body_str.push_str(&tok.val());}
             }
             self.pop();
         }
@@ -680,42 +615,6 @@ impl Parser {
                                                     )
                                                 }
                                                 match self.peek() {
-                                                    Token::IDENT { str } => {
-                                                        arg_str.push_str(&str);
-                                                    }
-                                                    Token::RARROW => {
-                                                        arg_str.push_str("->");
-                                                    }
-                                                    Token::INCLUDE => {
-                                                        arg_str.push_str("include");
-                                                    }
-                                                    Token::COMMA => {
-                                                        arg_str.push(',');
-                                                    }
-                                                    Token::WHEN => {
-                                                        arg_str.push_str("when");
-                                                    }
-                                                    Token::DD => {
-                                                        arg_str.push(':');
-                                                    }
-                                                    Token::DEF => {
-                                                        arg_str.push_str("def");
-                                                    }
-                                                    Token::ENDEF => {
-                                                        arg_str.push_str("endef");
-                                                    }
-                                                    Token::EQUALS => {
-                                                        arg_str.push('=');
-                                                    }
-                                                    Token::LSRQBRACK => {
-                                                        arg_str.push('[');
-                                                    }
-                                                    Token::RSRQBRACK => {
-                                                        arg_str.push(']');
-                                                    }
-                                                    Token::WHERE => {
-                                                        arg_str.push_str("where");
-                                                    }
                                                     Token::NL => {
                                                         self.line = self.line + 1;
                                                         arg_str.push('\n');
@@ -728,9 +627,6 @@ impl Parser {
                                                             self.pop();
                                                             break;
                                                         }
-                                                    }
-                                                    Token::VAR => {
-                                                        arg_str.push_str("#$");
                                                     }
                                                     Token::MARK { kind } => {
                                                         self.pop();
@@ -769,12 +665,10 @@ impl Parser {
                                                             }
                                                             // if has " after mark
                                                         }
+                                                    },
+                                                    tok => {
+                                                        arg_str.push_str(&tok.val());
                                                     }
-                                                    Token::EOF => (),
-                                                    Token::PLACE => {
-                                                        arg_str.push_str("place");
-                                                    }
-                                                    Token::SPACE => arg_str.push(' '),
                                                 }
                                                 self.pop();
                                             }
