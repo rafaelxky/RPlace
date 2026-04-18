@@ -55,7 +55,7 @@ impl Writer {
                 if !Path::new(&path).exists() {
                     handle_error("Couldnt find import", *line, &self.file_path);
                 }
-                let lexer = Lexer::new(path.clone(), TextProvider::get_text(&path));
+                let lexer = Lexer::new(path.clone(), TextProvider::get_text(&path).0);
                 let parser = Parser::new(lexer.parse());
                 let nodes = parser.parse();
                 nodes.nodes.iter().for_each(|n| {
