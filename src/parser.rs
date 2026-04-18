@@ -171,6 +171,7 @@ impl Parser {
                 }
                 // include
                 Token::DD => {
+                    println!("DD1");
                     self.ptr_next();
                     nodes.push(Node::INCLUDE {
                         path: path.clone(),
@@ -229,6 +230,7 @@ impl Parser {
             match self.peek() {
                 // def name:
                 Token::DD => {
+                    println!("DD2");
                     self.ptr_next();
                     self.remove_till_tl();
                     break;
@@ -286,6 +288,7 @@ impl Parser {
                                                 match self.peek() {
                                                     // def name when name = val:
                                                     Token::DD => {
+                                                        println!("DD3");
                                                         self.remove_till_tl();
                                                         break;
                                                     }
@@ -355,6 +358,7 @@ impl Parser {
 
         // if body is already defined, then its def place
         if body.is_some() {
+            println!("Pushed already defined def body to nodes");
             nodes.push(Node::DEF {
                 name: def_name.to_string(),
                 body: body.unwrap(),
@@ -363,6 +367,7 @@ impl Parser {
             });
             return;
         }
+
         // body handling
         let body = self.build_body();
         println!("pushed body {:?} in def", body);
@@ -372,6 +377,7 @@ impl Parser {
             line: self.line,
             conditions: conditions,
         });
+        println!("Body nodes {:?}", nodes);
     }
 
     fn remove_spaces(&mut self) {
@@ -459,8 +465,10 @@ impl Parser {
                             match self.peek() {
                                 // endef :
                                 Token::DD => {
+                                    println!("DD4");
                                     self.ptr_next();
                                     self.remove_till_tl();
+                                    self.unpop();
                                 }
                                 _ => {
                                     panic!(
@@ -555,6 +563,7 @@ impl Parser {
                             self.handle_def(&mut nodes);
                             println!("inner def end");
                             body.append(&mut nodes);
+                            println!("Appeded to body {:?}",nodes);
                         }
                         Token::PLACE => {
                             
@@ -619,6 +628,7 @@ impl Parser {
         match self.peek() {
             // place ident:
             Token::DD => {
+                println!("DD5");
                 self.ptr_next();
                 nodes.push(Node::PLACE {
                     name: place_id,
@@ -655,6 +665,7 @@ impl Parser {
                                                 }
                                                 // ident = ident
                                                 Token::DD => {
+                                                    println!("DD6");
                                                     self.ptr_next();
                                                     nodes.push(Node::PLACE {
                                                         name: place_id.clone(),
@@ -743,6 +754,7 @@ impl Parser {
                                             // ident = "ident"
                                             match self.peek() {
                                                 Token::DD => {
+                                                    println!("DD7");
                                                     self.ptr_next();
                                                     nodes.push(Node::PLACE {
                                                         name: place_id.clone(),
@@ -783,6 +795,7 @@ impl Parser {
                             }
                         }
                         Token::DD => {
+                            println!("DD8");
                             self.ptr_next();
                             nodes.push(Node::PLACE {
                                 name: place_id.clone(),

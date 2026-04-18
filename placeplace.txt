@@ -1,11 +1,7 @@
-//- def a: 
-    //- def c:
-        hello
-    //- endef:
-//- endef:
-
-//- def b: I am //-place a: world //- endef:
+//- def a: world from a //- def c: world from c //- endef: //- endef:
+//- def b: I am //-place a: world from b //- endef:
 
 //- place b:
+//- place c:
 
 nested def causes issues still
