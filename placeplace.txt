@@ -1,0 +1,10 @@
+//- def a:
+    hello
+//- endef:
+
+//- def b:
+    //- place a: world
+//- endef:
+
+//- place b:
+//- place b:

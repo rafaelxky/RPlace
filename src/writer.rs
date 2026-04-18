@@ -31,11 +31,7 @@ impl Writer {
                 line: _,
                 conditions: _,
             } => {
-                let name = name.to_string();
-                def_map
-                    .entry(name)
-                    .or_insert_with(Vec::new)
-                    .push(node.clone());
+                self.handle_def(def_map, &node, &name);
             }
             Node::INCLUDE { path, line } => {
                 let mut path = path.clone();
@@ -72,7 +68,14 @@ impl Writer {
         });
     }
 
-    // I need to save " " and \n data
+    fn handle_def(&self, def_map: &mut HashMap<String, Vec<Node>>, node: &Node, name: &String) {
+        let name = name.to_string();
+        def_map
+            .entry(name)
+            .or_insert_with(Vec::new)
+            .push(node.clone());
+    }
+
     pub fn replace(mut self) -> String {
         let mut text = String::new();
         let mut def_map: HashMap<String, Vec<Node>> = HashMap::new();
@@ -98,7 +101,22 @@ impl Writer {
                 }
                 Node::PLACE { name, args, line } => {
                     let mut args_map: HashMap<String, String> = HashMap::new();
-                    self.handle_place(&mut text, &def_map, name, args, line, &mut args_map);
+                    let inner_defs =
+                        self.handle_place(&mut text, &mut def_map, name, args, line, &mut args_map);
+
+                    if matches!(inner_defs, Some(_)) {
+                        inner_defs.unwrap().iter().for_each(|def| {
+                            if let Node::DEF {
+                                conditions: _,
+                                name,
+                                body: _,
+                                line: _,
+                            } = def
+                            {
+                                self.handle_def(&mut def_map, def, name);
+                            }
+                        });
+                    }
                 }
                 _ => (),
             }
@@ -114,20 +132,23 @@ impl Writer {
         args: &Vec<(String, String)>,
         line: &usize,
         args_map: &mut HashMap<String, String>,
-    ) {
+    ) -> Option<Vec<Node>> {
+        // maps variables to values
         args.iter().for_each(|arg| {
             if !args_map.contains_key(&arg.0.clone()) {
                 args_map.insert(arg.0.clone(), arg.1.clone());
             }
         });
 
-        let def = def_map.get(name);
-        match def {
+        let mut def_queue: Option<Vec<Node>> = None;
+
+        match def_map.get(name) {
+            // check if template exists
             Some(val) => {
                 let mut has_conditions = false;
-                let mut matched = None;
+                let mut matched: Option<&Node> = None;
 
-                // foreach def node in the
+                // foreach def node in override
                 for def in val {
                     if matched.is_some() && has_conditions {
                         break;
@@ -162,9 +183,10 @@ impl Writer {
                     }
                 }
 
+                // failed to find override
                 if matched.is_none() {
                     handle_error(
-                        format!("No available override for {:?}", def),
+                        format!("No available override for {:?}", name),
                         *line,
                         self.file_path.clone(),
                     )
@@ -178,46 +200,65 @@ impl Writer {
                     } => match body.as_ref() {
                         Node::BODY { data } => {
                             // for each body node
+                            // go trough the body and handle the cases
                             data.iter().for_each(|n| match n {
+                                    // here is handled anything inside the def
                                     Node::DATA { data } => {
+                                        // just text
                                         text.push_str(data);
-                                    }
+                                        println!("pushed {}", data);
+                                    },
                                     Node::VARTEMPLATE { name } => {
+                                        // $#
                                         let replacement = match args_map.get(name) {
                                             Some(val) => val,
                                             None => {
-                                                handle_error(format!("No value specified for \"{}\"!", name), *line, self.file_path.clone())
+                                                handle_error(format!("No value specified for \"{}\"!", name), line.clone(), self.file_path.clone())
                                             }
                                         };
                                         text.push_str(replacement);
                                     },
                                     Node::RARROWVAR { name, default } => {
+                                        // ->
                                          let replacement = match args_map.get(name) {
                                             Some(val) => val,
                                             None => {
                                                 match default {
                                                     Some(default) => default,
-                                                    None => handle_error(format!("No value specified for \"{}\" in right arrow variable declaration!", name), *line, self.file_path.clone())
+                                                    None => handle_error(format!("No value specified for \"{}\" in right arrow variable declaration!", name), line.clone(), self.file_path.clone())
                                                 }
                                             }
                                         };
                                         text.push_str(replacement);
+                                    },
+                                    Node::DEF { conditions: _, name: _, body:_, line: _ } => {
+                                        if def_queue.is_none() {
+                                            def_queue = Some(Vec::new());
+                                        }
+                                        def_queue.as_mut().unwrap().push(n.clone());
+                                    }, 
+                                        Node::PLACE { name, args, line } => {
+                                        // def ident place ident ...
+                                        println!("Inner place");
+                                        if def_queue.is_none() {
+                                            def_queue = Some(Vec::new());
+                                        }
+                                        let result = self.handle_place(text, &def_map, name, args, line, args_map);
+                                        if result.is_some() {
+                                            def_queue.as_mut().unwrap().append(&mut result.unwrap());
+                                        }
                                     }
                                     _ => {
-                                        handle_error(format!("Body should only have data or var def, instead found {:?}", n), *line, self.file_path.clone())
+                                        handle_error(format!("Body should only have data or var def, instead found {:?}", n), line.clone(), self.file_path.clone())
                                 },
                                 });
-                        }
-                        Node::PLACE { name, args, line } => {
-                            // def ident place ident ...
-                            self.handle_place(text, def_map, name, args, line, args_map);
-                        }
+                        },
                         _ => handle_error(
                             format!(
                                 "Internal error, def has a node {:?} wich is not of type body",
                                 body
                             ),
-                            *line,
+                            line.clone(),
                             self.file_path.clone(),
                         ),
                     },
@@ -237,5 +278,6 @@ impl Writer {
                 self.file_path.clone(),
             ),
         }
+        return def_queue;
     }
 }
