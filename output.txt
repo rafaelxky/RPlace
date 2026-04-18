@@ -5,13 +5,6 @@ here you can call class with get and add options
 
 
 
-
-
-
-
-
-
-
 public class user controller {
     
     public class get_#$method_name(){
@@ -24,8 +17,6 @@ public class user controller {
     }
 
 }
-
-
 public class user2 controller {
     
     public class get_#$method_name(){

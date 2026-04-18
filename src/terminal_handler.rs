@@ -15,7 +15,7 @@ pub fn handle_args() {
 }
 fn parse_lang(args: &Args) {
     let path = Path::new(&args.path);
-    if Path::exists(path) {
+    if !Path::exists(path) {
         println!("No such file {}", args.path);
         exit(1);
     }
