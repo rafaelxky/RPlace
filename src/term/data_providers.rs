@@ -9,7 +9,7 @@ pub enum DataSouce {
 pub struct TextProvider {}
 impl TextProvider {
     pub fn get_text(path: &str) -> (String, DataSouce) {
-        if path.starts_with("https") || path.starts_with("http") {
+        if path.starts_with("http") {
             return Self::get_from_http(path);
         }
         return Self::get_from_file(path);

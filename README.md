@@ -80,5 +80,8 @@ this will declare a template "a" wich will replace the variable "var" with "val"
 - if no value or default is provided the program will trow
 - you can define defaults with def place or arrow variables
 
+# data source
+- rplace allows for file text data and http
+- for http you must provide a file whose body is pure text similar to as if it was a file 
 
 
