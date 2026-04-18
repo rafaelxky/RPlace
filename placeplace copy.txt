@@ -2,7 +2,9 @@
     hello
 //- endef:
 //- def b:
-    I am //-place a: world
+    I am 
+    //-place a:
+    world
 //- endef:
 
 //- place b:

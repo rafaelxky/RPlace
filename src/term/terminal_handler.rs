@@ -42,11 +42,14 @@ fn parse_lang(args: &Args) {
         },
     };
     
+    /*
     let mut file = OpenOptions::new()
         .write(true)
         .create(false)
         .truncate(true)
         .open(write_path)
         .expect("Unable to open or create file");
-    write!(&mut file, "{}", replaced).expect("Unable to write");
+    */
+    //write!(&mut file, "{}", replaced).expect("Unable to write");
+    println!("{}",replaced);
 }

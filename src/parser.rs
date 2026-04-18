@@ -113,7 +113,7 @@ impl Parser {
             Token::NL => {
                 self.line = self.line + 1;
                 body_str.push('\n');
-            },
+            }
             tok => {
                 body_str.push_str(&tok.val());
             }
@@ -365,7 +365,9 @@ impl Parser {
                 Token::SPACE => {
                     self.pop();
                 }
-                _ => return,
+                _ => {
+                    return;
+                }
             }
         }
     }
@@ -379,7 +381,10 @@ impl Parser {
                     self.pop();
                     return;
                 }
-                _ => return,
+                _ => {
+                    println!("returned due to {:?}", self.peek());
+                    return;
+                }
             }
         }
     }
@@ -529,16 +534,21 @@ impl Parser {
                         }
                         Token::PLACE => {
                             self.pop();
+                            body.push(Node::DATA {
+                                data: body_str.to_string(),
+                            });
+                            body_str = String::new();
                             let mut nodes: Vec<Node> = Vec::new();
+                            println!("place inside body");
                             self.handle_place(&mut nodes);
                             body.append(&mut nodes);
-                        },
+                        }
                         Token::INCLUDE => {
                             self.pop();
                             let mut nodes: Vec<Node> = Vec::new();
                             self.handle_include(&mut nodes);
                             body.append(&mut nodes);
-                        },
+                        }
                         _ => {
                             panic!(
                                 "{:?} is not a valid inner instruction in line {}",
