@@ -11,7 +11,7 @@ public class $#name+_controller {
 //- def get place controller where get_body="":
 //- def get when get=true place controller where get_body="
     public class get_$#method_name(){
-
+        
     }
 //-":
 

@@ -1,0 +1,6 @@
+project structure creation
+nested macros
+folder scope replacement
+place tracking and updating taking into consideration changes
+for each
+better defaults
