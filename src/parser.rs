@@ -99,7 +99,7 @@ impl Parser {
         }
     }
 
-    fn parse_inner(&mut self, nodes: &mut Vec<Node>, body_str: String) -> String{
+    fn parse_inner(&mut self, nodes: &mut Vec<Node>, body_str: String) -> String {
         let curr = self.pop();
         let mut body_str = body_str;
         match curr {
@@ -113,7 +113,7 @@ impl Parser {
             Token::NL => {
                 self.line = self.line + 1;
                 body_str.push('\n');
-            }
+            },
             tok => {
                 body_str.push_str(&tok.val());
             }
@@ -211,6 +211,7 @@ impl Parser {
 
         self.remove_spaces();
 
+        // declaration
         loop {
             match self.peek() {
                 // def name:
@@ -520,6 +521,24 @@ impl Parser {
                                 ),
                             }
                         }
+                        Token::DEF => {
+                            self.pop();
+                            let mut nodes: Vec<Node> = Vec::new();
+                            self.handle_def(&mut nodes);
+                            body.append(&mut nodes);
+                        }
+                        Token::PLACE => {
+                            self.pop();
+                            let mut nodes: Vec<Node> = Vec::new();
+                            self.handle_place(&mut nodes);
+                            body.append(&mut nodes);
+                        },
+                        Token::INCLUDE => {
+                            self.pop();
+                            let mut nodes: Vec<Node> = Vec::new();
+                            self.handle_include(&mut nodes);
+                            body.append(&mut nodes);
+                        },
                         _ => {
                             panic!(
                                 "{:?} is not a valid inner instruction in line {}",
