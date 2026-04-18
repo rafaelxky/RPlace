@@ -125,10 +125,10 @@ impl Parser {
                 }
                 Token::IDENT { str } => {
                     body_str.push_str(&str);
-                },
+                }
                 Token::WHEN => {
                     body_str.push_str("when");
-                },
+                }
                 Token::COMMA => {
                     body_str.push(',');
                 }
@@ -187,12 +187,14 @@ impl Parser {
                 Token::IDENT { str } => {
                     path.push_str(&str);
                 }
+                // include
                 Token::DD => {
                     self.pop();
                     nodes.push(Node::INCLUDE {
                         path: path.clone(),
                         line: self.line,
                     });
+                    self.remove_till_tl();
                     return;
                 }
                 Token::INCLUDE => {
@@ -244,6 +246,7 @@ impl Parser {
                 // def name:
                 Token::DD => {
                     self.pop();
+                    self.remove_till_tl();
                     break;
                 }
                 // def name place name where ...
@@ -284,7 +287,7 @@ impl Parser {
                                         self.pop();
                                         self.remove_spaces();
                                         match self.peek() {
-                                            // def name were name = val
+                                            // def name when name = val
                                             Token::IDENT { str } => {
                                                 self.pop();
                                                 if conditions.is_none() {
@@ -297,7 +300,9 @@ impl Parser {
                                                 ));
                                                 self.remove_spaces();
                                                 match self.peek() {
+                                                    // def name when name = val:
                                                     Token::DD => {
+                                                        self.remove_till_tl();
                                                         break;
                                                     }
                                                     Token::COMMA => {
@@ -306,13 +311,13 @@ impl Parser {
                                                     }
                                                     Token::PLACE => {
                                                         break;
-                                                    },
+                                                    }
                                                     Token::DEF => {
                                                         break;
-                                                    },
+                                                    }
                                                     Token::WHERE => {
                                                         break;
-                                                    },
+                                                    }
                                                     _ => {
                                                         panic!("idk");
                                                     }
@@ -393,6 +398,20 @@ impl Parser {
             }
         }
     }
+    fn remove_till_tl(&mut self) {
+        loop {
+            match self.peek() {
+                Token::SPACE => {
+                    self.pop();
+                }
+                Token::NL => {
+                    self.pop();
+                    return;
+                }
+                _ => return,
+            }
+        }
+    }
 
     // ends at endef
     fn build_body(&mut self) -> Node {
@@ -405,10 +424,10 @@ impl Parser {
                 }
                 Token::INCLUDE => {
                     body_str.push_str("include");
-                },
+                }
                 Token::WHEN => {
                     body_str.push_str("when");
-                },
+                }
                 Token::DD => {
                     body_str.push(':');
                 }
@@ -471,8 +490,10 @@ impl Parser {
                             });
                             self.remove_spaces();
                             match self.peek() {
+                                // endef :
                                 Token::DD => {
                                     self.pop();
+                                    self.remove_till_tl();
                                 }
                                 _ => {
                                     panic!(
@@ -585,6 +606,7 @@ impl Parser {
 
         self.remove_spaces();
         match self.peek() {
+            // place ident:
             Token::DD => {
                 self.pop();
                 nodes.push(Node::PLACE {
@@ -592,6 +614,7 @@ impl Parser {
                     args: Vec::new(),
                     line: self.line,
                 });
+                self.remove_till_tl();
                 return;
             }
             // place ident were
@@ -631,8 +654,9 @@ impl Parser {
                                                         args: args,
                                                         line: self.line,
                                                     });
+                                                    self.remove_till_tl();
                                                     return;
-                                                },
+                                                }
                                                 _ => {
                                                     panic!(
                                                         "expected , or : found {:?} in line {}",
@@ -667,10 +691,10 @@ impl Parser {
                                                     }
                                                     Token::COMMA => {
                                                         arg_str.push(',');
-                                                    },
+                                                    }
                                                     Token::WHEN => {
                                                         arg_str.push_str("when");
-                                                    },
+                                                    }
                                                     Token::DD => {
                                                         arg_str.push(':');
                                                     }
@@ -765,6 +789,7 @@ impl Parser {
                                                         args: args,
                                                         line: self.line,
                                                     });
+                                                    self.remove_till_tl();
                                                     return;
                                                 }
                                                 Token::COMMA => {
@@ -804,6 +829,7 @@ impl Parser {
                                 args: Vec::new(),
                                 line: self.line,
                             });
+                            self.remove_till_tl();
                             return;
                         }
                         _ => {
