@@ -206,7 +206,6 @@ impl Writer {
                                     Node::DATA { data } => {
                                         // just text
                                         text.push_str(data);
-                                        println!("pushed {}", data);
                                     },
                                     Node::VARTEMPLATE { name } => {
                                         // $#
@@ -239,7 +238,6 @@ impl Writer {
                                     }, 
                                         Node::PLACE { name, args, line } => {
                                         // def ident place ident ...
-                                        println!("Inner place");
                                         if def_queue.is_none() {
                                             def_queue = Some(Vec::new());
                                         }

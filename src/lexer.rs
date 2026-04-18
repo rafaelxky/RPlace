@@ -1,11 +1,3 @@
-use core::panic;
-use std::{
-    fs,
-    path::Path,
-    str::Chars,
-    thread::{self, current},
-    time::Duration,
-};
 
 #[derive(Debug, Clone)]
 pub enum Token {
@@ -80,40 +72,31 @@ impl Lexer {
         self.data[self.ptr]
     }
     fn pop(&mut self) -> char {
-        println!("ptr {}", self.ptr);
         self.ptr = self.ptr + 1;
         self.data[self.ptr - 1]
     }
     fn unpop(&mut self) {
         self.ptr = self.ptr - 1;
     }
-    fn peek_ahead(&self, i: usize) -> char {
-        self.data[self.ptr + i]
-    }
     fn can_pop(&self) -> bool {
         self.ptr < self.data.len()
     }
 
     pub fn parse(mut self) -> TokenResult {
-        println!("lexer parsing");
         let mut tokens: Vec<Token> = Vec::new();
 
         loop {
-            thread::sleep(Duration::from_millis(30));
             if !self.can_pop() {
                 tokens.push(Token::EOF);
-                println!("eof");
                 return TokenResult {
                     tokens: tokens,
                     file_path: self.file_path,
                 };
             }
-            println!("j {}", self.peek());
-            let mut curr = self.pop();
+            let curr = self.pop();
 
             match curr {
                 ':' => {
-                    println!("DD");
                     tokens.push(Token::DD);
                     continue;
                 }

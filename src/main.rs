@@ -11,7 +11,6 @@ pub mod term;
 
 fn main() {
 
-    println!("Started");
     handle_args();
 
 }

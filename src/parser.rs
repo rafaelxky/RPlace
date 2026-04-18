@@ -209,7 +209,6 @@ impl Parser {
         // get def name
         match self.peek() {
             Token::IDENT { str } => {
-                println!("ident {:?}",self.peek());
                 self.ptr_next();
                 def_name = str;
             }
@@ -226,11 +225,9 @@ impl Parser {
 
         // declaration
         loop {
-            println!("next {:?}",self.peek_ahead(1));
             match self.peek() {
                 // def name:
                 Token::DD => {
-                    println!(": in def");
                     self.ptr_next();
                     self.remove_till_tl();
                     break;
@@ -398,7 +395,6 @@ impl Parser {
                     return;
                 }
                 _ => {
-                    println!("returned due to {:?}", self.peek());
                     return;
                 }
             }
@@ -410,7 +406,6 @@ impl Parser {
         let mut body_str = String::new();
         let mut body: Vec<Node> = Vec::new();
         loop {
-            println!("peeked in body {:?}", self.peek());
             match self.peek() {
                 // regular var declaration
                 Token::VAR => {
@@ -558,11 +553,9 @@ impl Parser {
                             });
                             body_str = String::new();
                             let mut nodes: Vec<Node> = Vec::new();
-                            println!("place inside body");
                             self.handle_place(&mut nodes);
                             body.append(&mut nodes);
                             self.unpop();
-                            println!("curr {:?}",self.peek());
                         }
                         Token::INCLUDE => {
                             self.ptr_next();
@@ -580,11 +573,9 @@ impl Parser {
                     }
                 }
                 tok => {
-                    println!("pushing to body {:?}", tok);
                     body_str.push_str(&tok.val());
                 }
             }
-            println!("Poped {:?}",self.peek());
             self.ptr_next();
         }
         return Node::BODY { data: body };

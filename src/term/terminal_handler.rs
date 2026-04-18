@@ -15,7 +15,6 @@ pub fn handle_args() {
     parse_lang(&args);
 }
 fn parse_lang(args: &Args) {
-    println!("handle args");
     let (data, origin) = TextProvider::get_text(&args.origin);
     match origin {
         super::data_providers::DataSouce::WEB => {
@@ -27,14 +26,10 @@ fn parse_lang(args: &Args) {
         super::data_providers::DataSouce::FILE => {
         },
     }
-    println!("data {}",data.clone());
     let lexer = Lexer::new(args.origin.clone(),data);
     let tokens = lexer.parse();
-    println!("Lexed");
-    tokens.tokens.iter().for_each(|token|{println!("T: {:?}",token)});
     let parser = Ps::new(tokens);
     let nodes = parser.parse();
-    println!("Tokenized");
     let writer = Writer::new(nodes);
     let replaced = writer.replace();
 
@@ -47,14 +42,11 @@ fn parse_lang(args: &Args) {
         },
     };
     
-    /*
     let mut file = OpenOptions::new()
         .write(true)
         .create(false)
         .truncate(true)
         .open(write_path)
         .expect("Unable to open or create file");
-    */
-    //write!(&mut file, "{}", replaced).expect("Unable to write");
-    println!("{}",replaced);
+    write!(&mut file, "{}", replaced).expect("Unable to write");
 }
