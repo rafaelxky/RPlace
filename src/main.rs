@@ -7,6 +7,7 @@ pub mod error_handler;
 pub mod lexer;
 pub mod parser;
 pub mod writer;
+pub mod terminal_handler;
 
 fn main() {
     let lexer = Lexer::new("mvctest.txt");

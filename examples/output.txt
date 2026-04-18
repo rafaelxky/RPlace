@@ -1,6 +1,3 @@
-template composition example
-here you can call class with get and add options
-
 
 
 
