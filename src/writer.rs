@@ -1,42 +1,37 @@
-use core::panic;
 use std::{
     collections::HashMap,
-    hash::Hash,
     path::{Path, PathBuf},
 };
 
 use crate::{
     error_handler::handle_error,
     lexer::Lexer,
-    parser::{Node, Parser, ParsingResult}, term::data_providers::TextProvider,
+    parser::{Node, Parser, ParsingResult},
+    term::data_providers::TextProvider,
 };
 
 pub struct Writer {
     nodes: Vec<Node>,
-    line: usize,
     file_path: String,
 }
 impl Writer {
     pub fn new(nodes: ParsingResult) -> Self {
         Self {
             nodes: nodes.nodes,
-            line: 0,
             file_path: nodes.file_path,
         }
     }
-    // I need to save " " and \n data
-    pub fn replace(mut self) -> String {
-        let mut text = String::new();
-        let mut def_map: HashMap<String, Vec<Node>> = HashMap::new();
 
+    fn initial_sweap(&mut self, def_map: &mut HashMap<String, Vec<Node>>) {
+        // initial sweap
         self.nodes.iter().for_each(|node| match node {
             Node::DEF {
                 name,
-                body,
-                line,
-                conditions,
+                body: _,
+                line: _,
+                conditions: _,
             } => {
-                let mut name = name.to_string();
+                let name = name.to_string();
                 def_map
                     .entry(name)
                     .or_insert_with(Vec::new)
@@ -62,8 +57,8 @@ impl Writer {
                     if let Node::DEF {
                         name,
                         body: _,
-                        line,
-                        conditions,
+                        line: _,
+                        conditions: _,
                     } = n
                     {
                         def_map
@@ -75,6 +70,14 @@ impl Writer {
             }
             _ => (),
         });
+    }
+
+    // I need to save " " and \n data
+    pub fn replace(mut self) -> String {
+        let mut text = String::new();
+        let mut def_map: HashMap<String, Vec<Node>> = HashMap::new();
+
+        self.initial_sweap(&mut def_map);
 
         let nodes = &self.nodes;
         for node in nodes {
@@ -112,7 +115,6 @@ impl Writer {
         line: &usize,
         args_map: &mut HashMap<String, String>,
     ) {
-
         args.iter().for_each(|arg| {
             if !args_map.contains_key(&arg.0.clone()) {
                 args_map.insert(arg.0.clone(), arg.1.clone());
@@ -125,7 +127,7 @@ impl Writer {
                 let mut has_conditions = false;
                 let mut matched = None;
 
-                // foreach def node in the 
+                // foreach def node in the
                 for def in val {
                     if matched.is_some() && has_conditions {
                         break;
@@ -134,7 +136,7 @@ impl Writer {
                         conditions,
                         name: _,
                         body: _,
-                        line:_,
+                        line: _,
                     } = def
                     {
                         match conditions {
@@ -161,14 +163,18 @@ impl Writer {
                 }
 
                 if matched.is_none() {
-                    handle_error(format!("No available override for {:?}",def), *line, self.file_path.clone())                    
+                    handle_error(
+                        format!("No available override for {:?}", def),
+                        *line,
+                        self.file_path.clone(),
+                    )
                 }
                 match matched.unwrap() {
                     Node::DEF {
                         name: _,
                         body,
                         line,
-                        conditions,
+                        conditions: _,
                     } => match body.as_ref() {
                         Node::BODY { data } => {
                             // for each body node
