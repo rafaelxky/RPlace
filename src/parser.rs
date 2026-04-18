@@ -211,6 +211,7 @@ impl Parser {
             Token::IDENT { str } => {
                 self.ptr_next();
                 def_name = str;
+                println!("defname {}", def_name);
             }
             _ => {
                 panic!(
@@ -364,6 +365,7 @@ impl Parser {
         }
         // body handling
         let body = self.build_body();
+        println!("pushed body {:?} in def", body);
         nodes.push(Node::DEF {
             name: def_name.to_string(),
             body: Box::new(body),
@@ -392,6 +394,7 @@ impl Parser {
                 }
                 Token::NL => {
                     self.ptr_next();
+                    self.line = self.line + 1;
                     return;
                 }
                 _ => {
@@ -403,9 +406,11 @@ impl Parser {
 
     // ends at endef
     fn build_body(&mut self) -> Node {
+        println!("build body");
         let mut body_str = String::new();
         let mut body: Vec<Node> = Vec::new();
         loop {
+            println!("parser peek {:?}",self.peek());
             match self.peek() {
                 // regular var declaration
                 Token::VAR => {
@@ -445,6 +450,7 @@ impl Parser {
                     match self.peek() {
                         //- endef:
                         Token::ENDEF => {
+                            println!("endef");
                             self.ptr_next();
                             body.push(Node::DATA {
                                 data: body_str.to_string(),
@@ -500,7 +506,10 @@ impl Parser {
                                                                 }
                                                                 _ => (),
                                                             }
-                                                        }
+                                                        },
+                                                        Token::NL => {
+                                                            handle_error("Newline not cannot proced an arrow variable", self.line, &self.file_path);
+                                                        },
                                                         tok => {
                                                             self.ptr_next();
                                                             body.push(Node::RARROWVAR {
@@ -539,14 +548,17 @@ impl Parser {
                             }
                         }
                         Token::DEF => {
+                            // inner def
                             self.ptr_next();
                             let mut nodes: Vec<Node> = Vec::new();
+                            println!("inner def");
                             self.handle_def(&mut nodes);
+                            println!("inner def end");
                             body.append(&mut nodes);
                         }
                         Token::PLACE => {
                             
-                            // todo: inner place
+                            // inner place
                             self.ptr_next();
                             body.push(Node::DATA {
                                 data: body_str.to_string(),
@@ -571,13 +583,21 @@ impl Parser {
                             )
                         }
                     }
-                }
+                },
+                Token::EOF => {
+                    handle_error("Found EOF inside a body", self.line, &self.file_path)
+                },
+                Token::NL => {
+                    body_str.push_str("\n");  
+                    self.line = self.line + 1;
+                },
                 tok => {
                     body_str.push_str(&tok.val());
                 }
             }
             self.ptr_next();
         }
+        println!("returned {:?}",body);
         return Node::BODY { data: body };
     }
 

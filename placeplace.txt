@@ -1,4 +1,9 @@
-//- def a: hello //- endef:
+//- def a: 
+    //- def c:
+        hello
+    //- endef:
+//- endef:
+
 //- def b: I am //-place a: world //- endef:
 
 //- place b:

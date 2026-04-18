@@ -6,3 +6,4 @@ for each
 better defaults
 inherit spaces when placing
 handle newline and space removal more consistently
+fix incorrect line
