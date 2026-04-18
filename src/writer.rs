@@ -8,7 +8,7 @@ use std::{
 use crate::{
     error_handler::handle_error,
     lexer::Lexer,
-    parser::{Node, Parser, ParsingResult},
+    parser::{Node, Parser, ParsingResult}, term::data_providers::TextProvider,
 };
 
 pub struct Writer {
@@ -55,7 +55,7 @@ impl Writer {
                 if !Path::new(&path).exists() {
                     handle_error("Couldnt find import", *line, &self.file_path);
                 }
-                let lexer = Lexer::new(path);
+                let lexer = Lexer::new(path.clone(), TextProvider::get_text(&path));
                 let parser = Parser::new(lexer.parse());
                 let nodes = parser.parse();
                 nodes.nodes.iter().for_each(|n| {

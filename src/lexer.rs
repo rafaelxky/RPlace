@@ -34,12 +34,9 @@ pub struct Lexer {
 }
 // this is all wrong, correctness is in parser not lexer
 impl Lexer {
-    pub fn new<T: ToString>(path: T) -> Self {
-        if !Path::new(&path.to_string()).exists() {
-            panic!("Couldnt find file {}", path.to_string());
-        }
-        let data = fs::read_to_string(path.to_string())
-            .unwrap()
+    pub fn new<T: ToString>(path: T, data: String) -> Self {
+       
+        let data = data
             .chars()
             .collect();
         Self {

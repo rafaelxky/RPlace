@@ -2,24 +2,21 @@ use std::{fs::{File, OpenOptions}, path::Path, process::exit};
 
 use clap::{Arg, Parser};
 
-use crate::{lexer::Lexer, parser::Parser as Ps, writer::Writer};
+use crate::{lexer::Lexer, parser::Parser as Ps, term::data_providers::TextProvider, writer::Writer};
 use std::io::Write;
 
 #[derive(Parser, Debug)]
 pub struct Args {
-    path: String,
+    origin: String,
+    target: String,
 }
 pub fn handle_args() {
     let args = Args::parse();
     parse_lang(&args);
 }
 fn parse_lang(args: &Args) {
-    let path = Path::new(&args.path);
-    if !Path::exists(path) {
-        println!("No such file {}", args.path);
-        exit(1);
-    }
-    let lexer = Lexer::new(args.path.clone());
+    let data = TextProvider::get_text(&args.origin);
+    let lexer = Lexer::new(args.origin.clone(),data);
     let tokens = lexer.parse();
     let parser = Ps::new(tokens);
     let nodes = parser.parse();
@@ -29,7 +26,7 @@ fn parse_lang(args: &Args) {
         .write(true)
         .create(true)
         .truncate(true)
-        .open(args.path.clone())
+        .open(args.origin.clone())
         .expect("Unable to open or create file");
     write!(&mut file, "{}", replaced).expect("Unable to write");
 }
