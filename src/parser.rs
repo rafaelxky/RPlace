@@ -1,5 +1,4 @@
 use core::panic;
-use std::process::exit;
 
 use crate::{
     error_handler::handle_error,
@@ -87,38 +86,39 @@ impl Parser {
 
     pub fn parse(mut self) -> ParsingResult {
         let mut nodes: Vec<Node> = Vec::new();
-        self.parse_inner(&mut nodes);
+        let mut body_str = String::new();
+        while self.can_pop() {
+            body_str = self.parse_inner(&mut nodes, body_str);
+        }
+        nodes.push(Node::DATA {
+            data: body_str.to_string(),
+        });
         ParsingResult {
             nodes,
             file_path: self.file_path,
         }
     }
 
-    fn parse_inner(&mut self, nodes: &mut Vec<Node>) {
-        let mut nodes = nodes;
-        let mut body_str = String::new();
-        while self.can_pop() {
-            let curr = self.pop();
-            match curr {
-                Token::MARK { kind } => {
-                    nodes.push(Node::DATA {
-                        data: body_str.to_string(),
-                    });
-                    body_str = String::new();
-                    self.handle_func(nodes);
-                }
-                Token::NL => {
-                    self.line = self.line + 1;
-                    body_str.push('\n');
-                }
-                tok => {
-                    body_str.push_str(&tok.val());
-                }
+    fn parse_inner(&mut self, nodes: &mut Vec<Node>, body_str: String) -> String{
+        let curr = self.pop();
+        let mut body_str = body_str;
+        match curr {
+            Token::MARK { kind: _ } => {
+                nodes.push(Node::DATA {
+                    data: body_str.to_string(),
+                });
+                body_str = String::new();
+                self.handle_func(nodes);
+            }
+            Token::NL => {
+                self.line = self.line + 1;
+                body_str.push('\n');
+            }
+            tok => {
+                body_str.push_str(&tok.val());
             }
         }
-        nodes.push(Node::DATA {
-            data: body_str.to_string(),
-        });
+        return body_str;
     }
 
     fn handle_func(&mut self, nodes: &mut Vec<Node>) {

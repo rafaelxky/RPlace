@@ -1,6 +1,6 @@
-use std::{fs::{File, OpenOptions}, path::Path, process::exit};
+use std::{fs::{OpenOptions}, process::exit};
 
-use clap::{Arg, Parser};
+use clap::{Parser};
 
 use crate::{lexer::Lexer, parser::Parser as Ps, term::data_providers::TextProvider, writer::Writer};
 use std::io::Write;
