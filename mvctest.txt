@@ -2,7 +2,7 @@ template composition example
 here you can call class with get and add options
 
 //- def controller:
-public class $#name controller {
+public class $#name+_controller {
     $#get_body
     $#add_body
 }
