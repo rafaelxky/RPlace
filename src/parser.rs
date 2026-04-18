@@ -80,6 +80,12 @@ impl Parser {
         self.ptr = self.ptr + 1;
         self.tokens[self.ptr - 1].clone()
     }
+    fn peek_behind(&mut self, i: usize) -> Token{
+        self.tokens[self.ptr - i].clone()
+    }
+    fn peek_ahead(&mut self, i: usize) -> Token{
+        self.tokens[self.ptr + i].clone()
+    }
     fn ptr_next(&mut self){
         self.ptr = self.ptr + 1;
     }
@@ -203,6 +209,7 @@ impl Parser {
         // get def name
         match self.peek() {
             Token::IDENT { str } => {
+                println!("ident {:?}",self.peek());
                 self.ptr_next();
                 def_name = str;
             }
@@ -219,9 +226,11 @@ impl Parser {
 
         // declaration
         loop {
+            println!("next {:?}",self.peek_ahead(1));
             match self.peek() {
                 // def name:
                 Token::DD => {
+                    println!(": in def");
                     self.ptr_next();
                     self.remove_till_tl();
                     break;
@@ -336,9 +345,10 @@ impl Parser {
                 }
                 _ => {
                     panic!(
-                        "{:?} is invalid in def declaration of name {} in line {}",
+                        "{:?} is invalid in def declaration of name {} after {:?} in line {}",
                         self.peek(),
                         def_name,
+                        self.peek_behind(1),
                         self.line
                     );
                 }
@@ -540,6 +550,7 @@ impl Parser {
                             body.append(&mut nodes);
                         }
                         Token::PLACE => {
+                            
                             // todo: inner place
                             self.ptr_next();
                             body.push(Node::DATA {

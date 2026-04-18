@@ -1,5 +1,11 @@
 use core::panic;
-use std::{fs, path::Path, str::Chars, thread::current};
+use std::{
+    fs,
+    path::Path,
+    str::Chars,
+    thread::{self, current},
+    time::Duration,
+};
 
 #[derive(Debug, Clone)]
 pub enum Token {
@@ -25,7 +31,7 @@ pub enum Token {
     PLUS,
 }
 impl Token {
-    pub fn val(&self) -> String{
+    pub fn val(&self) -> String {
         return match self {
             Token::IDENT { str } => str,
             Token::DEF => "def",
@@ -47,7 +53,8 @@ impl Token {
             Token::RARROW => "->",
             Token::WHEN => "when",
             Token::PLUS => "+",
-        }.to_string();
+        }
+        .to_string();
     }
 }
 pub struct TokenResult {
@@ -62,10 +69,7 @@ pub struct Lexer {
 // this is all wrong, correctness is in parser not lexer
 impl Lexer {
     pub fn new<T: ToString>(path: T, data: String) -> Self {
-       
-        let data = data
-            .chars()
-            .collect();
+        let data = data.chars().collect();
         Self {
             ptr: 0,
             data,
@@ -76,6 +80,7 @@ impl Lexer {
         self.data[self.ptr]
     }
     fn pop(&mut self) -> char {
+        println!("ptr {}", self.ptr);
         self.ptr = self.ptr + 1;
         self.data[self.ptr - 1]
     }
@@ -90,9 +95,11 @@ impl Lexer {
     }
 
     pub fn parse(mut self) -> TokenResult {
+        println!("lexer parsing");
         let mut tokens: Vec<Token> = Vec::new();
 
         loop {
+            thread::sleep(Duration::from_millis(30));
             if !self.can_pop() {
                 tokens.push(Token::EOF);
                 println!("eof");
@@ -101,11 +108,12 @@ impl Lexer {
                     file_path: self.file_path,
                 };
             }
-
+            println!("j {}", self.peek());
             let mut curr = self.pop();
 
             match curr {
                 ':' => {
+                    println!("DD");
                     tokens.push(Token::DD);
                     continue;
                 }
@@ -124,7 +132,7 @@ impl Lexer {
                 ']' => {
                     tokens.push(Token::RSRQBRACK);
                     continue;
-                },
+                }
                 '+' => {
                     tokens.push(Token::PLUS);
                     continue;
@@ -255,11 +263,13 @@ impl Lexer {
                 continue;
             }
 
-            while self.can_pop() && !self.is_char_terminator(curr) {
-                str.push(curr);
-                curr = self.pop();
-            }
             self.unpop();
+            while self.can_pop() {
+                if self.is_char_terminator(self.peek()) {
+                    break;
+                }
+                str.push(self.pop());
+            }
 
             match str.as_str() {
                 "place" => {
@@ -281,11 +291,11 @@ impl Lexer {
                 "include" => {
                     tokens.push(Token::INCLUDE);
                     continue;
-                },
+                }
                 "when" => {
                     tokens.push(Token::WHEN);
                     continue;
-                },
+                }
                 _ => {
                     tokens.push(Token::IDENT { str });
                     continue;
