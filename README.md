@@ -87,4 +87,26 @@ this will declare a template "a" wich will replace the variable "var" with "val"
 # inner macros
 - when you call a macro, all inner macros will also execute
 - inner def will make so that a macro is only defined after its parent is called, this is essentially runtime definitions
-- inner place works as normal
+- inner place works as a normal place
+
+# create
+- create allows you to create files and folders and place data inside it
+- create folder/file.txt place name:
+- this will create folder/file.txt and place the "name" def inside
+
+# memo
+//- place:
+//- def name:
+//- def name where var=val:
+//- def name when var = val;
+//- def name were varA=valA when varB=valB:
+//- endef:
+//- place name;
+//- place name where varA=valA, varB=valB:
+//- def nameA place nameB:
+//- def nameA place nameB where var=val:
+//- def nameA when varA=valA where varB=valB:
+$#varname
+/*- $#varname -> -*/ defaultvar
+//- create file:
+//- create folder/file.txt place name:
