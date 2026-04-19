@@ -65,6 +65,13 @@ this will place the value in the variable as normal
 //- def a when lang=java place java_class were var=val:
 this will declare a template "a" wich will replace the variable "var" with "val" from "java_class" template if lang = java
 
+# def defaults
+- def accept defaults trough def where
+- ex: 
+//- def name where var=val:
+    $#var
+//- endef:
+
 # file include
 - //- include file_path:
 - this will get the definitions from this other file
@@ -99,7 +106,7 @@ this will declare a template "a" wich will replace the variable "var" with "val"
 //- def name:
 //- def name where var=val:
 //- def name when var = val;
-//- def name were varA=valA when varB=valB:
+//- def name where varA=valA when varB=valB:
 //- endef:
 //- place name;
 //- place name where varA=valA, varB=valB:
