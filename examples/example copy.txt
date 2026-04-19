@@ -1,0 +1,94 @@
+features:
+Template definition
+Variables
+Instantiation
+Language safe markers/delimiters
+imports
+in place variables
+
+todo:
+defaults
+for loops
+inner macros
+if
+track replacement for updates
+place + at + ident
+expose to terminal arguments
+replace in whole folder
+desambiguation
+file specification
+single token variable definition
+variable concatenation ex: $#name+controller
+
+() {} [] , . - : <- testing special character catch -> $#
+Hello world
+
+//- include ./examples/example.rs:
+
+/*- def b:
+
+() {} [] , . - :
+
+    pub struct $#struct_name {
+        /*- $#var_name -> -*/ str: String
+    }
+    
+    pub impl $#struct_name {
+        pub fn new() -> Self{
+            Self {
+                "Hello world from $#struct_name!".to_string(),
+            }
+        }
+        pub fn $#fn_name(&self){
+            println!("{}",self.str);
+        }
+        $#body
+    }
+
+*///- endef:
+
+/*- def c:
+    hello $#name from $#origin
+*///- endef:
+
+//- place b where struct_name = vec, fn_name=a, body=hello, var_name=str:
+
+//- place b where struct_name = vec2, fn_name=b, body="
+        pub fn get_str(&self) -> String {
+            return self.str;
+        }
+//-":
+
+//- def m place c where name = world, origin = france:
+//- def d place m where origin = america:
+//- place d where origin = brazil:
+
+//- def class:
+    default class from $#origin
+//- endef:
+//- def class where lang = rust:
+    pub struct $#name {
+        $#lang
+    }
+//- endef:
+//- def class where lang = java:
+    public class $#name {
+        $#lang
+    }
+//- endef:
+
+//- place class where lang = rust, name = rust_struct:
+//- place class where lang = java, name = java_class:
+//- place class where origin = "example.txt":
+
+//- def java:
+    pub fn hello_from_$#lang(); java
+//- endef:
+//- def rust:
+    pub fn hello_from_$#lang(); rust
+//- endef:
+
+//- def aa where lang=java place java:
+//- def aa place rust where lang=rust:
+//- place aa where lang=rust:
+//- place aa where lang=java:

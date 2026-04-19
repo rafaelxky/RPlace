@@ -1,0 +1,22 @@
+//- def a when var=val where default_3=def3:
+    /*- $#default -> -*/ arrow_default_value
+    $#default_2 is the where default
+    called with var as $#var
+    appended as $#var+suffix
+    $#default_3 is the where default
+    //- place b where val = value:
+//- endef:
+
+//- def c:
+    //- def b: 
+        innerdef var = $#val
+    //- endef:
+//- endef:
+
+//- def a:
+    shouldn't place
+//- endef:
+
+//- place c:
+//- def d place a where default_2=default2:
+//- create out/out.txt place d where var=val:
