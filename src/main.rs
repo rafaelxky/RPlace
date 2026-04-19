@@ -1,5 +1,6 @@
+use std::fs::{self, OpenOptions};
 use std::io::Write;
-use std::fs::OpenOptions;
+use std::path::Path;
 use std::process::exit;
 
 use crate::term::data_providers::{DataSouce, TextProvider};
@@ -47,13 +48,20 @@ fn main() {
     write!(&mut file, "{}", last.data).expect("Unable to write");
 
     replaced.file_data.iter_mut().for_each(|result| {
+        let path = Path::new(&result.path);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).expect("Unable to create directories");
+        }
         let mut file = OpenOptions::new()
             .write(true)
             .create(true)
             .truncate(true)
             .open(&result.path)
             .expect(&format!("Unable to open or create file {}", result.path));
-        println!("data for file {}: {}", result.path,result.data);
-        write!(&mut file, "{}", result.data).expect("Unable to write");
+
+        file.write_all(result.data.as_bytes())
+            .expect("Unable to write");
+        
+        println!("data for file {}: {}", result.path, result.data);
     });
 }
