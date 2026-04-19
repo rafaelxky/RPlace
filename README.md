@@ -86,5 +86,5 @@ this will declare a template "a" wich will replace the variable "var" with "val"
 
 # inner macros
 - when you call a macro, all inner macros will also execute
-- inner def will make so that a macro is only defined after its parent is called
+- inner def will make so that a macro is only defined after its parent is called, this is essentially runtime definitions
 - inner place works as normal

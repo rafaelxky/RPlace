@@ -1,0 +1,5 @@
+//- def a:
+    hello
+//- endef:
+
+//- create created.txt place a:

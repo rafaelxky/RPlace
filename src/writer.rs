@@ -1,7 +1,9 @@
 use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
+    collections::HashMap, fs::File, path::{Path, PathBuf}, process::{ExitStatus, exit}, result
 };
+
+use clap::builder::Str;
+use reqwest::Body;
 
 use crate::{
     error_handler::handle_error,
@@ -10,6 +12,32 @@ use crate::{
     term::data_providers::TextProvider,
 };
 
+pub struct FileData{
+    pub data: String,
+    pub path: String,
+}
+pub struct WriterResult{
+    pub file_data: Vec<FileData>,
+}
+impl WriterResult {
+    pub fn new() -> Self{
+        Self { file_data: Vec::new() }
+    }
+    pub fn append(&mut self, mut data: WriterResult){
+        self.file_data.append(&mut data.file_data);
+    }
+    pub fn push_elements(&mut self, data: String, path: String){
+        self.file_data.push(FileData { data, path });
+    }
+}
+impl IntoIterator for WriterResult {
+    type Item = FileData;
+    type IntoIter = std::vec::IntoIter<FileData>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.file_data.into_iter()
+    }
+}
 pub struct Writer {
     nodes: Vec<Node>,
     file_path: String,
@@ -76,7 +104,9 @@ impl Writer {
             .push(node.clone());
     }
 
-    pub fn replace(mut self) -> String {
+    pub fn replace(mut self) -> WriterResult {
+        let mut result = WriterResult::new();
+
         let mut text = String::new();
         let mut def_map: HashMap<String, Vec<Node>> = HashMap::new();
 
@@ -95,10 +125,10 @@ impl Writer {
                         }
                         _ => (),
                     });
-                }
+                },
                 Node::DATA { data } => {
                     text.push_str(&data);
-                }
+                },
                 Node::PLACE { name, args, line } => {
                     let mut args_map: HashMap<String, String> = HashMap::new();
                     let inner_defs =
@@ -117,13 +147,57 @@ impl Writer {
                             }
                         });
                     }
-                }
+                },
+                Node::CREATE { path, content } => {
+                    let mut result_inner = self.handle_create(path, content, &def_map);
+                    result.append(result_inner);
+                },
                 _ => (),
             }
         }
-        text
+        result.push_elements(text, self.file_path);
+        result
     }
 
+    fn handle_create(&self, path: &str, body: &Option<Box<Node>>, def_map: &HashMap<String, Vec<Node>>) -> WriterResult {
+        let path = path.to_string();
+        let mut result = WriterResult::new();
+
+        match body {
+            Some(node) => {
+                match &**node {
+                    // body -> place
+                    Node::BODY { data } => {
+                        data.iter().for_each(|place|{
+                            match place {
+                                Node::PLACE { name, args, line } => {
+                                    let mut text = String::new();
+                                    let mut args_map: HashMap<String, String> = HashMap::new();
+                                    self.handle_place(&mut text, def_map, name, args, line, &mut args_map);
+                                    result.push_elements(text, path.clone());
+                                },
+                                _ => {
+                                    eprintln!("Expected only place inside of create instead found {:?}", place);
+                                    exit(1);
+                                }
+                            }
+                        });
+                        return result;
+                    },
+                    _ => {
+                        eprintln!("Internal error, no body found inside create, found instead {:?}",node);
+                        exit(1);
+                    }
+                }
+            },
+            None => {
+                result.push_elements("".to_string(), path);
+                result
+            },
+        }
+    }
+
+    // todo: inner create
     fn handle_place(
         &self,
         text: &mut String,
@@ -132,7 +206,9 @@ impl Writer {
         args: &Vec<(String, String)>,
         line: &usize,
         args_map: &mut HashMap<String, String>,
-    ) -> Option<Vec<Node>> {
+    ) 
+    // def queue
+    -> Option<Vec<Node>> {
         // maps variables to values
         args.iter().for_each(|arg| {
             if !args_map.contains_key(&arg.0.clone()) {

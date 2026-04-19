@@ -21,6 +21,7 @@ pub enum Token {
     RARROW,
     WHEN,
     PLUS,
+    CREATE,
 }
 impl Token {
     pub fn val(&self) -> String {
@@ -45,6 +46,7 @@ impl Token {
             Token::RARROW => "->",
             Token::WHEN => "when",
             Token::PLUS => "+",
+            Token::CREATE => "create",
         }
         .to_string();
     }
@@ -278,7 +280,10 @@ impl Lexer {
                 "when" => {
                     tokens.push(Token::WHEN);
                     continue;
-                }
+                },
+                "create" => {
+                    tokens.push(Token::CREATE);
+                },
                 _ => {
                     tokens.push(Token::IDENT { str });
                     continue;

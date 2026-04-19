@@ -2,7 +2,7 @@ template composition example
 here you can call class with get and add options
 
 //- def controller:
-public class $#name controller {
+public class $#name+_controller {
     $#get_body
     $#add_body
 }
@@ -11,14 +11,14 @@ public class $#name controller {
 //- def get place controller where get_body="":
 //- def get when get=true place controller where get_body="
     public class get_$#method_name(){
-
+        
     }
 //-":
 
 //- def add place get where add_body="":
 //- def add when add=true place get where add_body="
     public class add_$#method_name(){
-
+        
     }
 //-":
 

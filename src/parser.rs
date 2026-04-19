@@ -1,7 +1,7 @@
 use core::panic;
 
 use crate::{
-    error_handler::handle_error,
+    error_handler::{handle_error, handle_expected_error},
     lexer::{Token, TokenResult},
 };
 
@@ -53,6 +53,10 @@ pub enum Node {
         path: String,
         line: usize,
     },
+    CREATE {
+        path: String,
+        content: Option<Box<Node>>,
+    },
 }
 pub struct ParsingResult {
     pub nodes: Vec<Node>,
@@ -80,16 +84,16 @@ impl Parser {
         self.ptr = self.ptr + 1;
         self.tokens[self.ptr - 1].clone()
     }
-    fn peek_behind(&mut self, i: usize) -> Token{
+    fn peek_behind(&mut self, i: usize) -> Token {
         self.tokens[self.ptr - i].clone()
     }
-    fn peek_ahead(&mut self, i: usize) -> Token{
+    fn peek_ahead(&mut self, i: usize) -> Token {
         self.tokens[self.ptr + i].clone()
     }
-    fn ptr_next(&mut self){
+    fn ptr_next(&mut self) {
         self.ptr = self.ptr + 1;
     }
-    fn unpop(&mut self){
+    fn unpop(&mut self) {
         self.ptr = self.ptr - 1;
     }
     fn can_pop(&self) -> bool {
@@ -149,6 +153,10 @@ impl Parser {
                 self.ptr_next();
                 self.handle_include(&mut nodes);
             }
+            Token::CREATE => {
+                self.ptr_next();
+                self.handle_create(&mut nodes);
+            }
             _ => {
                 panic!(
                     "{:?} cannot go after an initial mark in line {}, did you forget a mark?",
@@ -157,6 +165,51 @@ impl Parser {
                 );
             }
         }
+    }
+
+    // create filepath place defname:
+    fn handle_create(&mut self, nodes: &mut Vec<Node>) {
+
+        let mut path: String = String::new();
+        // filepath
+        // ex: parent/child.txt
+        self.remove_spaces();
+        loop {
+            match self.peek() {
+                Token::IDENT { str } => {
+                    self.ptr_next();
+                    path.push_str(&str);
+                },
+                Token::SPACE => {
+                    self.ptr_next();
+                    break;
+                },
+                _ => {
+                    handle_error(format!("Expected file name found {:?}", self.peek()), self.line, self.file_path.clone())
+                }
+            }
+        }
+        self.remove_spaces();
+
+        match self.peek() {
+            Token::DD => {
+                self.ptr_next();
+                nodes.push(Node::CREATE { path, content: None });
+                return;
+            },
+            Token::PLACE => {
+                self.ptr_next();
+                let mut temp_nodes: Vec<Node> = Vec::new();
+                // returns one place
+                self.handle_place(&mut temp_nodes);
+                nodes.push(Node::CREATE { path, content: Some(Box::new(Node::BODY { data: temp_nodes })) });
+                return;
+            },
+            _ => {
+                handle_error(format!("Found {:?} wich is invalid in create",self.peek()), self.line, self.file_path.clone());
+            },
+        }
+
     }
 
     fn handle_include(&mut self, nodes: &mut Vec<Node>) {
@@ -416,7 +469,7 @@ impl Parser {
         let mut body_str = String::new();
         let mut body: Vec<Node> = Vec::new();
         loop {
-            println!("parser peek {:?}",self.peek());
+            println!("parser peek {:?}", self.peek());
             match self.peek() {
                 // regular var declaration
                 Token::VAR => {
@@ -514,10 +567,14 @@ impl Parser {
                                                                 }
                                                                 _ => (),
                                                             }
-                                                        },
+                                                        }
                                                         Token::NL => {
-                                                            handle_error("Newline not cannot proced an arrow variable", self.line, &self.file_path);
-                                                        },
+                                                            handle_error(
+                                                                "Newline not cannot proced an arrow variable",
+                                                                self.line,
+                                                                &self.file_path,
+                                                            );
+                                                        }
                                                         tok => {
                                                             self.ptr_next();
                                                             body.push(Node::RARROWVAR {
@@ -563,10 +620,9 @@ impl Parser {
                             self.handle_def(&mut nodes);
                             println!("inner def end");
                             body.append(&mut nodes);
-                            println!("Appeded to body {:?}",nodes);
+                            println!("Appeded to body {:?}", nodes);
                         }
                         Token::PLACE => {
-                            
                             // inner place
                             self.ptr_next();
                             body.push(Node::DATA {
@@ -592,21 +648,19 @@ impl Parser {
                             )
                         }
                     }
-                },
-                Token::EOF => {
-                    handle_error("Found EOF inside a body", self.line, &self.file_path)
-                },
+                }
+                Token::EOF => handle_error("Found EOF inside a body", self.line, &self.file_path),
                 Token::NL => {
-                    body_str.push_str("\n");  
+                    body_str.push_str("\n");
                     self.line = self.line + 1;
-                },
+                }
                 tok => {
                     body_str.push_str(&tok.val());
                 }
             }
             self.ptr_next();
         }
-        println!("returned {:?}",body);
+        println!("returned {:?}", body);
         return Node::BODY { data: body };
     }
 
@@ -618,9 +672,13 @@ impl Parser {
             Token::IDENT { str } => {
                 self.ptr_next();
                 str
-            },
+            }
             _ => {
-                panic!("{:?} cant go after PLACE in line {}", self.peek(), self.line)
+                panic!(
+                    "{:?} cant go after PLACE in line {}",
+                    self.peek(),
+                    self.line
+                )
             }
         };
 
@@ -674,7 +732,7 @@ impl Parser {
                                                     });
                                                     self.remove_till_tl();
                                                     return;
-                                                },
+                                                }
                                                 _ => {
                                                     panic!(
                                                         "expected , or : found {:?} in line {}",
