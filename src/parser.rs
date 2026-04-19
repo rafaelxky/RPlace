@@ -24,6 +24,7 @@ pub enum Node {
     // - def template_1
     DEF {
         conditions: Option<Vec<(String, String, Condition)>>,
+        defaults: Option<Vec<(String,String)>>,
         name: String,
         body: Box<Node>,
         line: usize,
@@ -258,6 +259,7 @@ impl Parser {
 
         let mut def_name = String::new();
         let mut conditions: Option<Vec<(String, String, Condition)>> = None;
+        let mut defaults: Option<Vec<(String,String)>> = None;
         let mut body: Option<Box<Node>> = None;
 
         // get def name
@@ -265,7 +267,6 @@ impl Parser {
             Token::IDENT { str } => {
                 self.ptr_next();
                 def_name = str;
-                println!("defname {}", def_name);
             }
             _ => {
                 panic!(
@@ -396,7 +397,56 @@ impl Parser {
                             ),
                         }
                     }
-                }
+                },
+                // def where
+                Token::WHERE => {
+                    self.ptr_next();
+                    loop {
+                        self.remove_spaces();
+                        match self.peek() {
+                            Token::IDENT { str } => {
+                                let var = str;
+                                self.ptr_next();
+                                self.remove_spaces();
+                                match self.peek() {
+                                    Token::EQUALS => {
+                                        self.ptr_next();
+                                        self.remove_spaces();
+                                        match self.peek() {
+                                            Token::IDENT { str } => {
+                                                self.ptr_next();
+                                                self.remove_spaces();
+                                                let val = str;
+                                                if defaults.is_none() {
+                                                    defaults = Some(Vec::new());
+                                                }
+                                                defaults.as_mut().unwrap().push((var,val));
+                                                match self.peek() {
+                                                    Token::DD => {
+                                                        self.remove_till_tl();
+                                                        break;
+                                                    },
+                                                    Token::COMMA => {
+                                                        continue;
+                                                    },
+                                                    Token::NL => {
+                                                        handle_error("Expected : found newline", self.line, &self.file_path);
+                                                    }
+                                                    _ => {
+                                                        break;
+                                                    }
+                                                }
+                                            },
+                                            _ => handle_error(format!("invalid token in def defaults {:?}", self.peek()), self.line, self.file_path.clone())
+                                        }
+                                    }
+                                    _ => handle_error(format!("invalid token in def defaults {:?}", self.peek()), self.line, self.file_path.clone())
+                                }
+                            },
+                            _ => handle_error(format!("invalid token in def defaults {:?}", self.peek()), self.line, self.file_path.clone())
+                        }
+                    }
+                },
                 _ => {
                     panic!(
                         "{:?} is invalid in def declaration of name {} after {:?} in line {}",
@@ -417,6 +467,7 @@ impl Parser {
                 body: body.unwrap(),
                 line: self.line,
                 conditions: conditions,
+                defaults: defaults,
             });
             return;
         }
@@ -429,6 +480,7 @@ impl Parser {
             body: Box::new(body),
             line: self.line,
             conditions: conditions,
+            defaults: defaults.clone(),
         });
         println!("Body nodes {:?}", nodes);
     }

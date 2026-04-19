@@ -58,6 +58,7 @@ impl Writer {
                 body: _,
                 line: _,
                 conditions: _,
+                defaults:_,
             } => {
                 self.handle_def(def_map, &node, &name);
             }
@@ -83,6 +84,7 @@ impl Writer {
                         body: _,
                         line: _,
                         conditions: _,
+                        defaults: _,
                     } = n
                     {
                         def_map
@@ -138,6 +140,7 @@ impl Writer {
                         inner_defs.unwrap().iter().for_each(|def| {
                             if let Node::DEF {
                                 conditions: _,
+                                defaults: _,
                                 name,
                                 body: _,
                                 line: _,
@@ -231,6 +234,7 @@ impl Writer {
                     }
                     if let Node::DEF {
                         conditions,
+                        defaults: _,
                         name: _,
                         body: _,
                         line: _,
@@ -273,7 +277,16 @@ impl Writer {
                         body,
                         line,
                         conditions: _,
-                    } => match body.as_ref() {
+                        defaults,
+                    } => {
+                        if defaults.is_some() {
+                            defaults.as_ref().unwrap().iter().for_each(|(var,val)|{
+                                if !args_map.contains_key(var) {
+                                    args_map.insert(var.clone(), val.clone());
+                                }
+                            });
+                        }
+                        match body.as_ref() {
                         Node::BODY { data } => {
                             // for each body node
                             // go trough the body and handle the cases
@@ -306,7 +319,7 @@ impl Writer {
                                         };
                                         text.push_str(replacement);
                                     },
-                                    Node::DEF { conditions: _, name: _, body:_, line: _ } => {
+                                    Node::DEF { conditions: _, name: _, body:_, line: _ , defaults: _} => {
                                         if def_queue.is_none() {
                                             def_queue = Some(Vec::new());
                                         }
@@ -327,14 +340,18 @@ impl Writer {
                                 },
                                 });
                         },
+                        Node::PLACE { name, args, line } => {
+                            self.handle_place(text, def_map, name, args, line, args_map);
+                        },
                         _ => handle_error(
                             format!(
-                                "Internal error, def has a node {:?} wich is not of type body",
+                                "Internal error, def has a node {:?} wich is not of type body or place",
                                 body
                             ),
                             line.clone(),
                             self.file_path.clone(),
                         ),
+                    }
                     },
                     _ => handle_error(
                         format!(

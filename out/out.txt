@@ -1,5 +1,12 @@
-    arrow_default_value
-    called with var as val
-    appended as valsuffix
+    arrow default -> arrow_default_value
+    expected: arrow_default_value
+    where default from def place -> default2
+    expected: default2
+    var must be = too val -> val
+    expected val
+    appended as valsuffix    
+    expected valsuffix
+    default from def where -> def3
+    expected def3
             innerdef var = value
     
