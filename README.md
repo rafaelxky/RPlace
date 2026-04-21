@@ -122,4 +122,5 @@ $#varname+sufix
 /*- $#varname -> -*/ defaultvar+sufix
 //- create file:
 //- create folder/file.txt place name:
+//- create folder/file.txt place name where var=val:
 //- place name where var=$#var_paren
