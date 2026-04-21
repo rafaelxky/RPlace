@@ -39,7 +39,7 @@ inheritance is possible with def place
 //- def a place b where c=d:
 //- place a:
 here "a" will be placed with c=d, however, you can call
-//- place a were c=e:
+//- place a where c=e:
 this will place with c=e so it allows overrides
 also usefull to provide defaults
 
@@ -62,7 +62,7 @@ ex:
 this will place the value in the variable as normal
 
 - inheritance and overloading can be used at the same time like
-//- def a when lang=java place java_class were var=val:
+//- def a when lang=java place java_class where var=val:
 this will declare a template "a" wich will replace the variable "var" with "val" from "java_class" template if lang = java
 
 # def defaults
@@ -78,8 +78,8 @@ this will declare a template "a" wich will replace the variable "var" with "val"
 - ~ in the path is a shortcut for the default ~/.rplace folder
 
 # place
-- ex: //- place def_name were var_name=var_value, var2=val2:
-//- place def_name were body = "
+- ex: //- place def_name where var_name=var_value, var2=val2:
+//- place def_name where body = "
     multiline variable
 //- ":
 - this is how you call your definitions with value assignements
@@ -123,4 +123,4 @@ $#varname+sufix
 //- create file:
 //- create folder/file.txt place name:
 //- create folder/file.txt place name where var=val:
-//- place name where var=$#var_paren
+//- place name where var=$#var_paren:

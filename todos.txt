@@ -1,12 +1,10 @@
-project structure creation
-replacement in the entire project
-place tracking and updating taking into consideration changes
-for each
-inherit spaces when placing
-config
-conditional variables if a = b else and defaults
-inner place with variables ex: place a where b = $#var
-variable manipulation by commands
+- replacement in the entire project
+- place tracking and updating taking into consideration changes
+- inherit spaces when placing
+- config
+- conditional variables if a = b else and defaults
+- inner place with variables ex: place a where b = $#var
+- variable manipulation by commands
 ex: 
 change 
 $#var/UPPERFIRST
@@ -35,7 +33,7 @@ so you'd be able to define a function to be for example:
 //- endef:
 could also be usefull for when 
 
-vartypes in def
+- vartypes in def
 //- def a:
 $#var:type any:
 $#var:type bool:
@@ -45,3 +43,20 @@ could be: //- def a when var = val type bool:
 when A or B for def
 ex: //- def a when A = a or A
 ex: //- def a when A/UPPERFIRST = Name:
+
+- inline conditions
+- loops / for each in place, def and inline 
+ex: for item in list
+//- place a were a=[a,b,c]:
+- better scope for variables
+- global variables
+- assertions ex: A = B or else trows
+- regex assertions and modifiers ex:
+$#var/UPPER:[A-C]
+- def as variable
+- namespaces
+- selective include and alias
+- debug / tracing / dump vars / defs 
+- inline optionals ex: $#var? if none, then "" 
+same for place ex: //- place a where A=B?
+- file creation options  
