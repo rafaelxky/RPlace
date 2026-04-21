@@ -87,8 +87,8 @@ this will declare a template "a" wich will replace the variable "var" with "val"
 - if no value or default is provided the program will trow
 - you can define defaults with def place or arrow variables
 - you can use variables inside place 
-- ex: //- place name where a=$#var 
-- in this case "a" will be replaced by the value var from the parent
+- ex: //- place name where a=$#var
+- in this case "a" will be replaced by the value of "var" from the parent
 
 # data source
 - rplace allows for file text data and http
@@ -117,6 +117,9 @@ this will declare a template "a" wich will replace the variable "var" with "val"
 //- def nameA place nameB where var=val:
 //- def nameA when varA=valA where varB=valB:
 $#varname
+$#varname+sufix
 /*- $#varname -> -*/ defaultvar
+/*- $#varname -> -*/ defaultvar+sufix
 //- create file:
 //- create folder/file.txt place name:
+//- place name where var=$#var_paren
