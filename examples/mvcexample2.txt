@@ -23,4 +23,4 @@
 //- def place:
 //- endef:
 
-//- place controller where name=user, get = true:
+//- place controller where name=user, get = true, place=true:

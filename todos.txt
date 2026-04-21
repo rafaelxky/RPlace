@@ -33,10 +33,15 @@ so you'd be able to define a function to be for example:
     :body type any:
 }
 //- endef:
+could also be usefull for when 
 
 vartypes in def
 //- def a:
 $#var:type any:
 $#var:type bool:
 //- def a when isTrue = true <- idk how'd I implement that here consistent with the rest 
+could be: //- def a when var = val type bool:
 
+when A or B for def
+ex: //- def a when A = a or A
+ex: //- def a when A/UPPERFIRST = Name:
