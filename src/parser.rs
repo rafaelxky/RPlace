@@ -20,6 +20,20 @@ impl Condition {
 }
 
 #[derive(Debug, Clone)]
+pub enum ValueType{
+    Literal(String),
+    Var(String),
+}
+impl ToString for ValueType {
+    fn to_string(&self) -> String {
+        match self {
+            ValueType::Literal(val) => val,
+            ValueType::Var(val) => val,
+        }.to_string()
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum Node {
     // - def template_1
     DEF {
@@ -47,7 +61,7 @@ pub enum Node {
     },
     PLACE {
         name: String,
-        args: Vec<(String, String)>,
+        args: Vec<(String, ValueType)>,
         line: usize,
     },
     INCLUDE {
@@ -750,7 +764,7 @@ impl Parser {
             }
             // place ident were
             Token::WHERE => {
-                let mut args: Vec<(String, String)> = Vec::new();
+                let mut args: Vec<(String, ValueType)> = Vec::new();
                 loop {
                     self.ptr_next();
                     self.remove_spaces();
@@ -767,7 +781,7 @@ impl Parser {
                                         // ident = ident -> variable assignement
                                         Token::IDENT { str } => {
                                             self.ptr_next();
-                                            args.push((from, str));
+                                            args.push((from, ValueType::Literal(str)));
                                             self.remove_spaces();
                                             match self.peek() {
                                                 Token::COMMA => {
@@ -859,12 +873,11 @@ impl Parser {
                                                 }
                                                 self.ptr_next();
                                             }
-                                            args.push((from, arg_str));
+                                            args.push((from, ValueType::Literal(arg_str)));
                                             self.remove_spaces();
                                             // ident = "ident"
                                             match self.peek() {
                                                 Token::DD => {
-                                                    println!("DD7");
                                                     self.ptr_next();
                                                     nodes.push(Node::PLACE {
                                                         name: place_id.clone(),
@@ -885,13 +898,42 @@ impl Parser {
                                                     );
                                                 }
                                             }
-                                        }
+                                        },
+                                        Token::VAR => {
+                                            self.ptr_next();
+                                            match self.peek() {
+                                                Token::IDENT { str } => {
+                                                    self.ptr_next();
+                                                    args.push((from, ValueType::Var(str)));
+                                                    self.remove_spaces();
+                                                     match self.peek() {
+                                                        Token::DD => {
+                                                            self.ptr_next();
+                                                            nodes.push(Node::PLACE {
+                                                                name: place_id.clone(),
+                                                                args: args,
+                                                                line: self.line,
+                                                            });
+                                                            self.remove_till_tl();
+                                                            return;
+                                                        },
+                                                        Token::COMMA => {
+                                                            self.ptr_next();
+                                                        },
+                                                        _ => {
+                                                            panic!(
+                                                                "expected , or : found {:?} in line {}",
+                                                                self.peek(),
+                                                                self.line
+                                                            );
+                                                }
+                                            }
+                                                }, 
+                                                _ => handle_error(format!("Expected Ident found {:?} at place with variable value", self.peek()), self.line, self.file_path.clone())
+                                            }
+                                        },
                                         _ => {
-                                            panic!(
-                                                "expected argument value as ident, found {:?} in line {}",
-                                                self.peek(),
-                                                self.line
-                                            );
+                                            handle_error(format!("expected argument value as ident, found {:?}", self.peek()), self.line, self.file_path.clone());
                                         }
                                     }
                                 }

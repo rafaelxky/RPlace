@@ -4,3 +4,5 @@ place tracking and updating taking into consideration changes
 for each
 inherit spaces when placing
 config
+conditional variables if a = b else and defaults
+inner place with variables ex: place a where b = $#var

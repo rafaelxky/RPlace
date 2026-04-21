@@ -8,7 +8,7 @@ use reqwest::Body;
 use crate::{
     error_handler::handle_error,
     lexer::Lexer,
-    parser::{Node, Parser, ParsingResult},
+    parser::{Node, Parser, ParsingResult, ValueType},
     term::data_providers::TextProvider,
 };
 
@@ -132,7 +132,7 @@ impl Writer {
                     text.push_str(&data);
                 },
                 Node::PLACE { name, args, line } => {
-                    let mut args_map: HashMap<String, String> = HashMap::new();
+                    let mut args_map: HashMap<String, ValueType> = HashMap::new();
                     let inner_defs =
                         self.handle_place(&mut text, &mut def_map, name, args, line, &mut args_map);
 
@@ -175,7 +175,7 @@ impl Writer {
                             match place {
                                 Node::PLACE { name, args, line } => {
                                     let mut text = String::new();
-                                    let mut args_map: HashMap<String, String> = HashMap::new();
+                                    let mut args_map: HashMap<String, ValueType> = HashMap::new();
                                     self.handle_place(&mut text, def_map, name, args, line, &mut args_map);
                                     result.push_elements(text, path.clone());
                                 },

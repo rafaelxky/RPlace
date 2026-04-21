@@ -1,0 +1,15 @@
+//- def controller:
+    public class UserController{
+        add support for this
+        //- place get where active = $#get
+    }
+//- endef: 
+
+//- def get when active = true;
+    get active true
+//- endef:
+//- def get:
+    get active false
+//- endef:
+
+//- place controller where get = true;
