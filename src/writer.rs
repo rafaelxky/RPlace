@@ -132,7 +132,7 @@ impl Writer {
                     text.push_str(&data);
                 },
                 Node::PLACE { name, args, line } => {
-                    let mut args_map: HashMap<String, ValueType> = HashMap::new();
+                    let mut args_map: HashMap<String, String> = HashMap::new();
                     let inner_defs =
                         self.handle_place(&mut text, &mut def_map, name, args, line, &mut args_map);
 
@@ -175,7 +175,7 @@ impl Writer {
                             match place {
                                 Node::PLACE { name, args, line } => {
                                     let mut text = String::new();
-                                    let mut args_map: HashMap<String, ValueType> = HashMap::new();
+                                    let mut args_map: HashMap<String, String> = HashMap::new();
                                     self.handle_place(&mut text, def_map, name, args, line, &mut args_map);
                                     result.push_elements(text, path.clone());
                                 },
@@ -206,7 +206,7 @@ impl Writer {
         text: &mut String,
         def_map: &HashMap<String, Vec<Node>>,
         name: &String,
-        args: &Vec<(String, String)>,
+        args: &Vec<(String, ValueType)>,
         line: &usize,
         args_map: &mut HashMap<String, String>,
     ) 
@@ -214,8 +214,22 @@ impl Writer {
     -> Option<Vec<Node>> {
         // maps variables to values
         args.iter().for_each(|arg| {
+            // this is to avoid children overriding parent values
             if !args_map.contains_key(&arg.0.clone()) {
-                args_map.insert(arg.0.clone(), arg.1.clone());
+                match &arg.1 {
+                    ValueType::Literal(val) => { args_map.insert(arg.0.clone(), val.clone()); }
+                    ValueType::Var(var) => {
+                        let val = args_map.get(var);
+                        match val {
+                            Some(val) => {
+                                 args_map.insert(arg.0.clone(), val.clone()); 
+                            },
+                            None => {
+                                panic!("No value found for var type {:?}", var);
+                            },
+                        }
+                    },
+                }
             }
         });
 
