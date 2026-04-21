@@ -32,17 +32,24 @@ fn main() {
     let writer = Writer::new(nodes);
     let mut replaced: WriterResult = writer.replace();
 
-    let mut write_path = match args.target {
-        Some(path) => path,
-        None => args.origin,
+    let mut file = match args.target {
+        Some(path) => {
+            OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open(&path)
+                .expect("Unable to open file")
+        },
+            None => {
+                OpenOptions::new()
+                .write(true)
+                .create(false)
+                .truncate(true)
+                .open(args.origin)
+                .expect("Unable to open file")
+        },
     };
-
-    let mut file = OpenOptions::new()
-        .write(true)
-        .create(false)
-        .truncate(true)
-        .open(&write_path)
-        .expect("Unable to open file");
 
     let last = replaced.file_data.pop().unwrap();
     write!(&mut file, "{}", last.data).expect("Unable to write");

@@ -374,7 +374,7 @@ impl Parser {
                                                         break;
                                                     }
                                                     _ => {
-                                                        panic!("idk");
+                                                        handle_error(format!("Unexpected token at the end of variable assignement in def {:?}", self.peek()), self.line, self.file_path.clone());
                                                     }
                                                 }
                                             }
