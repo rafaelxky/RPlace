@@ -6,3 +6,37 @@ inherit spaces when placing
 config
 conditional variables if a = b else and defaults
 inner place with variables ex: place a where b = $#var
+variable manipulation by commands
+ex: 
+change 
+$#var/UPPERFIRST
+$#var/UPPERLAST
+$#var/LOWEFIRST
+$#var/LOWERLAST
+$#var/UPPER
+$#var/LOWER
+$#var/NORMALIZE
+trow if not to standard
+$#var/CAMEL
+$#var/PASCAL
+$#var/KEBAB
+$#var/SNAKE
+$#var/SCREAMING
+chaining
+$#var/UPPERFIRST/UPPERLAST
+
+idea:
+it would be interesting to allow for custom rules and checks
+so you'd be able to define a function to be for example:
+//- defrule for var:
+:public or static: :vartype type ident: :funcname type ident: ( :repeated :varType type ident: :varName type ident:,: ){
+    :body type any:
+}
+//- endef:
+
+vartypes in def
+//- def a:
+$#var:type any:
+$#var:type bool:
+//- def a when isTrue = true <- idk how'd I implement that here consistent with the rest 
+

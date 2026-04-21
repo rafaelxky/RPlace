@@ -1,14 +1,26 @@
 //- def controller:
-    public class UserController{
-        add support for this
-        //- place get where active = $#get:
+    public class $#name+Controller{
+        @autowired
+        public $#name+Service $#name+Service;
+        //- place get where active = $#get, name=$#name:
+        //- place place where active = $#place, name= $#name:
     }
 //- endef: 
+
 //- def get when active = true:
-    get active true
-    //- create created_A:
+    public void Get$#name+(int id){
+        $#name+Service.getUserById(id);
+    }
 //- endef:
 //- def get:
-    get active false
 //- endef:
-//- place controller where get = true:
+
+//- def place when active = true:
+    public void Place$#name+($#name $#name){
+        $#name+Service.Place($#name);
+    }
+//- endef:
+//- def place:
+//- endef:
+
+//- place controller where name=user, get = true:
