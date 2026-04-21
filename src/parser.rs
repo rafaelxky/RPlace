@@ -210,6 +210,7 @@ impl Parser {
             Token::DD => {
                 self.ptr_next();
                 nodes.push(Node::CREATE { path, content: None });
+                self.remove_till_tl();
                 return;
             },
             Token::PLACE => {
