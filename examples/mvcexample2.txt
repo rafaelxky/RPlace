@@ -4,11 +4,10 @@
         //- place get where active = $#get:
     }
 //- endef: 
-there should be no lines between this
 //- def get when active = true:
     get active true
+    //- create created_A:
 //- endef:
-and this line 
 //- def get:
     get active false
 //- endef:

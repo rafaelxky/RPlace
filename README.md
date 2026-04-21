@@ -86,6 +86,9 @@ this will declare a template "a" wich will replace the variable "var" with "val"
 - it suports single line and multiline double quote variables
 - if no value or default is provided the program will trow
 - you can define defaults with def place or arrow variables
+- you can use variables inside place 
+- ex: //- place name where a=$#var 
+- in this case "a" will be replaced by the value var from the parent
 
 # data source
 - rplace allows for file text data and http
