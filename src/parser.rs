@@ -1,7 +1,7 @@
 use core::panic;
 
 use crate::{
-    error_handler::{handle_error, handle_error_parser, handle_expected_error},
+    error_handler::{CompilationError, handle_error, handle_error_parser, handle_expected_error},
     lexer::{Token, TokenResult},
 };
 
@@ -99,7 +99,7 @@ impl Parser {
     pub fn get_file_path(&self) -> &str {
         &self.file_path
     }
-    fn peek(&self) -> Token {
+    pub fn peek(&self) -> Token {
         self.tokens[self.ptr].clone()
     }
     fn pop(&mut self) -> Token {
@@ -127,6 +127,19 @@ impl Parser {
             str.push_str(&self.peek_behind(i).val());
         }
         str.push_str(&self.peek().val());
+        for i in 1..=dist {
+            str.push_str(&self.peek_ahead(i).val());
+        }
+        return str;
+    }
+    pub fn get_tok_around_colored(&self, dist: usize) -> String {
+        let red = "\x1b[31m";
+        let reset = "\x1b[0m";
+        let mut str = String::new();
+        for i in (1..=dist).rev() {
+            str.push_str(&self.peek_behind(i).val());
+        }
+        str.push_str(&format!("{}{}{}", red, &self.peek().val(), reset));
         for i in 1..=dist {
             str.push_str(&self.peek_ahead(i).val());
         }
@@ -191,13 +204,7 @@ impl Parser {
                 self.handle_create(&mut nodes);
             }
             _ => {
-                handle_error_parser(
-                    format!(
-                        "{:?} cannot go after an initial mark, did you forget a mark?",
-                        self.peek()
-                    ),
-                    self,
-                );
+                handle_error_parser(CompilationError::InvalidFunc, self);
             }
         }
     }
@@ -221,9 +228,7 @@ impl Parser {
                 Token::DD => {
                     break;
                 }
-                _ => {
-                    handle_error_parser(format!("Expected file name found {:?}", self.peek()), self)
-                }
+                _ => handle_error_parser(CompilationError::InvalidTokenInPath, self),
             }
         }
         self.remove_spaces();
@@ -249,14 +254,7 @@ impl Parser {
                 });
                 return;
             }
-            _ => handle_error_parser(
-                format!(
-                    "Found {:?} wich is invalid in create -> {} \n",
-                    self.peek(),
-                    self.get_tok_around(10),
-                ),
-                self,
-            ),
+            _ => handle_error_parser(CompilationError::InvalidAfterFilePath, self),
         }
     }
 
@@ -287,14 +285,7 @@ impl Parser {
                     path.push_str("where");
                 }
                 _ => {
-                    handle_error_parser(
-                        format!(
-                            "Unexpected token in include declaration {:?} in line {}",
-                            self.peek(),
-                            self.line
-                        ),
-                        self,
-                    );
+                    handle_error_parser(CompilationError::InvalidTokenInIncludePath, self);
                 }
             }
             self.ptr_next();
@@ -322,14 +313,7 @@ impl Parser {
                 def_name = "place".to_string();
             }
             _ => {
-                handle_error_parser(
-                    format!(
-                        "found {:?} expected definition name in line {}",
-                        self.peek(),
-                        self.line
-                    ),
-                    self,
-                );
+                handle_error_parser(CompilationError::InvalidDefName, self);
             }
         }
 
@@ -355,10 +339,7 @@ impl Parser {
                             body = Some(Box::new(place));
                             break;
                         }
-                        _ => handle_error_parser(
-                            format!("Expected ident found {:?} after def place", self.peek()),
-                            self,
-                        ),
+                        _ => handle_error_parser(CompilationError::InvalidDefPlaceName, self),
                     }
                 }
                 // def name when condition
@@ -413,31 +394,24 @@ impl Parser {
                                                     Token::WHERE => {
                                                         break;
                                                     }
+                                                    // def name when name = val <here>
                                                     _ => {
                                                         handle_error_parser(
-                                                            format!(
-                                                                "Unexpected token at the end of variable assignement in def {:?}",
-                                                                self.peek()
-                                                            ),
+                                                            CompilationError::InvalidFinishTokWhen,
                                                             self,
                                                         );
                                                     }
                                                 }
                                             }
+                                            // def name when name = <here>
                                             _ => handle_error_parser(
-                                                format!(
-                                                    "Expected ident found {:?} in def <name> where <name><condition><here>",
-                                                    self.peek()
-                                                ),
+                                                CompilationError::Invalid2ndIdentWhen,
                                                 self,
                                             ),
                                         }
                                     }
                                     _ => handle_error_parser(
-                                        format!(
-                                            "Expected condition found {:?} in def <name> where <name><here>",
-                                            self.peek()
-                                        ),
+                                        CompilationError::InvalidComparissonTok,
                                         self,
                                     ),
                                 }
@@ -447,10 +421,7 @@ impl Parser {
                             }
                             _ => {
                                 handle_error_parser(
-                                    format!(
-                                        "Expected ident found {:?} in def <name> where <here>",
-                                        self.peek()
-                                    ),
+                                    CompilationError::Invalid1stIdentWhen,
                                     self,
                                 );
                             }
@@ -488,23 +459,15 @@ impl Parser {
                                                     Token::COMMA => {
                                                         continue;
                                                     }
-                                                    Token::NL => {
-                                                        handle_error_parser(
-                                                            "Expected : found newline",
-                                                            self,
-                                                        );
-                                                    }
                                                     _ => {
                                                         break;
                                                     }
                                                 }
                                             }
+                                            // def a where a = <here>
                                             _ => {
                                                 handle_error_parser(
-                                                    format!(
-                                                        "invalid token in def defaults {:?}",
-                                                        self.peek()
-                                                    ),
+                                                    CompilationError::Invalid2ndIdentDefWhere,
                                                     self,
                                                 );
                                             }
@@ -512,10 +475,7 @@ impl Parser {
                                     }
                                     _ => {
                                         handle_error_parser(
-                                            format!(
-                                                "invalid token in def defaults {:?}",
-                                                self.peek()
-                                            ),
+                                            CompilationError::InvalidAssignementDefWhere,
                                             self,
                                         );
                                     }
