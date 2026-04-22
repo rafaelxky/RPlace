@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
     public class userController{
         @autowired
         public userService userService;
@@ -16,4 +8,3 @@
         userService.Place(user);
     }
     }
-

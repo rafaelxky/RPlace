@@ -60,3 +60,4 @@ $#var/UPPER:[A-C]
 - inline optionals ex: $#var? if none, then "" 
 same for place ex: //- place a where A=B?
 - file creation options  
+- rules for error output

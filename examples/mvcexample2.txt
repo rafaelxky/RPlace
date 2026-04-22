@@ -3,9 +3,9 @@
         @autowired
         public $#name+Service $#name+Service;
         //- place get where active = $#get, name=$#name:
-        //- place place where active = $#place, name= $#name:
+        //- place place where active = $#place_var, name= $#name:
     }
-//- endef: 
+//- endef:
 
 //- def get when active = true:
     public void Get$#name+(int id){
@@ -23,4 +23,7 @@
 //- def place:
 //- endef:
 
-//- place controller where name=user, get = true, place=true:
+//- place controller where name=user, get = true, place_var=true:
+
+//- create project/src/main/java/com/example/main.java:
+//- create project/src/main/java/com/example/controllers/UserController.java place controller where name = user, get = true:

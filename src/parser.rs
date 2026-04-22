@@ -20,7 +20,7 @@ impl Condition {
 }
 
 #[derive(Debug, Clone)]
-pub enum ValueType{
+pub enum ValueType {
     Literal(String),
     Var(String),
 }
@@ -29,7 +29,8 @@ impl ToString for ValueType {
         match self {
             ValueType::Literal(val) => val,
             ValueType::Var(val) => val,
-        }.to_string()
+        }
+        .to_string()
     }
 }
 
@@ -38,7 +39,7 @@ pub enum Node {
     // - def template_1
     DEF {
         conditions: Option<Vec<(String, String, Condition)>>,
-        defaults: Option<Vec<(String,String)>>,
+        defaults: Option<Vec<(String, String)>>,
         name: String,
         body: Box<Node>,
         line: usize,
@@ -184,7 +185,6 @@ impl Parser {
 
     // create filepath place defname:
     fn handle_create(&mut self, nodes: &mut Vec<Node>) {
-
         let mut path: String = String::new();
         // filepath
         // ex: parent/child.txt
@@ -199,9 +199,15 @@ impl Parser {
                     self.ptr_next();
                     break;
                 },
-                _ => {
-                    handle_error(format!("Expected file name found {:?}", self.peek()), self.line, self.file_path.clone())
-                }
+                Token::DD => {
+                    self.ptr_next();
+                    break;
+                },
+                _ => handle_error(
+                    format!("Expected file name found {:?}", self.peek()),
+                    self.line,
+                    self.file_path.clone(),
+                ),
             }
         }
         self.remove_spaces();
@@ -209,23 +215,32 @@ impl Parser {
         match self.peek() {
             Token::DD => {
                 self.ptr_next();
-                nodes.push(Node::CREATE { path, content: None });
+                nodes.push(Node::CREATE {
+                    path,
+                    content: None,
+                });
                 self.remove_till_tl();
                 return;
-            },
+            }
             Token::PLACE => {
                 self.ptr_next();
                 let mut temp_nodes: Vec<Node> = Vec::new();
                 // returns one place
                 self.handle_place(&mut temp_nodes);
-                nodes.push(Node::CREATE { path, content: Some(Box::new(Node::BODY { data: temp_nodes })) });
+                nodes.push(Node::CREATE {
+                    path,
+                    content: Some(Box::new(Node::BODY { data: temp_nodes })),
+                });
                 return;
-            },
+            }
             _ => {
-                handle_error(format!("Found {:?} wich is invalid in create",self.peek()), self.line, self.file_path.clone());
-            },
+                handle_error(
+                    format!("Found {:?} wich is invalid in create", self.peek()),
+                    self.line,
+                    self.file_path.clone(),
+                );
+            }
         }
-
     }
 
     fn handle_include(&mut self, nodes: &mut Vec<Node>) {
@@ -274,7 +289,7 @@ impl Parser {
 
         let mut def_name = String::new();
         let mut conditions: Option<Vec<(String, String, Condition)>> = None;
-        let mut defaults: Option<Vec<(String,String)>> = None;
+        let mut defaults: Option<Vec<(String, String)>> = None;
         let mut body: Option<Box<Node>> = None;
 
         // get def name
@@ -282,7 +297,11 @@ impl Parser {
             Token::IDENT { str } => {
                 self.ptr_next();
                 def_name = str;
-            }
+            },
+            Token::PLACE => {
+                self.ptr_next();
+                def_name = "place".to_string();
+            },
             _ => {
                 panic!(
                     "found {:?} expected definition name in line {}",
@@ -375,7 +394,14 @@ impl Parser {
                                                         break;
                                                     }
                                                     _ => {
-                                                        handle_error(format!("Unexpected token at the end of variable assignement in def {:?}", self.peek()), self.line, self.file_path.clone());
+                                                        handle_error(
+                                                            format!(
+                                                                "Unexpected token at the end of variable assignement in def {:?}",
+                                                                self.peek()
+                                                            ),
+                                                            self.line,
+                                                            self.file_path.clone(),
+                                                        );
                                                     }
                                                 }
                                             }
@@ -412,7 +438,7 @@ impl Parser {
                             ),
                         }
                     }
-                },
+                }
                 // def where
                 Token::WHERE => {
                     self.ptr_next();
@@ -435,33 +461,52 @@ impl Parser {
                                                 if defaults.is_none() {
                                                     defaults = Some(Vec::new());
                                                 }
-                                                defaults.as_mut().unwrap().push((var,val));
+                                                defaults.as_mut().unwrap().push((var, val));
                                                 match self.peek() {
                                                     Token::DD => {
                                                         self.remove_till_tl();
                                                         break;
-                                                    },
+                                                    }
                                                     Token::COMMA => {
                                                         continue;
-                                                    },
+                                                    }
                                                     Token::NL => {
-                                                        handle_error("Expected : found newline", self.line, &self.file_path);
+                                                        handle_error(
+                                                            "Expected : found newline",
+                                                            self.line,
+                                                            &self.file_path,
+                                                        );
                                                     }
                                                     _ => {
                                                         break;
                                                     }
                                                 }
-                                            },
-                                            _ => handle_error(format!("invalid token in def defaults {:?}", self.peek()), self.line, self.file_path.clone())
+                                            }
+                                            _ => handle_error(
+                                                format!(
+                                                    "invalid token in def defaults {:?}",
+                                                    self.peek()
+                                                ),
+                                                self.line,
+                                                self.file_path.clone(),
+                                            ),
                                         }
                                     }
-                                    _ => handle_error(format!("invalid token in def defaults {:?}", self.peek()), self.line, self.file_path.clone())
+                                    _ => handle_error(
+                                        format!("invalid token in def defaults {:?}", self.peek()),
+                                        self.line,
+                                        self.file_path.clone(),
+                                    ),
                                 }
-                            },
-                            _ => handle_error(format!("invalid token in def defaults {:?}", self.peek()), self.line, self.file_path.clone())
+                            }
+                            _ => handle_error(
+                                format!("invalid token in def defaults {:?}", self.peek()),
+                                self.line,
+                                self.file_path.clone(),
+                            ),
                         }
                     }
-                },
+                }
                 _ => {
                     panic!(
                         "{:?} is invalid in def declaration of name {} after {:?} in line {}",
@@ -505,7 +550,10 @@ impl Parser {
             match self.peek() {
                 Token::SPACE => {
                     self.ptr_next();
-                }
+                },
+                Token::NL => {
+                    self.ptr_next();
+                },
                 _ => {
                     return;
                 }
@@ -740,6 +788,10 @@ impl Parser {
                 self.ptr_next();
                 str
             }
+            Token::PLACE => {
+                self.ptr_next();
+                "place".to_string()
+            }
             _ => {
                 panic!(
                     "{:?} cant go after PLACE in line {}",
@@ -899,7 +951,7 @@ impl Parser {
                                                     );
                                                 }
                                             }
-                                        },
+                                        }
                                         Token::VAR => {
                                             self.ptr_next();
                                             match self.peek() {
@@ -907,7 +959,7 @@ impl Parser {
                                                     self.ptr_next();
                                                     args.push((from, ValueType::Var(str)));
                                                     self.remove_spaces();
-                                                     match self.peek() {
+                                                    match self.peek() {
                                                         Token::DD => {
                                                             self.ptr_next();
                                                             nodes.push(Node::PLACE {
@@ -927,14 +979,28 @@ impl Parser {
                                                                 self.peek(),
                                                                 self.line
                                                             );
-                                                }
+                                                        }
+                                                    }
+                                                },
+                                                _ => handle_error(
+                                                    format!(
+                                                        "Expected Ident found {:?} at place with variable value",
+                                                        self.peek()
+                                                    ),
+                                                    self.line,
+                                                    self.file_path.clone(),
+                                                ),
                                             }
-                                                }, 
-                                                _ => handle_error(format!("Expected Ident found {:?} at place with variable value", self.peek()), self.line, self.file_path.clone())
-                                            }
-                                        },
+                                        }
                                         _ => {
-                                            handle_error(format!("expected argument value as ident, found {:?}", self.peek()), self.line, self.file_path.clone());
+                                            handle_error(
+                                                format!(
+                                                    "expected argument value as ident, found {:?}",
+                                                    self.peek()
+                                                ),
+                                                self.line,
+                                                self.file_path.clone(),
+                                            );
                                         }
                                     }
                                 }
