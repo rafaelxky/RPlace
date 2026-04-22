@@ -420,10 +420,7 @@ impl Parser {
                                 break;
                             }
                             _ => {
-                                handle_error_parser(
-                                    CompilationError::Invalid1stIdentWhen,
-                                    self,
-                                );
+                                handle_error_parser(CompilationError::Invalid1stIdentWhen, self);
                             }
                         }
                     }
@@ -483,7 +480,7 @@ impl Parser {
                             }
                             _ => {
                                 handle_error_parser(
-                                    format!("invalid token in def defaults {:?}", self.peek()),
+                                    CompilationError::Invalid1stIdentDefWhere,
                                     self,
                                 );
                             }
@@ -491,16 +488,7 @@ impl Parser {
                     }
                 }
                 _ => {
-                    handle_error_parser(
-                        format!(
-                            "{:?} is invalid in def declaration of name {} after {:?} in line {}",
-                            self.peek(),
-                            def_name,
-                            self.peek_behind(1),
-                            self.line
-                        ),
-                        self,
-                    );
+                    handle_error_parser(CompilationError::InvalidDefOption, self);
                 }
             }
         }
@@ -590,15 +578,9 @@ impl Parser {
                             });
                             continue;
                         }
+                        // $#name
                         _ => {
-                            handle_error_parser(
-                                format!(
-                                    "expected IDENT found {:?} in line {}",
-                                    self.peek(),
-                                    self.line
-                                ),
-                                self,
-                            );
+                            handle_error_parser(CompilationError::InvalidVar, self);
                         }
                     }
                 }
@@ -624,10 +606,7 @@ impl Parser {
                                 }
                                 _ => {
                                     handle_error_parser(
-                                        format!(
-                                            "Endef found with no terminating \":\" or \",\" in line {}",
-                                            self.line
-                                        ),
+                                        CompilationError::NoDDEndef,
                                         self,
                                     );
                                 }
@@ -672,7 +651,7 @@ impl Parser {
                                                         }
                                                         Token::NL => {
                                                             handle_error_parser(
-                                                                "Newline not cannot proced an arrow variable",
+                                                                CompilationError::NLArrowVarName,
                                                                 self,
                                                             );
                                                         }
@@ -685,27 +664,21 @@ impl Parser {
                                                         }
                                                     }
                                                     continue;
-                                                }
+                                                },
                                                 _ => handle_error_parser(
-                                                    format!(
-                                                        "Expected marker at the end of right arrow variable declaration, found {:?}",
-                                                        self.peek()
-                                                    ),
+                                                    CompilationError::NotMarkAfterArrowVar,
                                                     self,
                                                 ),
                                             }
                                         }
                                         _ => handle_error_parser(
-                                            format!("Malformed marked variable inside body"),
+                                            CompilationError::NotArrow,
                                             self,
                                         ),
                                     }
                                 }
                                 _ => handle_error_parser(
-                                    format!(
-                                        "Found invalid token {:?} in arrow var declaration in def body",
-                                        self.peek()
-                                    ),
+                                    CompilationError::InvalidArrowVarName,
                                     self,
                                 ),
                             }
@@ -737,13 +710,13 @@ impl Parser {
                         }
                         _ => {
                             handle_error_parser(
-                                format!("{:?} is not a valid inner instruction", self.peek(),),
+                                CompilationError::InvalidBodyCommand,
                                 self,
                             );
                         }
                     }
                 }
-                Token::EOF => handle_error_parser("Found EOF inside a body", self),
+                Token::EOF => handle_error_parser(CompilationError::BodyEOF, self),
                 Token::NL => {
                     body_str.push_str("\n");
                     self.line = self.line + 1;
@@ -772,7 +745,7 @@ impl Parser {
                 "place".to_string()
             }
             _ => {
-                handle_error_parser(format!("{:?} cant go after PLACE", self.peek(),), self);
+                handle_error_parser(CompilationError::InvalidPlaceName, self);
             }
         };
 
@@ -827,12 +800,10 @@ impl Parser {
                                                     self.remove_till_tl();
                                                     return;
                                                 }
+                                                // second ident
                                                 _ => {
                                                     handle_error_parser(
-                                                        format!(
-                                                            "expected , or : found {:?}",
-                                                            self.peek(),
-                                                        ),
+                                                        CompilationError::Invalid2ndPlaceVar,
                                                         self,
                                                     );
                                                 }
@@ -847,10 +818,7 @@ impl Parser {
                                             loop {
                                                 if !self.can_pop() {
                                                     handle_error_parser(
-                                                        format!(
-                                                            "unexpected EOF in \"quotation\" variable in line {}",
-                                                            self.line,
-                                                        ),
+                                                        CompilationError::EOFInQuotVar,
                                                         self,
                                                     );
                                                 }
@@ -925,11 +893,7 @@ impl Parser {
                                                 }
                                                 _ => {
                                                     handle_error_parser(
-                                                        format!(
-                                                            "expected , or : found {:?} in line {}",
-                                                            self.peek(),
-                                                            self.line
-                                                        ),
+                                                        CompilationError::NoDDAfterQuotVar,
                                                         self,
                                                     );
                                                 }
@@ -977,10 +941,7 @@ impl Parser {
                                         }
                                         _ => {
                                             handle_error_parser(
-                                                format!(
-                                                    "expected argument value as ident, found {:?}",
-                                                    self.peek()
-                                                ),
+                                                CompilationError::Invalid2ndPlaceVar,
                                                 self,
                                             );
                                         }
@@ -988,11 +949,7 @@ impl Parser {
                                 }
                                 _ => {
                                     handle_error_parser(
-                                        format!(
-                                            "expected = found {:?} in line {}",
-                                            self.peek(),
-                                            self.line
-                                        ),
+                                        CompilationError::InvalidPlaceAssign,
                                         self,
                                     );
                                 }
@@ -1010,11 +967,10 @@ impl Parser {
                             return;
                         }
                         _ => {
-                            panic!(
-                                "{:?} invalid after WHERE in line {}",
-                                self.peek(),
-                                self.line
-                            );
+                            handle_error_parser(
+                                CompilationError::Invalid2ndPlaceVar, 
+                                self
+                            )
                         }
                     }
                 }
