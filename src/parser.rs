@@ -100,10 +100,10 @@ impl Parser {
         self.ptr = self.ptr + 1;
         self.tokens[self.ptr - 1].clone()
     }
-    fn peek_behind(&mut self, i: usize) -> Token {
+    fn peek_behind(&self, i: usize) -> Token {
         self.tokens[self.ptr - i].clone()
     }
-    fn peek_ahead(&mut self, i: usize) -> Token {
+    fn peek_ahead(&self, i: usize) -> Token {
         self.tokens[self.ptr + i].clone()
     }
     fn ptr_next(&mut self) {
@@ -114,6 +114,17 @@ impl Parser {
     }
     fn can_pop(&self) -> bool {
         self.tokens.len() > self.ptr
+    }
+    fn get_tok_around(&self, dist: usize) -> String {
+        let mut str = String::new();
+        for i in (1..=dist).rev() {
+            str.push_str(&self.peek_behind(i).val());
+        }
+        str.push_str(&self.peek().val());
+        for i in 1..=dist {
+            str.push_str(&self.peek_ahead(i).val());
+        }
+        return str;
     }
 
     pub fn parse(mut self) -> ParsingResult {
@@ -194,15 +205,14 @@ impl Parser {
                 Token::IDENT { str } => {
                     self.ptr_next();
                     path.push_str(&str);
-                },
+                }
                 Token::SPACE => {
                     self.ptr_next();
                     break;
-                },
+                }
                 Token::DD => {
-                    self.ptr_next();
                     break;
-                },
+                }
                 _ => handle_error(
                     format!("Expected file name found {:?}", self.peek()),
                     self.line,
@@ -235,7 +245,11 @@ impl Parser {
             }
             _ => {
                 handle_error(
-                    format!("Found {:?} wich is invalid in create", self.peek()),
+                    format!(
+                        "Found {:?} wich is invalid in create -> {} \n",
+                        self.peek(),
+                        self.get_tok_around(10),
+                    ),
                     self.line,
                     self.file_path.clone(),
                 );
@@ -297,11 +311,11 @@ impl Parser {
             Token::IDENT { str } => {
                 self.ptr_next();
                 def_name = str;
-            },
+            }
             Token::PLACE => {
                 self.ptr_next();
                 def_name = "place".to_string();
-            },
+            }
             _ => {
                 panic!(
                     "found {:?} expected definition name in line {}",
@@ -550,10 +564,10 @@ impl Parser {
             match self.peek() {
                 Token::SPACE => {
                     self.ptr_next();
-                },
+                }
                 Token::NL => {
                     self.ptr_next();
-                },
+                }
                 _ => {
                     return;
                 }
@@ -969,10 +983,10 @@ impl Parser {
                                                             });
                                                             self.remove_till_tl();
                                                             return;
-                                                        },
+                                                        }
                                                         Token::COMMA => {
                                                             self.ptr_next();
-                                                        },
+                                                        }
                                                         _ => {
                                                             panic!(
                                                                 "expected , or : found {:?} in line {}",
@@ -981,7 +995,7 @@ impl Parser {
                                                             );
                                                         }
                                                     }
-                                                },
+                                                }
                                                 _ => handle_error(
                                                     format!(
                                                         "Expected Ident found {:?} at place with variable value",
