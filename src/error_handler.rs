@@ -43,12 +43,7 @@ pub fn handle_error_parser(error_message: CompilationError, parser: &Parser) -> 
     let msg = error_msg.msg;
     let hint = error_msg.hint;
     let example = error_msg.example;
-    panic!(
-        "\x1b[31mError:\x1b[0m {} \n\n
-        -> {} \n\n
-        File: {}:{} \n\n
-        Hint: {} \n\n
-        Example:\n {}",
+    panic!("\x1b[31mError:\x1b[0m {} \n\n-> {} \n\nFile: {}:{} \n\nHint: {} \n\nExample:\n {}",
         msg,
         parser.get_tok_around_colored(10),
         parser.get_file_path(),
