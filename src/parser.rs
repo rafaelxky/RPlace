@@ -1,7 +1,7 @@
 use core::panic;
 
 use crate::{
-    error_handler::{handle_error, handle_expected_error},
+    error_handler::{handle_error, handle_error_parser, handle_expected_error},
     lexer::{Token, TokenResult},
 };
 
@@ -93,6 +93,12 @@ impl Parser {
             file_path: tokens.file_path,
         }
     }
+    pub fn get_line(&self) -> usize {
+        self.line
+    }
+    pub fn get_file_path(&self) -> &str {
+        &self.file_path
+    }
     fn peek(&self) -> Token {
         self.tokens[self.ptr].clone()
     }
@@ -115,7 +121,7 @@ impl Parser {
     fn can_pop(&self) -> bool {
         self.tokens.len() > self.ptr
     }
-    fn get_tok_around(&self, dist: usize) -> String {
+    pub fn get_tok_around(&self, dist: usize) -> String {
         let mut str = String::new();
         for i in (1..=dist).rev() {
             str.push_str(&self.peek_behind(i).val());
@@ -185,10 +191,12 @@ impl Parser {
                 self.handle_create(&mut nodes);
             }
             _ => {
-                panic!(
-                    "{:?} cannot go after an initial mark in line {}, did you forget a mark?",
-                    self.peek(),
-                    self.line
+                handle_error_parser(
+                    format!(
+                        "{:?} cannot go after an initial mark, did you forget a mark?",
+                        self.peek()
+                    ),
+                    self,
                 );
             }
         }
@@ -213,11 +221,9 @@ impl Parser {
                 Token::DD => {
                     break;
                 }
-                _ => handle_error(
-                    format!("Expected file name found {:?}", self.peek()),
-                    self.line,
-                    self.file_path.clone(),
-                ),
+                _ => {
+                    handle_error_parser(format!("Expected file name found {:?}", self.peek()), self)
+                }
             }
         }
         self.remove_spaces();
@@ -243,17 +249,14 @@ impl Parser {
                 });
                 return;
             }
-            _ => {
-                handle_error(
-                    format!(
-                        "Found {:?} wich is invalid in create -> {} \n",
-                        self.peek(),
-                        self.get_tok_around(10),
-                    ),
-                    self.line,
-                    self.file_path.clone(),
-                );
-            }
+            _ => handle_error_parser(
+                format!(
+                    "Found {:?} wich is invalid in create -> {} \n",
+                    self.peek(),
+                    self.get_tok_around(10),
+                ),
+                self,
+            ),
         }
     }
 
@@ -269,7 +272,6 @@ impl Parser {
                 }
                 // include
                 Token::DD => {
-                    println!("DD1");
                     self.ptr_next();
                     nodes.push(Node::INCLUDE {
                         path: path.clone(),
@@ -285,10 +287,13 @@ impl Parser {
                     path.push_str("where");
                 }
                 _ => {
-                    panic!(
-                        "Unexpected token in include declaration {:?} in line {}",
-                        self.peek(),
-                        self.line
+                    handle_error_parser(
+                        format!(
+                            "Unexpected token in include declaration {:?} in line {}",
+                            self.peek(),
+                            self.line
+                        ),
+                        self,
                     );
                 }
             }
@@ -317,10 +322,13 @@ impl Parser {
                 def_name = "place".to_string();
             }
             _ => {
-                panic!(
-                    "found {:?} expected definition name in line {}",
-                    self.peek(),
-                    self.line
+                handle_error_parser(
+                    format!(
+                        "found {:?} expected definition name in line {}",
+                        self.peek(),
+                        self.line
+                    ),
+                    self,
                 );
             }
         }
@@ -332,7 +340,6 @@ impl Parser {
             match self.peek() {
                 // def name:
                 Token::DD => {
-                    println!("DD2");
                     self.ptr_next();
                     self.remove_till_tl();
                     break;
@@ -348,10 +355,9 @@ impl Parser {
                             body = Some(Box::new(place));
                             break;
                         }
-                        _ => handle_error(
+                        _ => handle_error_parser(
                             format!("Expected ident found {:?} after def place", self.peek()),
-                            self.line,
-                            self.file_path.clone(),
+                            self,
                         ),
                     }
                 }
@@ -408,48 +414,46 @@ impl Parser {
                                                         break;
                                                     }
                                                     _ => {
-                                                        handle_error(
+                                                        handle_error_parser(
                                                             format!(
                                                                 "Unexpected token at the end of variable assignement in def {:?}",
                                                                 self.peek()
                                                             ),
-                                                            self.line,
-                                                            self.file_path.clone(),
+                                                            self,
                                                         );
                                                     }
                                                 }
                                             }
-                                            _ => handle_error(
+                                            _ => handle_error_parser(
                                                 format!(
                                                     "Expected ident found {:?} in def <name> where <name><condition><here>",
                                                     self.peek()
                                                 ),
-                                                self.line,
-                                                self.file_path.clone(),
+                                                self,
                                             ),
                                         }
                                     }
-                                    _ => handle_error(
+                                    _ => handle_error_parser(
                                         format!(
                                             "Expected condition found {:?} in def <name> where <name><here>",
                                             self.peek()
                                         ),
-                                        self.line,
-                                        self.file_path.clone(),
+                                        self,
                                     ),
                                 }
                             }
                             Token::PLACE => {
                                 break;
                             }
-                            _ => handle_error(
-                                format!(
-                                    "Expected ident found {:?} in def <name> where <here>",
-                                    self.peek()
-                                ),
-                                self.line,
-                                self.file_path.clone(),
-                            ),
+                            _ => {
+                                handle_error_parser(
+                                    format!(
+                                        "Expected ident found {:?} in def <name> where <here>",
+                                        self.peek()
+                                    ),
+                                    self,
+                                );
+                            }
                         }
                     }
                 }
@@ -485,10 +489,9 @@ impl Parser {
                                                         continue;
                                                     }
                                                     Token::NL => {
-                                                        handle_error(
+                                                        handle_error_parser(
                                                             "Expected : found newline",
-                                                            self.line,
-                                                            &self.file_path,
+                                                            self,
                                                         );
                                                     }
                                                     _ => {
@@ -496,38 +499,47 @@ impl Parser {
                                                     }
                                                 }
                                             }
-                                            _ => handle_error(
-                                                format!(
-                                                    "invalid token in def defaults {:?}",
-                                                    self.peek()
-                                                ),
-                                                self.line,
-                                                self.file_path.clone(),
-                                            ),
+                                            _ => {
+                                                handle_error_parser(
+                                                    format!(
+                                                        "invalid token in def defaults {:?}",
+                                                        self.peek()
+                                                    ),
+                                                    self,
+                                                );
+                                            }
                                         }
                                     }
-                                    _ => handle_error(
-                                        format!("invalid token in def defaults {:?}", self.peek()),
-                                        self.line,
-                                        self.file_path.clone(),
-                                    ),
+                                    _ => {
+                                        handle_error_parser(
+                                            format!(
+                                                "invalid token in def defaults {:?}",
+                                                self.peek()
+                                            ),
+                                            self,
+                                        );
+                                    }
                                 }
                             }
-                            _ => handle_error(
-                                format!("invalid token in def defaults {:?}", self.peek()),
-                                self.line,
-                                self.file_path.clone(),
-                            ),
+                            _ => {
+                                handle_error_parser(
+                                    format!("invalid token in def defaults {:?}", self.peek()),
+                                    self,
+                                );
+                            }
                         }
                     }
                 }
                 _ => {
-                    panic!(
-                        "{:?} is invalid in def declaration of name {} after {:?} in line {}",
-                        self.peek(),
-                        def_name,
-                        self.peek_behind(1),
-                        self.line
+                    handle_error_parser(
+                        format!(
+                            "{:?} is invalid in def declaration of name {} after {:?} in line {}",
+                            self.peek(),
+                            def_name,
+                            self.peek_behind(1),
+                            self.line
+                        ),
+                        self,
                     );
                 }
             }
@@ -535,7 +547,6 @@ impl Parser {
 
         // if body is already defined, then its def place
         if body.is_some() {
-            println!("Pushed already defined def body to nodes");
             nodes.push(Node::DEF {
                 name: def_name.to_string(),
                 body: body.unwrap(),
@@ -548,7 +559,6 @@ impl Parser {
 
         // body handling
         let body = self.build_body();
-        println!("pushed body {:?} in def", body);
         nodes.push(Node::DEF {
             name: def_name.to_string(),
             body: Box::new(body),
@@ -556,7 +566,6 @@ impl Parser {
             conditions: conditions,
             defaults: defaults.clone(),
         });
-        println!("Body nodes {:?}", nodes);
     }
 
     fn remove_spaces(&mut self) {
@@ -594,11 +603,9 @@ impl Parser {
 
     // ends at endef
     fn build_body(&mut self) -> Node {
-        println!("build body");
         let mut body_str = String::new();
         let mut body: Vec<Node> = Vec::new();
         loop {
-            println!("parser peek {:?}", self.peek());
             match self.peek() {
                 // regular var declaration
                 Token::VAR => {
@@ -624,11 +631,14 @@ impl Parser {
                             continue;
                         }
                         _ => {
-                            panic!(
-                                "expected IDENT found {:?} in line {}",
-                                self.peek(),
-                                self.line
-                            )
+                            handle_error_parser(
+                                format!(
+                                    "expected IDENT found {:?} in line {}",
+                                    self.peek(),
+                                    self.line
+                                ),
+                                self,
+                            );
                         }
                     }
                 }
@@ -653,9 +663,12 @@ impl Parser {
                                     self.unpop();
                                 }
                                 _ => {
-                                    panic!(
-                                        "Endef found with no terminating \":\" or \",\" in line {}",
-                                        self.line
+                                    handle_error_parser(
+                                        format!(
+                                            "Endef found with no terminating \":\" or \",\" in line {}",
+                                            self.line
+                                        ),
+                                        self,
                                     );
                                 }
                             }
@@ -698,10 +711,9 @@ impl Parser {
                                                             }
                                                         }
                                                         Token::NL => {
-                                                            handle_error(
+                                                            handle_error_parser(
                                                                 "Newline not cannot proced an arrow variable",
-                                                                self.line,
-                                                                &self.file_path,
+                                                                self,
                                                             );
                                                         }
                                                         tok => {
@@ -714,30 +726,27 @@ impl Parser {
                                                     }
                                                     continue;
                                                 }
-                                                _ => handle_error(
+                                                _ => handle_error_parser(
                                                     format!(
                                                         "Expected marker at the end of right arrow variable declaration, found {:?}",
                                                         self.peek()
                                                     ),
-                                                    self.line,
-                                                    self.file_path.clone(),
+                                                    self,
                                                 ),
                                             }
                                         }
-                                        _ => handle_error(
+                                        _ => handle_error_parser(
                                             format!("Malformed marked variable inside body"),
-                                            self.line,
-                                            self.file_path.clone(),
+                                            self,
                                         ),
                                     }
                                 }
-                                _ => handle_error(
+                                _ => handle_error_parser(
                                     format!(
                                         "Found invalid token {:?} in arrow var declaration in def body",
                                         self.peek()
                                     ),
-                                    self.line,
-                                    self.file_path.clone(),
+                                    self,
                                 ),
                             }
                         }
@@ -745,11 +754,8 @@ impl Parser {
                             // inner def
                             self.ptr_next();
                             let mut nodes: Vec<Node> = Vec::new();
-                            println!("inner def");
                             self.handle_def(&mut nodes);
-                            println!("inner def end");
                             body.append(&mut nodes);
-                            println!("Appeded to body {:?}", nodes);
                         }
                         Token::PLACE => {
                             // inner place
@@ -770,15 +776,14 @@ impl Parser {
                             body.append(&mut nodes);
                         }
                         _ => {
-                            panic!(
-                                "{:?} is not a valid inner instruction in line {}",
-                                self.peek(),
-                                self.line
-                            )
+                            handle_error_parser(
+                                format!("{:?} is not a valid inner instruction", self.peek(),),
+                                self,
+                            );
                         }
                     }
                 }
-                Token::EOF => handle_error("Found EOF inside a body", self.line, &self.file_path),
+                Token::EOF => handle_error_parser("Found EOF inside a body", self),
                 Token::NL => {
                     body_str.push_str("\n");
                     self.line = self.line + 1;
@@ -807,11 +812,7 @@ impl Parser {
                 "place".to_string()
             }
             _ => {
-                panic!(
-                    "{:?} cant go after PLACE in line {}",
-                    self.peek(),
-                    self.line
-                )
+                handle_error_parser(format!("{:?} cant go after PLACE", self.peek(),), self);
             }
         };
 
@@ -867,10 +868,12 @@ impl Parser {
                                                     return;
                                                 }
                                                 _ => {
-                                                    panic!(
-                                                        "expected , or : found {:?} in line {}",
-                                                        self.peek(),
-                                                        self.line
+                                                    handle_error_parser(
+                                                        format!(
+                                                            "expected , or : found {:?}",
+                                                            self.peek(),
+                                                        ),
+                                                        self,
                                                     );
                                                 }
                                             }
@@ -883,10 +886,13 @@ impl Parser {
 
                                             loop {
                                                 if !self.can_pop() {
-                                                    panic!(
-                                                        "unexpected EOF in \"quotation\" variable in line {}",
-                                                        self.line
-                                                    )
+                                                    handle_error_parser(
+                                                        format!(
+                                                            "unexpected EOF in \"quotation\" variable in line {}",
+                                                            self.line,
+                                                        ),
+                                                        self,
+                                                    );
                                                 }
                                                 match self.peek() {
                                                     Token::NL => {
@@ -958,10 +964,13 @@ impl Parser {
                                                     self.ptr_next();
                                                 }
                                                 _ => {
-                                                    panic!(
-                                                        "expected , or : found {:?} in line {}",
-                                                        self.peek(),
-                                                        self.line
+                                                    handle_error_parser(
+                                                        format!(
+                                                            "expected , or : found {:?} in line {}",
+                                                            self.peek(),
+                                                            self.line
+                                                        ),
+                                                        self,
                                                     );
                                                 }
                                             }
@@ -1007,22 +1016,24 @@ impl Parser {
                                             }
                                         }
                                         _ => {
-                                            handle_error(
+                                            handle_error_parser(
                                                 format!(
                                                     "expected argument value as ident, found {:?}",
                                                     self.peek()
                                                 ),
-                                                self.line,
-                                                self.file_path.clone(),
+                                                self,
                                             );
                                         }
                                     }
                                 }
                                 _ => {
-                                    panic!(
-                                        "expected = found {:?} in line {}",
-                                        self.peek(),
-                                        self.line
+                                    handle_error_parser(
+                                        format!(
+                                            "expected = found {:?} in line {}",
+                                            self.peek(),
+                                            self.line
+                                        ),
+                                        self,
                                     );
                                 }
                             }

@@ -1,3 +1,5 @@
+use crate::parser::Parser;
+
 pub fn handle_error<S: Into<String>>(msg: S, line: usize, file: S) -> ! {
     let mut msg = msg.into();
     let mut chars = msg.chars();
@@ -5,7 +7,7 @@ pub fn handle_error<S: Into<String>>(msg: S, line: usize, file: S) -> ! {
         None => String::new(),
         Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
     };
-    panic!("{} at line {} in file {}", msg, line + 1, file.into());
+    panic!("{} at line {} in file {} \n -> ", msg, line + 1, file.into());
 }
 pub fn handle_expected_error<S: Into<String>>(expected: S, found: S, after: S, line: usize, file: S) -> ! {
     panic!(
@@ -16,4 +18,18 @@ pub fn handle_expected_error<S: Into<String>>(expected: S, found: S, after: S, l
         line,
         file.into()
     );
+}
+pub fn handle_error_parser<S: Into<String>>(msg: S, parser: &Parser) -> !{
+    let mut msg = msg.into();
+    let mut chars = msg.chars();
+    msg = match chars.next() {
+        None => String::new(),
+        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+    };
+    panic!("{} \n -> {} \n at line {} in file {}",
+    msg,
+    parser.get_tok_around(10),
+    parser.get_line(), 
+    parser.get_file_path()
+);
 }
