@@ -25,5 +25,5 @@
 
 //- place controller where name=user, get = true, place_var=true:
 
-//- create project/src/main/java/com/example/main.java: //-
+//- create project/src/main/java/com/example/main.java:
 //- create project/src/main/java/com/example/controllers/UserController.java place controller where name = user, get = true:

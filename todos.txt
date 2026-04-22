@@ -61,3 +61,4 @@ $#var/UPPER:[A-C]
 same for place ex: //- place a where A=B?
 - file creation options  
 - rules for error output
+- sujestions for typos using Levenshtein distance
