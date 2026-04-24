@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap, path::{Path, PathBuf}, process::{exit}, str
 };
+use crate::parser::ValueType;
 
 use crate::{
     error_handler::handle_error,
@@ -23,8 +24,8 @@ pub struct FileData{
     pub options: Option<Vec<FileWriteOptions>>
 }
 pub struct Derive{
-    pub path: String, 
-    pub val: Vec<(String,Value)>,
+    pub path: String,
+    pub vals: Vec<(String,Value)>,
 }
 pub struct WriterResult {
     pub file_data: Vec<FileData>,
@@ -168,7 +169,7 @@ impl Writer {
                     result.append(result_inner);
                 },
                 Node::DERIVE { path, val } => {
-                    result.derives.push(Derive { path: path.to_string(), val: val.clone() });
+                    result.derives.push(Derive { path: path.to_string(), vals: val.clone() });
                 },
                 _ => (),
             }
@@ -231,9 +232,9 @@ impl Writer {
         args.iter().for_each(|arg| {
             // this is to avoid children overriding parent values
             if !args_map.contains_key(&arg.0.clone()) {
-                match &arg.1 {
-                    Value::Literal{value, options} => { args_map.insert(arg.0.clone(), ResValue { value: value.to_string(), options:options.clone() }); }
-                    Value::Var{name,options} => {
+                match &arg.1.value_type {
+                    &ValueType::Literal => { args_map.insert(arg.0.clone(), ResValue { value: arg.1.value.to_string(), options: arg.1.options.clone() }); }
+                    &ValueType::Var => {
                         let val = args_map.get(name);
                         match val {
                             Some(val) => {

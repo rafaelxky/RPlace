@@ -1,5 +1,5 @@
 use core::panic;
-use std::default;
+use std::{default, str};
 
 use crate::{
     error_handler::{CompilationError, handle_error, handle_error_parser, handle_expected_error},
@@ -26,22 +26,19 @@ impl Condition {
 }
 
 #[derive(Debug, Clone)]
-pub enum Value {
-    Literal {
-        value: String,
-        options: Option<Vec<VarOptions>>,
-    },
-    Var {
-        name: String,
-        options: Option<Vec<VarOptions>>,
-    },
+pub enum ValueType {
+    Literal,
+    Var,
+}
+#[derive(Debug, Clone)]
+pub struct Value{
+    pub value_type: ValueType,
+    pub value: String,
+    pub options: Option<Vec<VarOptions>>,
 }
 impl ToString for Value {
     fn to_string(&self) -> String {
-        match self {
-            Value::Literal { value, options } => value,
-            Value::Var { name, options } => name,
-        }
+        self.value
         .to_string()
     }
 }
@@ -654,7 +651,8 @@ impl Parser {
                                     }
                                     args.push((
                                         from,
-                                        Value::Literal {
+                                        Value {
+                                            value_type: ValueType::Literal,
                                             value: str,
                                             options: options_2,
                                         },
@@ -740,7 +738,8 @@ impl Parser {
                                     }
                                     args.push((
                                         from,
-                                        Value::Literal {
+                                        Value{
+                                            value_type: ValueType::Literal,
                                             value: arg_str,
                                             options: None,
                                         },
@@ -766,8 +765,9 @@ impl Parser {
                                             self.ptr_next();
                                             args.push((
                                                 from,
-                                                Value::Var {
-                                                    name: str,
+                                                Value {
+                                                    value_type: ValueType::Var,
+                                                    value: str,
                                                     options: None,
                                                 },
                                             ));
@@ -1035,7 +1035,8 @@ impl Parser {
                                             self.ptr_next();
                                             args.push((
                                                 from,
-                                                Value::Literal {
+                                                Value{
+                                                    value_type: ValueType::Literal,
                                                     value: str,
                                                     options: None,
                                                 },
@@ -1132,7 +1133,8 @@ impl Parser {
                                             }
                                             args.push((
                                                 from,
-                                                Value::Literal {
+                                                Value{
+                                                    value_type: ValueType::Literal,
                                                     value: arg_str,
                                                     options: None,
                                                 },
@@ -1168,8 +1170,9 @@ impl Parser {
                                                     self.ptr_next();
                                                     args.push((
                                                         from,
-                                                        Value::Var {
-                                                            name: str,
+                                                        Value{
+                                                            value_type: ValueType::Var,
+                                                            value: str,
                                                             options: None,
                                                         },
                                                     ));

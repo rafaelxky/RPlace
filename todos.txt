@@ -63,4 +63,4 @@ same for place ex: //- place a where A=B?
 - rules for error output
 - sujestions for typos using Levenshtein distance
 
-//- derive code.txt where "[cC]ontroller"/regex = controller_name
+//- derive code.txt where "[cC]ontroller"/regex = controller_name:

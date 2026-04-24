@@ -3,10 +3,12 @@ use std::io::Write;
 use std::path::Path;
 use std::process::exit;
 
+use crate::deriver::Deriver;
 use crate::term::data_providers::{DataSouce, TextProvider};
 use crate::writer::WriterResult;
 use crate::{lexer::Lexer, parser::Parser, term::terminal_handler::handle_args, writer::Writer};
 
+pub mod deriver;
 pub mod error_handler;
 pub mod lexer;
 pub mod parser;
@@ -33,22 +35,18 @@ fn main() {
     let mut replaced: WriterResult = writer.replace();
 
     let mut file = match args.target {
-        Some(path) => {
-            OpenOptions::new()
-                .write(true)
-                .create(true)
-                .truncate(true)
-                .open(&path)
-                .expect("Unable to open file")
-        },
-            None => {
-                OpenOptions::new()
-                .write(true)
-                .create(false)
-                .truncate(true)
-                .open(args.origin)
-                .expect("Unable to open file")
-        },
+        Some(path) => OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&path)
+            .expect("Unable to open file"),
+        None => OpenOptions::new()
+            .write(true)
+            .create(false)
+            .truncate(true)
+            .open(args.origin)
+            .expect("Unable to open file"),
     };
 
     let last = replaced.file_data.pop().unwrap();
@@ -68,7 +66,22 @@ fn main() {
 
         file.write_all(result.data.as_bytes())
             .expect("Unable to write");
-        
+
         println!("data for file {}: {}", result.path, result.data);
+    });
+
+    replaced.derives.iter().for_each(|derive| {
+        if fs::exists(&derive.path).is_err() {
+            panic!("Error: no such file {} for derive", derive.path)
+        }
+        let result = Deriver::derive(derive);
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(false)
+            .truncate(true)
+            .open(&derive.path)
+            .expect("Unable to open file");
+        file.write_all(result.as_bytes())
+            .expect("Unable to write to file!");
     });
 }
