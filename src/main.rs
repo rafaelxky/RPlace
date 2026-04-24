@@ -14,6 +14,7 @@ pub mod lexer;
 pub mod parser;
 pub mod term;
 pub mod writer;
+pub mod derive_options;
 
 fn main() {
     let args = handle_args();
