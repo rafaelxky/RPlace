@@ -1,15 +1,10 @@
 use core::panic;
-use std::{default, str, thread::current};
+use std::{str};
 
 use crate::{
     error_handler::{CompilationError, handle_error, handle_error_parser, handle_expected_error},
     lexer::{Token, TokenResult},
 };
-
-#[derive(Debug, Clone)]
-pub enum VarOptions {
-    Regex,
-}
 
 #[derive(Debug, Clone)]
 pub enum Condition {
@@ -34,7 +29,7 @@ pub enum ValueType {
 pub struct Value {
     pub value_type: ValueType,
     pub value: String,
-    pub options: Option<Vec<VarOptions>>,
+    pub options: Option<Vec<String>>,
 }
 impl ToString for Value {
     fn to_string(&self) -> String {
@@ -609,15 +604,15 @@ impl Parser {
         }
     }
 
-    fn handle_var_options(&mut self) -> Option<Vec<VarOptions>> {
-        let mut options: Option<Vec<VarOptions>> = None;
+    fn handle_var_options(&mut self) -> Option<Vec<String>> {
+        let mut options: Option<Vec<String>> = None;
         match self.peek() {
-            Token::REGEX => {
+            Token::IDENT { str } => {
                 self.ptr_next();
                 if options.is_none() {
                     options = Some(Vec::new());
                 }
-                options.as_mut().unwrap().push(VarOptions::Regex);
+                options.as_mut().unwrap().push(str);
             }
             _ => handle_error_parser(CompilationError::InvalidVarOption, self)
         }
@@ -627,8 +622,8 @@ impl Parser {
     fn handle_var(&mut self) -> Vec<(String, Value)> {
         let mut args: Vec<(String, Value)> = Vec::new();
         loop {
-            let mut options_1: Option<Vec<VarOptions>> = None;
-            let mut options_2: Option<Vec<VarOptions>> = None;
+            let mut options_1: Option<Vec<String>> = None;
+            let mut options_2: Option<Vec<String>> = None;
             self.remove_spaces();
             match self.peek() {
                 Token::IDENT { str } => {

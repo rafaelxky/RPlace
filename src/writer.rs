@@ -6,13 +6,13 @@ use crate::parser::ValueType;
 use crate::{
     error_handler::handle_error,
     lexer::Lexer,
-    parser::{Node, Parser, ParsingResult, Value, VarOptions},
+    parser::{Node, Parser, ParsingResult, Value},
     term::data_providers::TextProvider,
 };
 #[derive(Debug, Clone)]
 pub struct ResValue{
     value:String,
-    options: Option<Vec<VarOptions>>,
+    options: Option<Vec<String>>,
 }
 pub enum FileWriteOptions{
     Override,

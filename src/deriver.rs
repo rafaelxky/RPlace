@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs, ops::Range};
 
-use crate::{parser::VarOptions, writer::Derive};
+use crate::{writer::Derive};
 use regex::Regex;
 
 pub struct Deriver {}
@@ -56,12 +56,10 @@ impl Deriver {
         }
         return text;
     }
-    fn get_features(opts: &Vec<VarOptions>) -> HashMap<String, usize> {
+    fn get_features(opts: &Vec<String>) -> HashMap<String, usize> {
         let mut map: HashMap<String, usize> = HashMap::new();
         opts.iter().enumerate().for_each(|(i, opt)| {
-            match opt {
-                VarOptions::Regex => map.insert("regex".to_string(), i),
-            };
+            map.insert(opt.clone(), i);
         });
         map
     }
