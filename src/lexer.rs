@@ -22,6 +22,8 @@ pub enum Token {
     WHEN,
     PLUS,
     CREATE,
+    BSLASH,
+    DERIVE,
 }
 impl Token {
     pub fn val(&self) -> String {
@@ -47,6 +49,8 @@ impl Token {
             Token::WHEN => "when",
             Token::PLUS => "+",
             Token::CREATE => "create",
+            Token::BSLASH => "\\",
+            Token::DERIVE => "derive",
         }
         .to_string();
     }
@@ -125,7 +129,10 @@ impl Lexer {
                 '"' => {
                     tokens.push(Token::DQUOTE);
                     continue;
-                }
+                },
+                '\\' => {
+                    tokens.push(Token::BSLASH);
+                },
                 '/' => {
                     // //-
                     if self.peek() == '/' {
@@ -283,6 +290,9 @@ impl Lexer {
                 },
                 "create" => {
                     tokens.push(Token::CREATE);
+                },
+                "derive" => {
+                    tokens.push(Token::DERIVE);
                 },
                 _ => {
                     tokens.push(Token::IDENT { str });

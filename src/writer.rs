@@ -8,7 +8,7 @@ use reqwest::Body;
 use crate::{
     error_handler::handle_error,
     lexer::Lexer,
-    parser::{Node, Parser, ParsingResult, ValueType},
+    parser::{Node, Parser, ParsingResult, Value},
     term::data_providers::TextProvider,
 };
 
@@ -206,7 +206,7 @@ impl Writer {
         text: &mut String,
         def_map: &HashMap<String, Vec<Node>>,
         name: &String,
-        args: &Vec<(String, ValueType)>,
+        args: &Vec<(String, Value)>,
         line: &usize,
         args_map: &mut HashMap<String, String>,
     ) 
@@ -217,15 +217,15 @@ impl Writer {
             // this is to avoid children overriding parent values
             if !args_map.contains_key(&arg.0.clone()) {
                 match &arg.1 {
-                    ValueType::Literal(val) => { args_map.insert(arg.0.clone(), val.clone()); }
-                    ValueType::Var(var) => {
-                        let val = args_map.get(var);
+                    Value::Literal{value} => { args_map.insert(arg.0.clone(), value.clone()); }
+                    Value::Var{name} => {
+                        let val = args_map.get(name);
                         match val {
                             Some(val) => {
                                  args_map.insert(arg.0.clone(), val.clone()); 
                             },
                             None => {
-                                panic!("No value found for var type {:?}", var);
+                                panic!("No value found for var type {:?}", name);
                             },
                         }
                     },
