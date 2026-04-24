@@ -1,9 +1,6 @@
 use std::{
-    collections::HashMap, fs::File, path::{Path, PathBuf}, process::{ExitStatus, exit}, result, str
+    collections::HashMap, path::{Path, PathBuf}, process::{exit}, str
 };
-
-use clap::builder::Str;
-use reqwest::Body;
 
 use crate::{
     error_handler::handle_error,
