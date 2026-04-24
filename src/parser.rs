@@ -7,6 +7,11 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
+pub enum VarOptions {
+    Regex,
+}
+
+#[derive(Debug, Clone)]
 pub enum Condition {
     EQUALS,
 }
@@ -22,14 +27,20 @@ impl Condition {
 
 #[derive(Debug, Clone)]
 pub enum Value {
-    Literal{value: String},
-    Var{name: String},
+    Literal {
+        value: String,
+        options: Option<Vec<VarOptions>>,
+    },
+    Var {
+        name: String,
+        options: Option<Vec<VarOptions>>,
+    },
 }
 impl ToString for Value {
     fn to_string(&self) -> String {
         match self {
-            Value::Literal{value} => value,
-            Value::Var{name} => name,
+            Value::Literal { value, options } => value,
+            Value::Var { name, options } => name,
         }
         .to_string()
     }
@@ -75,8 +86,9 @@ pub enum Node {
         content: Option<Box<Node>>,
     },
     DERIVE {
+        path: String,
         val: Vec<(String, Value)>,
-    }
+    },
 }
 pub struct ParsingResult {
     pub nodes: Vec<Node>,
@@ -254,17 +266,22 @@ impl Parser {
                     Token::DD => {
                         self.ptr_next();
                         args
-                    },
+                    }
                     // expected : after args
-                    _ => {todo!("todo")}
+                    _ => {
+                        todo!("todo")
+                    }
                 }
-            },
+            }
             // derive path <here> unexpected option
             _ => {
                 todo!("todo");
             }
         };
-        nodes.push(Node::DERIVE{val: args});
+        nodes.push(Node::DERIVE {
+            path: path,
+            val: args,
+        });
     }
 
     // create filepath place defname:
@@ -592,9 +609,25 @@ impl Parser {
         }
     }
 
-    fn handle_var(&mut self) -> Vec<(String,Value)> {
+    fn handle_var_options(&mut self) -> Option<Vec<VarOptions>> {
+        let mut options: Option<Vec<VarOptions>> = None;
+        match self.peek() {
+            Token::REGEX => {
+                if options.is_none() {
+                    options = Some(Vec::new());
+                }
+                options.as_mut().unwrap().push(VarOptions::Regex);
+            }
+            _ => panic!("todo: invalid var option"),
+        }
+        options
+    }
+
+    fn handle_var(&mut self) -> Vec<(String, Value)> {
         let mut args: Vec<(String, Value)> = Vec::new();
         loop {
+            let mut options_1: Option<Vec<VarOptions>> = None;
+            let mut options_2: Option<Vec<VarOptions>> = None;
             self.ptr_next();
             self.remove_spaces();
             match self.peek() {
@@ -602,6 +635,10 @@ impl Parser {
                     self.ptr_next();
                     self.remove_spaces();
                     let from = str;
+                    if matches!(self.peek(), Token::BSLASH) {
+                        self.ptr_next();
+                        options_1 = self.handle_var_options();
+                    }
                     match self.peek() {
                         Token::EQUALS => {
                             self.ptr_next();
@@ -610,16 +647,26 @@ impl Parser {
                                 // ident = ident -> variable assignement
                                 Token::IDENT { str } => {
                                     self.ptr_next();
-                                    args.push((from, Value::Literal{value: str}));
                                     self.remove_spaces();
+                                    if matches!(self.peek(), Token::BSLASH) {
+                                        self.ptr_next();
+                                        options_2 = self.handle_var_options();
+                                    }
+                                    args.push((
+                                        from,
+                                        Value::Literal {
+                                            value: str,
+                                            options: options_2,
+                                        },
+                                    ));
                                     match self.peek() {
                                         Token::COMMA => {
                                             self.ptr_next();
-                                        },
+                                        }
                                         // ident = ident
                                         Token::DD => {
                                             return args;
-                                        },
+                                        }
                                         // second ident
                                         _ => {
                                             return args;
@@ -691,7 +738,13 @@ impl Parser {
                                         }
                                         self.ptr_next();
                                     }
-                                    args.push((from, Value::Literal{value: arg_str}));
+                                    args.push((
+                                        from,
+                                        Value::Literal {
+                                            value: arg_str,
+                                            options: None,
+                                        },
+                                    ));
                                     self.remove_spaces();
                                     // ident = "ident"
                                     match self.peek() {
@@ -711,7 +764,13 @@ impl Parser {
                                     match self.peek() {
                                         Token::IDENT { str } => {
                                             self.ptr_next();
-                                            args.push((from, Value::Var{name: str}));
+                                            args.push((
+                                                from,
+                                                Value::Var {
+                                                    name: str,
+                                                    options: None,
+                                                },
+                                            ));
                                             self.remove_spaces();
                                             match self.peek() {
                                                 Token::DD => {
@@ -721,7 +780,7 @@ impl Parser {
                                                     self.ptr_next();
                                                 }
                                                 _ => {
-                                                   return args;
+                                                    return args;
                                                 }
                                             }
                                         }
@@ -974,7 +1033,13 @@ impl Parser {
                                         // ident = ident -> variable assignement
                                         Token::IDENT { str } => {
                                             self.ptr_next();
-                                            args.push((from, Value::Literal{value: str}));
+                                            args.push((
+                                                from,
+                                                Value::Literal {
+                                                    value: str,
+                                                    options: None,
+                                                },
+                                            ));
                                             self.remove_spaces();
                                             match self.peek() {
                                                 Token::COMMA => {
@@ -1065,7 +1130,13 @@ impl Parser {
                                                 }
                                                 self.ptr_next();
                                             }
-                                            args.push((from, Value::Literal{value: arg_str}));
+                                            args.push((
+                                                from,
+                                                Value::Literal {
+                                                    value: arg_str,
+                                                    options: None,
+                                                },
+                                            ));
                                             self.remove_spaces();
                                             // ident = "ident"
                                             match self.peek() {
@@ -1095,7 +1166,13 @@ impl Parser {
                                             match self.peek() {
                                                 Token::IDENT { str } => {
                                                     self.ptr_next();
-                                                    args.push((from, Value::Var{name: str}));
+                                                    args.push((
+                                                        from,
+                                                        Value::Var {
+                                                            name: str,
+                                                            options: None,
+                                                        },
+                                                    ));
                                                     self.remove_spaces();
                                                     match self.peek() {
                                                         Token::DD => {

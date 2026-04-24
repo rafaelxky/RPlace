@@ -24,6 +24,7 @@ pub enum Token {
     CREATE,
     BSLASH,
     DERIVE,
+    REGEX,
 }
 impl Token {
     pub fn val(&self) -> String {
@@ -51,6 +52,7 @@ impl Token {
             Token::CREATE => "create",
             Token::BSLASH => "\\",
             Token::DERIVE => "derive",
+            Token::REGEX => "regex",
         }
         .to_string();
     }
@@ -294,6 +296,9 @@ impl Lexer {
                 "derive" => {
                     tokens.push(Token::DERIVE);
                 },
+                "regex" => {
+                    tokens.push(Token::REGEX);
+                }
                 _ => {
                     tokens.push(Token::IDENT { str });
                     continue;

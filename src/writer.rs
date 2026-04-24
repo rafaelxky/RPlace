@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap, fs::File, path::{Path, PathBuf}, process::{ExitStatus, exit}, result
+    collections::HashMap, fs::File, path::{Path, PathBuf}, process::{ExitStatus, exit}, result, str
 };
 
 use clap::builder::Str;
@@ -8,26 +8,41 @@ use reqwest::Body;
 use crate::{
     error_handler::handle_error,
     lexer::Lexer,
-    parser::{Node, Parser, ParsingResult, Value},
+    parser::{Node, Parser, ParsingResult, Value, VarOptions},
     term::data_providers::TextProvider,
 };
-
+#[derive(Debug, Clone)]
+pub struct ResValue{
+    value:String,
+    options: Option<Vec<VarOptions>>,
+}
+pub enum FileWriteOptions{
+    Override,
+    Append,
+}
 pub struct FileData{
     pub data: String,
     pub path: String,
+    pub options: Option<Vec<FileWriteOptions>>
+}
+pub struct Derive{
+    pub path: String, 
+    pub val: Vec<(String,Value)>,
 }
 pub struct WriterResult{
     pub file_data: Vec<FileData>,
+    pub derives: Vec<Derive>,
 }
 impl WriterResult {
     pub fn new() -> Self{
-        Self { file_data: Vec::new() }
+        Self { file_data: Vec::new(), derives: Vec::new()}
     }
     pub fn append(&mut self, mut data: WriterResult){
         self.file_data.append(&mut data.file_data);
+        self.derives.append(&mut data.derives);
     }
     pub fn push_elements(&mut self, data: String, path: String){
-        self.file_data.push(FileData { data, path });
+        self.file_data.push(FileData { data, path, options: None });
     }
 }
 impl IntoIterator for WriterResult {
@@ -132,7 +147,7 @@ impl Writer {
                     text.push_str(&data);
                 },
                 Node::PLACE { name, args, line } => {
-                    let mut args_map: HashMap<String, String> = HashMap::new();
+                    let mut args_map: HashMap<String, ResValue> = HashMap::new();
                     let inner_defs =
                         self.handle_place(&mut text, &mut def_map, name, args, line, &mut args_map);
 
@@ -152,8 +167,11 @@ impl Writer {
                     }
                 },
                 Node::CREATE { path, content } => {
-                    let mut result_inner = self.handle_create(path, content, &def_map);
+                    let result_inner = self.handle_create(path, content, &def_map);
                     result.append(result_inner);
+                },
+                Node::DERIVE { path, val } => {
+                    result.derives.push(Derive { path: path.to_string(), val: val.clone() });
                 },
                 _ => (),
             }
@@ -175,7 +193,7 @@ impl Writer {
                             match place {
                                 Node::PLACE { name, args, line } => {
                                     let mut text = String::new();
-                                    let mut args_map: HashMap<String, String> = HashMap::new();
+                                    let mut args_map: HashMap<String, ResValue> = HashMap::new();
                                     self.handle_place(&mut text, def_map, name, args, line, &mut args_map);
                                     result.push_elements(text, path.clone());
                                 },
@@ -208,7 +226,7 @@ impl Writer {
         name: &String,
         args: &Vec<(String, Value)>,
         line: &usize,
-        args_map: &mut HashMap<String, String>,
+        args_map: &mut HashMap<String, ResValue>,
     ) 
     // def queue
     -> Option<Vec<Node>> {
@@ -217,8 +235,8 @@ impl Writer {
             // this is to avoid children overriding parent values
             if !args_map.contains_key(&arg.0.clone()) {
                 match &arg.1 {
-                    Value::Literal{value} => { args_map.insert(arg.0.clone(), value.clone()); }
-                    Value::Var{name} => {
+                    Value::Literal{value, options} => { args_map.insert(arg.0.clone(), ResValue { value: value.to_string(), options:options.clone() }); }
+                    Value::Var{name,options} => {
                         let val = args_map.get(name);
                         match val {
                             Some(val) => {
@@ -263,7 +281,7 @@ impl Writer {
                                     }
                                     //- def struct where lang = rust:
                                     //- place struct where lang = rust:
-                                    if !eval.2.eval(&val.unwrap(), &eval.1) {
+                                    if !eval.2.eval(&val.unwrap().value, &eval.1) {
                                         break;
                                     }
                                     matched = Some(def);
@@ -296,7 +314,7 @@ impl Writer {
                         if defaults.is_some() {
                             defaults.as_ref().unwrap().iter().for_each(|(var,val)|{
                                 if !args_map.contains_key(var) {
-                                    args_map.insert(var.clone(), val.clone());
+                                    args_map.insert(var.clone(), ResValue { value: val.clone(), options: None });
                                 }
                             });
                         }
@@ -318,7 +336,7 @@ impl Writer {
                                                 handle_error(format!("No value specified for \"{}\"!", name), line.clone(), self.file_path.clone())
                                             }
                                         };
-                                        text.push_str(replacement);
+                                        text.push_str(&replacement.value);
                                     },
                                     Node::RARROWVAR { name, default } => {
                                         // ->
@@ -326,12 +344,13 @@ impl Writer {
                                             Some(val) => val,
                                             None => {
                                                 match default {
-                                                    Some(default) => default,
+                                                    Some(default) => &ResValue { value: default.to_string(), options: None },
                                                     None => handle_error(format!("No value specified for \"{}\" in right arrow variable declaration!", name), line.clone(), self.file_path.clone())
                                                 }
                                             }
                                         };
-                                        text.push_str(replacement);
+                                        // todo: handle options here
+                                        text.push_str(&replacement.value);
                                     },
                                     Node::DEF { conditions: _, name: _, body:_, line: _ , defaults: _} => {
                                         if def_queue.is_none() {
