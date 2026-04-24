@@ -26,7 +26,7 @@ pub struct Derive{
     pub path: String, 
     pub val: Vec<(String,Value)>,
 }
-pub struct WriterResult{
+pub struct WriterResult {
     pub file_data: Vec<FileData>,
     pub derives: Vec<Derive>,
 }
