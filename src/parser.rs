@@ -239,7 +239,7 @@ impl Parser {
                 Token::SPACE => {
                     self.ptr_next();
                     break;
-                }
+                },
                 Token::DD => {
                     break;
                 }
