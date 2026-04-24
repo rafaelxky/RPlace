@@ -31,15 +31,14 @@ pub enum ValueType {
     Var,
 }
 #[derive(Debug, Clone)]
-pub struct Value{
+pub struct Value {
     pub value_type: ValueType,
     pub value: String,
     pub options: Option<Vec<VarOptions>>,
 }
 impl ToString for Value {
     fn to_string(&self) -> String {
-        self.value
-        .to_string()
+        self.value.to_string()
     }
 }
 
@@ -149,11 +148,13 @@ impl Parser {
         let red = "\x1b[31m";
         let reset = "\x1b[0m";
         let mut str = String::new();
-        for i in (1..=dist).rev() {
+        let behind = self.ptr.min(dist);
+        let ahead = (self.tokens.len() - 1 - self.ptr).min(dist);
+        for i in (1..=behind).rev() {
             str.push_str(&self.peek_behind(i).val());
         }
         str.push_str(&format!("{}{}{}", red, &self.peek().val(), reset));
-        for i in 1..=dist {
+        for i in 1..=ahead {
             str.push_str(&self.peek_ahead(i).val());
         }
         return str;
@@ -239,7 +240,7 @@ impl Parser {
                 Token::SPACE => {
                     self.ptr_next();
                     break;
-                },
+                }
                 Token::DD => {
                     break;
                 }
@@ -738,7 +739,7 @@ impl Parser {
                                     }
                                     args.push((
                                         from,
-                                        Value{
+                                        Value {
                                             value_type: ValueType::Literal,
                                             value: arg_str,
                                             options: None,
@@ -1035,7 +1036,7 @@ impl Parser {
                                             self.ptr_next();
                                             args.push((
                                                 from,
-                                                Value{
+                                                Value {
                                                     value_type: ValueType::Literal,
                                                     value: str,
                                                     options: None,
@@ -1133,7 +1134,7 @@ impl Parser {
                                             }
                                             args.push((
                                                 from,
-                                                Value{
+                                                Value {
                                                     value_type: ValueType::Literal,
                                                     value: arg_str,
                                                     options: None,
@@ -1170,7 +1171,7 @@ impl Parser {
                                                     self.ptr_next();
                                                     args.push((
                                                         from,
-                                                        Value{
+                                                        Value {
                                                             value_type: ValueType::Var,
                                                             value: str,
                                                             options: None,
