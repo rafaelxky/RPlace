@@ -1,5 +1,5 @@
 use core::panic;
-use std::{default, str};
+use std::{default, str, thread::current};
 
 use crate::{
     error_handler::{CompilationError, handle_error, handle_error_parser, handle_expected_error},
@@ -218,6 +218,7 @@ impl Parser {
                 self.handle_create(&mut nodes);
             }
             Token::DERIVE => {
+                self.ptr_next();
                 self.handle_derive(&mut nodes);
             }
             _ => {
@@ -265,15 +266,16 @@ impl Parser {
                         self.ptr_next();
                         args
                     }
-                    // expected : after args
+                    // todo: expected : after args
                     _ => {
-                        todo!("todo")
+                        panic!("Expected : after args found {:?}", self.peek())
                     }
                 }
             }
+            // todo:
             // derive path <here> unexpected option
             _ => {
-                todo!("todo");
+                todo!("invalid option for derive");
             }
         };
         nodes.push(Node::DERIVE {
@@ -611,12 +613,13 @@ impl Parser {
         let mut options: Option<Vec<VarOptions>> = None;
         match self.peek() {
             Token::REGEX => {
+                self.ptr_next();
                 if options.is_none() {
                     options = Some(Vec::new());
                 }
                 options.as_mut().unwrap().push(VarOptions::Regex);
             }
-            _ => panic!("todo: invalid var option"),
+            _ => handle_error_parser(CompilationError::InvalidVarOption, self)
         }
         options
     }
@@ -626,7 +629,6 @@ impl Parser {
         loop {
             let mut options_1: Option<Vec<VarOptions>> = None;
             let mut options_2: Option<Vec<VarOptions>> = None;
-            self.ptr_next();
             self.remove_spaces();
             match self.peek() {
                 Token::IDENT { str } => {
@@ -737,12 +739,16 @@ impl Parser {
                                         }
                                         self.ptr_next();
                                     }
+                                    if matches!(self.peek(), Token::BSLASH) {
+                                        self.ptr_next();
+                                        options_2 = self.handle_var_options();
+                                    }
                                     args.push((
                                         from,
                                         Value {
                                             value_type: ValueType::Literal,
                                             value: arg_str,
-                                            options: None,
+                                            options: options_2,
                                         },
                                     ));
                                     self.remove_spaces();

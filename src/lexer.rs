@@ -134,6 +134,7 @@ impl Lexer {
                 },
                 '\\' => {
                     tokens.push(Token::BSLASH);
+                    continue;
                 },
                 '/' => {
                     // //-

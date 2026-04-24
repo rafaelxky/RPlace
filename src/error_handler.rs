@@ -97,6 +97,7 @@ pub enum CompilationError {
     EOFInQuotVar,
     NoDDAfterQuotVar,
     InvalidPlaceOption,
+    InvalidVarOption,
 }
 impl CompilationError {
     fn get_msg(&self, parser: &Parser) -> ErrorMessage {
@@ -306,6 +307,11 @@ impl CompilationError {
                 format!("Invalid option for place {:?}",parser.peek()), 
                 format!("Check documentation for place options or add : at the end"), 
                 format!("//- place template {}where{} var=val:",YELLOW,RESET)
+            ),
+            Self::InvalidVarOption => ErrorMessage::new(
+                format!("Invalid variable option {:?}", parser.peek()), 
+                format!("Check documentation to see valid variable options"), 
+                format!("//- derive to_derive.txt where var=\"[Vvar]\"\\{}regex{}", YELLOW,RESET)
             )
         }
     }

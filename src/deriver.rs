@@ -29,7 +29,7 @@ impl Deriver {
                         .iter()
                         .any(|(r, _)| r.contains(&mat.start()) || r.contains(&mat.end()))
                     {
-                        let replacement = format!("/*- $#{} -*/ {}", var, &text[mat.range()]);
+                        let replacement = format!("/*- $#{} -> -*/ {}", var, &text[mat.range()]);
                         all_changes.push((mat.range(), replacement));
                     }
                 }
@@ -42,7 +42,7 @@ impl Deriver {
                         .iter()
                         .any(|(r, _)| r.contains(&abs) || r.contains(&range.end))
                     {
-                        let replacement = format!("/*- $#{} -*/ {}", var, &pattern.value);
+                        let replacement = format!("/*- $#{} -> -*/ {}", var, &pattern.value);
                         all_changes.push((range, replacement));
                     }
                     start = abs + pattern.value.len();
