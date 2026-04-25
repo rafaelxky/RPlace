@@ -76,6 +76,7 @@ this will declare a template "a" wich will replace the variable "var" with "val"
 - //- include file_path:
 - this will get the definitions from this other file
 - ~ in the path is a shortcut for the default ~/.rplace folder
+- supports http includes, the url must provide raw text only
 
 # place
 - ex: //- place def_name where var_name=var_value, var2=val2:
@@ -130,10 +131,10 @@ this will take regular text and transform it into a template
 //- place:
 //- def name:
 //- def name where var=val:
-//- def name when var = val;
+//- def name when var = val:
 //- def name where varA=valA when varB=valB:
 //- endef:
-//- place name;
+//- place name:
 //- place name where varA=valA, varB=valB:
 //- def nameA place nameB:
 //- def nameA place nameB where var=val:
