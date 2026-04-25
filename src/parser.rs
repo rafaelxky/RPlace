@@ -50,10 +50,12 @@ pub enum Node {
     // either data or var ($a)
     BODY {
         data: Vec<Node>,
+        line: usize,
     },
     // def body
     DATA {
         data: String,
+        line: usize,
     },
     // def variables
     VARTEMPLATE {
@@ -163,6 +165,7 @@ impl Parser {
         }
         nodes.push(Node::DATA {
             data: body_str.to_string(),
+            line: self.line
         });
         ParsingResult {
             nodes,
@@ -177,6 +180,7 @@ impl Parser {
             Token::MARK { kind: _ } => {
                 nodes.push(Node::DATA {
                     data: body_str.to_string(),
+                    line: self.line
                 });
                 body_str = String::new();
                 self.handle_func(nodes);
@@ -280,6 +284,7 @@ impl Parser {
     // create filepath place defname:
     fn handle_create(&mut self, nodes: &mut Vec<Node>) {
         let path: String = self.get_path();
+        let starting_line = self.get_line();
         // filepath
         // ex: parent/child.txt
 
@@ -302,7 +307,7 @@ impl Parser {
                 self.handle_place(&mut temp_nodes);
                 nodes.push(Node::CREATE {
                     path,
-                    content: Some(Box::new(Node::BODY { data: temp_nodes })),
+                    content: Some(Box::new(Node::BODY { data: temp_nodes, line: starting_line })),
                 });
                 return;
             }
@@ -849,6 +854,7 @@ impl Parser {
     fn build_body(&mut self) -> Node {
         let mut body_str = String::new();
         let mut body: Vec<Node> = Vec::new();
+        let line_start = self.line;
         loop {
             match self.peek() {
                 // regular var declaration
@@ -856,6 +862,7 @@ impl Parser {
                     self.ptr_next();
                     body.push(Node::DATA {
                         data: body_str.to_string(),
+                        line: self.line,
                     });
                     body_str = String::new();
                     self.remove_spaces();
@@ -889,6 +896,7 @@ impl Parser {
                             self.ptr_next();
                             body.push(Node::DATA {
                                 data: body_str.to_string(),
+                                line: self.line,
                             });
                             self.remove_spaces();
                             match self.peek() {
@@ -913,6 +921,7 @@ impl Parser {
                             self.ptr_next();
                             body.push(Node::DATA {
                                 data: body_str.to_string(),
+                                line: self.line,
                             });
                             body_str = String::new();
                             match self.peek() {
@@ -988,6 +997,7 @@ impl Parser {
                             self.ptr_next();
                             body.push(Node::DATA {
                                 data: body_str.to_string(),
+                                line: self.line,
                             });
                             body_str = String::new();
                             let mut nodes: Vec<Node> = Vec::new();
@@ -1021,7 +1031,7 @@ impl Parser {
             }
             self.ptr_next();
         }
-        return Node::BODY { data: body };
+        return Node::BODY { data: body, line: line_start };
     }
 
     fn handle_place(&mut self, nodes: &mut Vec<Node>) {

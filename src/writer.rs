@@ -1,7 +1,7 @@
 use std::{
-    collections::HashMap, path::{Path, PathBuf}, process::{exit}, str
+    alloc::handle_alloc_error, collections::HashMap, path::{Path, PathBuf}, process::exit, str
 };
-use crate::parser::ValueType;
+use crate::{error_handler::CompilationError, parser::ValueType};
 
 use crate::{
     error_handler::handle_error,
@@ -130,7 +130,7 @@ impl Writer {
         let nodes = &self.nodes;
         for node in nodes {
             match node {
-                Node::BODY { data } => {
+                Node::BODY { data, line } => {
                     data.iter().for_each(|n| match n {
                         Node::DATA { data } => {
                             text.push_str(data);
@@ -186,7 +186,7 @@ impl Writer {
             Some(node) => {
                 match &**node {
                     // body -> place
-                    Node::BODY { data } => {
+                    Node::BODY { data, line } => {
                         data.iter().for_each(|place|{
                             match place {
                                 Node::PLACE { name, args, line } => {
@@ -196,7 +196,7 @@ impl Writer {
                                     result.push_elements(text, path.clone());
                                 },
                                 _ => {
-                                    eprintln!("Expected only place inside of create instead found {:?}", place);
+                                    eprintln!("Expected only place inside of create instead found {:?} in line {}", place, line);
                                     exit(1);
                                 }
                             }
@@ -241,7 +241,7 @@ impl Writer {
                                  args_map.insert(arg.0.clone(), val.clone()); 
                             },
                             None => {
-                                panic!("No value found for var type {:?}", name);
+                                panic!("No value found for var type {:?} line ", name);
                             },
                         }
                     },
@@ -318,7 +318,7 @@ impl Writer {
                             });
                         }
                         match body.as_ref() {
-                        Node::BODY { data } => {
+                        Node::BODY { data, line } => {
                             // for each body node
                             // go trough the body and handle the cases
                             data.iter().for_each(|n| match n {
