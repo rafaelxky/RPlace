@@ -54,6 +54,24 @@ impl Token {
         }
         .to_string();
     }
+    pub fn try_get_soft_keyword(&self) -> Option<String> {
+        let res = match self {
+            Token::DEF => "def",
+            Token::ENDEF => "endef",
+            Token::PLACE => "place",
+            Token::WHERE => "where",
+            Token::INCLUDE => "include",
+            Token::WHEN => "when",
+            Token::CREATE => "create",
+            Token::DERIVE => "derive",
+            _ => ""
+        };
+        if res.is_empty() {
+            return None;
+        } else {
+            return Some(res.to_string());
+        }
+    }
 }
 pub struct TokenResult {
     pub tokens: Vec<Token>,

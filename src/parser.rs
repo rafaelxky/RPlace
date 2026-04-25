@@ -605,15 +605,24 @@ impl Parser {
 
     fn handle_var_options(&mut self) -> Option<Vec<String>> {
         let mut options: Option<Vec<String>> = None;
-        match self.peek() {
-            Token::IDENT { str } => {
-                self.ptr_next();
-                if options.is_none() {
-                    options = Some(Vec::new());
-                }
-                options.as_mut().unwrap().push(str);
+        loop {
+            match self.peek() {
+                Token::IDENT { str } => {
+                    self.ptr_next();
+                    if options.is_none() {
+                        options = Some(Vec::new());
+                    }
+                    options.as_mut().unwrap().push(str);
+                    match self.peek() {
+                        Token::BSLASH => {
+                        self.ptr_next();
+                            continue;
+                        }
+                        _ => break,
+                    }
+                },
+                _ => handle_error_parser(CompilationError::InvalidVarOption, self),
             }
-            _ => handle_error_parser(CompilationError::InvalidVarOption, self),
         }
         options
     }
@@ -627,12 +636,12 @@ impl Parser {
             match self.peek() {
                 Token::IDENT { str } => {
                     self.ptr_next();
-                    self.remove_spaces();
                     let from = str;
                     if matches!(self.peek(), Token::BSLASH) {
                         self.ptr_next();
                         options_1 = self.handle_var_options();
                     }
+                    self.remove_spaces();
                     match self.peek() {
                         Token::EQUALS => {
                             self.ptr_next();
@@ -641,11 +650,11 @@ impl Parser {
                                 // ident = ident -> variable assignement
                                 Token::IDENT { str } => {
                                     self.ptr_next();
-                                    self.remove_spaces();
                                     if matches!(self.peek(), Token::BSLASH) {
                                         self.ptr_next();
                                         options_2 = self.handle_var_options();
                                     }
+                                    self.remove_spaces();
                                     args.push((
                                         from,
                                         Value {
@@ -738,6 +747,7 @@ impl Parser {
                                         self.ptr_next();
                                         options_2 = self.handle_var_options();
                                     }
+                                    self.remove_spaces();
                                     args.push((
                                         from,
                                         Value {
@@ -746,7 +756,6 @@ impl Parser {
                                             options: options_2,
                                         },
                                     ));
-                                    self.remove_spaces();
                                     // ident = "ident"
                                     match self.peek() {
                                         Token::DD => {
@@ -891,7 +900,7 @@ impl Parser {
                                             self.ptr_next();
                                             self.remove_spaces();
                                             match self.peek() {
-                                                Token::MARK { kind:_ } => {
+                                                Token::MARK { kind: _ } => {
                                                     self.ptr_next();
                                                     self.remove_spaces();
                                                     match self.peek() {
@@ -905,7 +914,7 @@ impl Parser {
                                                             match self.peek() {
                                                                 Token::PLUS => {
                                                                     self.ptr_next();
-                                                                },
+                                                                }
                                                                 _ => (),
                                                             }
                                                         }
@@ -1016,7 +1025,7 @@ impl Parser {
                     self.ptr_next();
                     args.append(&mut self.handle_var());
                     self.remove_till_tl();
-                },
+                }
                 _ => {
                     panic!(
                         "{:?} cant go in //- place <name> <here> at line {}, forgot \":\" or \",\" ?",
