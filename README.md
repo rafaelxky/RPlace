@@ -3,6 +3,9 @@
 - its made with programming in mind, it uses markers that use comment simbols to be embedable in code files
 
 # markers
+- markers are used to call commands
+- list:
+
 - //-
 - -//
 - /*-
