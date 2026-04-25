@@ -261,17 +261,14 @@ impl Parser {
                     Token::DD => {
                         self.ptr_next();
                         args
-                    }
-                    // todo: expected : after args
+                    },
                     _ => {
-                        panic!("Expected : after args found {:?}", self.peek())
+                        handle_error_parser(CompilationError::InvalidDeriveOption, self)
                     }
                 }
             }
-            // todo:
-            // derive path <here> unexpected option
             _ => {
-                todo!("invalid option for derive");
+                handle_error_parser(CompilationError::InvalidDeriveOption, self)
             }
         };
         nodes.push(Node::DERIVE {

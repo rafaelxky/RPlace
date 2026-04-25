@@ -98,6 +98,7 @@ pub enum CompilationError {
     NoDDAfterQuotVar,
     InvalidPlaceOption,
     InvalidVarOption,
+    InvalidDeriveOption,
 }
 impl CompilationError {
     fn get_msg(&self, parser: &Parser) -> ErrorMessage {
@@ -312,6 +313,11 @@ impl CompilationError {
                 format!("Invalid variable option {:?}", parser.peek()), 
                 format!("Check documentation to see valid variable options"), 
                 format!("//- derive to_derive.txt where var=\"[Vvar]\"\\{}regex{}", YELLOW,RESET)
+            ),
+            CompilationError::InvalidDeriveOption => ErrorMessage::new(
+                format!("Invalid options for derive {:?}", parser.peek()),
+                format!("Check documentation to see valid options for derive or addd : at the end"), 
+                format!("//- derive to_derive.txt where var=\"var\"{}:{}", YELLOW,RESET)
             )
         }
     }
