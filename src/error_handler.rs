@@ -99,7 +99,6 @@ pub enum CompilationError {
     InvalidPlaceOption,
     InvalidVarOption,
     InvalidDeriveOption,
-    InvalidCreateOption,
 }
 impl CompilationError {
     fn get_msg(&self, parser: &Parser) -> ErrorMessage {

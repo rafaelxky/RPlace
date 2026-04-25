@@ -3,7 +3,6 @@
 - inherit spaces when placing
 - config
 - conditional variables if a = b else and defaults
-- inner place with variables ex: place a where b = $#var
 - variable manipulation by commands
 ex: 
 change 
@@ -63,8 +62,7 @@ same for place ex: //- place a where A=B?
 - rules for error output
 - sujestions for typos using Levenshtein distance
 
-//- derive code.txt where "[cC]ontroller"/regex = controller_name:
-
 - inner place
 - improve derive
 - add more variable options
+- derive the entire folder structure

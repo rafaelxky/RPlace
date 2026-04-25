@@ -132,7 +132,7 @@ impl Writer {
             match node {
                 Node::BODY { data, line } => {
                     data.iter().for_each(|n| match n {
-                        Node::DATA { data } => {
+                        Node::DATA { data, line } => {
                             text.push_str(data);
                         }
                         Node::VARTEMPLATE { name } => {
@@ -141,7 +141,7 @@ impl Writer {
                         _ => (),
                     });
                 },
-                Node::DATA { data } => {
+                Node::DATA { data, line } => {
                     text.push_str(&data);
                 },
                 Node::PLACE { name, args, line } => {
@@ -323,7 +323,7 @@ impl Writer {
                             // go trough the body and handle the cases
                             data.iter().for_each(|n| match n {
                                     // here is handled anything inside the def
-                                    Node::DATA { data } => {
+                                    Node::DATA { data, line } => {
                                         // just text
                                         text.push_str(data);
                                     },
