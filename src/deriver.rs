@@ -19,7 +19,7 @@ impl Deriver {
             panic!("Error: no such file {} for derive", derive.path)
         }
         let mut text = text.unwrap();
-        let mut all_changes: Vec<(Range<usize>, Vec<DeriveScope>)> = Vec::new();
+        let mut all_changes: Vec<(Range<usize>, DeriveScope)> = Vec::new();
 
         derive.vals.iter().for_each(|(var, pattern)| {
             let opts = pattern.options.as_ref();
@@ -46,13 +46,15 @@ impl Deriver {
 
                     let matched = &text[mat.range()];
 
-                    let replacement = if default_place {
-                        vec![arrow_var(var, matched)]
+                    let mut replacement = if default_place {
+                        arrow_var(var, matched, &mat.range())
                     } else {
-                        apply_options(var, matched, features_vec.unwrap())
+                        apply_options(var, matched, &mat.range(), features_vec.unwrap())
                     };
 
-                    all_changes.push((mat.range(), replacement));
+                    if replacement.is_some() {
+                        all_changes.append(replacement.as_mut().unwrap());
+                    }
                 }
             } else {
                 let mut start = 0;
@@ -63,13 +65,15 @@ impl Deriver {
 
                     let matched = &text[range.clone()];
 
-                    let replacement = if default_place {
-                        vec![arrow_var(var, matched)]
+                    let mut replacement = if default_place {
+                        arrow_var(var, matched, &range)
                     } else {
-                        apply_options(var, matched, features_vec.unwrap())
+                        apply_options(var, matched, &range, features_vec.unwrap())
                     };
 
-                    all_changes.push((range, replacement));
+                    if replacement.is_some() {
+                        all_changes.append(replacement.as_mut().unwrap());
+                    }
 
                     start = abs + pattern.value.len();
                 }
@@ -78,24 +82,18 @@ impl Deriver {
 
         all_changes.sort_by(|a, b| b.0.start.cmp(&a.0.start));
         let mut text = text;
-        for (range, replacements) in all_changes {
-            for replacement in replacements {
-                match replacement {
-                    DeriveScope::Before(val) => {
-                        text.insert_str(range.start, &val);
-                    }
-                    DeriveScope::After(val) => {
-                        text.insert_str(range.end, &val);
-                    }
-                    DeriveScope::Replace(val) => {
-                        text.replace_range(range.clone(), &val);
-                    }
-                    DeriveScope::Arround(pre, pos) => {
-                        text.insert_str(range.end, &pos);
-                        text.insert_str(range.start, &pre);
-                    }
-                    DeriveScope::None => {}
+        for (range, replacement) in all_changes {
+            match replacement {
+                DeriveScope::Before(val) => {
+                    text.insert_str(range.start, &val);
                 }
+                DeriveScope::After(val) => {
+                    text.insert_str(range.end, &val);
+                }
+                DeriveScope::Replace(val) => {
+                    text.replace_range(range.clone(), &val);
+                }
+                DeriveScope::None => {}
             }
         }
         return text;
