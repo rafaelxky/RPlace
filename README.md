@@ -108,17 +108,23 @@ this will declare a template "a" wich will replace the variable "var" with "val"
 - variable options allow you to modify variables
 - they are marked with "\"
 - ex: var=val\regex:
+- can also be chained
 - supported:
-- none yet
+- derive:
+    - \regex -> allows regex
+    - \def -> places def around match
+    - \var -> places arrow variable around match
 
 # reverse templates / derive
 - rplace supports reverse templates
 this will take regular text and transform it into a template
 - ex: //- derive path/file.txt where var="[Vv]ar"\regex:
 - this will inser an arrow variable with name "var" before any match 
-- also support specific options
+- also supports specific options
 - \regex
 - \def
+- \var
+- the default option will be \var and no regex
 
 # memo
 //- place:
@@ -140,4 +146,4 @@ $#varname+sufix
 //- create folder/file.txt place name:
 //- create folder/file.txt place name where var=val:
 //- place name where var=$#var_paren:
-//- derive path/file.txt where var="[Vv]ar"\regex:
+//- derive path/file.txt where var="[Vv]ar"\regex, def="[Ss]truct"\def\regex:
