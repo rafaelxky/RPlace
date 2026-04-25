@@ -1,1 +1,1 @@
-//- derive examples/to_derive.txt where var="[Vv]ar"\regex, controller="hello.*?B"\regex\def:
+//- derive examples/to_derive.txt where var="[Vv]ar"\regex, controller="hello.*?C"\regex\def:

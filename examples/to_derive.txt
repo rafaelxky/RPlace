@@ -1,1 +1,2 @@
-hello this is var A and this is Var B
+//- def controller: hello this is var A and this is Var B and this is Var C //- endef:var -> -*/ Var B and this is /*- $#var -> -*/ Var C
+hello this is var A and this is Var B and this is Var C

@@ -615,13 +615,29 @@ impl Parser {
                     options.as_mut().unwrap().push(str);
                     match self.peek() {
                         Token::BSLASH => {
-                        self.ptr_next();
+                            self.ptr_next();
                             continue;
                         }
                         _ => break,
                     }
+                }
+                _ => match self.peek().try_get_soft_keyword() {
+                    Some(str) => {
+                        self.ptr_next();
+                        if options.is_none() {
+                            options = Some(Vec::new());
+                        }
+                        options.as_mut().unwrap().push(str);
+                        match self.peek() {
+                            Token::BSLASH => {
+                                self.ptr_next();
+                                continue;
+                            }
+                            _ => break,
+                        }
+                    }
+                    None => handle_error_parser(CompilationError::InvalidVarOption, self),
                 },
-                _ => handle_error_parser(CompilationError::InvalidVarOption, self),
             }
         }
         options

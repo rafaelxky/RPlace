@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    derive_options::options_map::{apply_options, arrow_var},
+    derive_options::options_map::{DeriveScope, apply_options, arrow_var},
     writer::Derive,
 };
 use regex::Regex;
@@ -19,69 +19,84 @@ impl Deriver {
             panic!("Error: no such file {} for derive", derive.path)
         }
         let mut text = text.unwrap();
-        let mut all_changes: Vec<(Range<usize>, String)> = Vec::new();
+        let mut all_changes: Vec<(Range<usize>, Vec<DeriveScope>)> = Vec::new();
 
         derive.vals.iter().for_each(|(var, pattern)| {
-            let mut default_place = true;
-            let opts = &pattern.options;
-            let features = if opts.is_some() {
-                Some(Deriver::get_features(&opts.as_ref().unwrap()))
-            } else {
-                None
-            };
-            let features_vec = if opts.is_some() {
-                default_place = !opts.as_ref().unwrap().iter().any(|opt|opt.as_str() != "regex");
-                Some(opts.as_ref().unwrap())
-            } else {
-                None
-            };
+            let opts = pattern.options.as_ref();
 
-            // regex
-            if features.is_some() && features.as_ref().unwrap().contains_key("regex") {
+            let features = opts.map(|o| Deriver::get_features(o));
+            let features_vec = opts;
+
+            let is_regex = features
+                .as_ref()
+                .map(|f| f.contains_key("regex"))
+                .unwrap_or(false);
+
+            let default_place = opts
+                .map(|o| !o.iter().any(|opt| opt.as_str() != "regex"))
+                .unwrap_or(true);
+
+            if is_regex {
                 let re = Regex::new(&pattern.value).unwrap();
+
                 for mat in re.find_iter(&text) {
-                    if !all_changes
-                        .iter()
-                        .any(|(r, _)| r.contains(&mat.start()) || r.contains(&mat.end()))
-                    {
-                        if default_place {
-                            all_changes
-                                .push((mat.range(), arrow_var(var, &text[mat.range()])));
-                        } else {
-                            all_changes.push((mat.range(), apply_options(var, &text[mat.range()], features_vec.unwrap())));
-                        }
+                    if mat.start() == mat.end() {
+                        continue;
                     }
+
+                    let matched = &text[mat.range()];
+
+                    let replacement = if default_place {
+                        vec![arrow_var(var, matched)]
+                    } else {
+                        apply_options(var, matched, features_vec.unwrap())
+                    };
+
+                    all_changes.push((mat.range(), replacement));
                 }
-                // no regex
             } else {
                 let mut start = 0;
+
                 while let Some(pos) = text[start..].find(&pattern.value) {
                     let abs = start + pos;
                     let range = abs..abs + pattern.value.len();
-                    if !all_changes
-                        .iter()
-                        .any(|(r, _)| r.contains(&abs) || r.contains(&range.end))
-                    {
-                        if default_place {
-                            all_changes.push((
-                                range.clone(),
-                                arrow_var(var, &text[range.clone()]),
-                            ));
-                        } else {
-                            features_vec.as_ref().unwrap().iter().for_each(|feature| {
-                                all_changes
-                                    .push((range.clone(), apply_options(var, &text[range.clone()], features_vec.unwrap())));
-                            });
-                        }
-                    }
+
+                    let matched = &text[range.clone()];
+
+                    let replacement = if default_place {
+                        vec![arrow_var(var, matched)]
+                    } else {
+                        apply_options(var, matched, features_vec.unwrap())
+                    };
+
+                    all_changes.push((range, replacement));
+
                     start = abs + pattern.value.len();
                 }
             }
         });
 
         all_changes.sort_by(|a, b| b.0.start.cmp(&a.0.start));
-        for (range, replacement) in all_changes {
-            text.replace_range(range, &replacement);
+        let mut text = text;
+        for (range, replacements) in all_changes {
+            for replacement in replacements {
+                match replacement {
+                    DeriveScope::Before(val) => {
+                        text.insert_str(range.start, &val);
+                    }
+                    DeriveScope::After(val) => {
+                        text.insert_str(range.end, &val);
+                    }
+                    DeriveScope::Replace(val) => {
+                        text.replace_range(range.clone(), &val);
+                    }
+                    DeriveScope::Arround(pre, pos) => {
+                        text.insert_str(range.end, &pos);
+                        text.insert_str(range.start, &pre);
+                    }
+                    DeriveScope::None => {}
+                }
+            }
         }
         return text;
     }
