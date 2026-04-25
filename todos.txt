@@ -66,3 +66,12 @@ same for place ex: //- place a where A=B?
 - improve derive
 - add more variable options
 - derive the entire folder structure
+
+idea:
+id like to be able to create a macro system thats can translate languages
+so for example 
+//- place func where body="
+    let a = b;
+    println!("a");
+": 
+and it would be able to translate to multiple languages
