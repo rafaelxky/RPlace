@@ -1,4 +1,4 @@
-//- def a when var=val where default_3=def3:
+//- def a when var=val where default_3=def3: 
     arrow default -> /*- $#default -> -*/ arrow_default_value
     expected: arrow_default_value
     where default from def place -> $#default_2

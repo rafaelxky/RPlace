@@ -249,17 +249,17 @@ impl Lexer {
                             tokens.push(Token::MARK {
                                 kind: "-*/".to_string(),
                             });
-                            continue;
                         } else {
                             tokens.push(Token::IDENT {
                                 str: "-/".to_string(),
                             });
-                            continue;
                         }
+                        continue;
                     } else {
                         tokens.push(Token::IDENT {
                             str: "-".to_string(),
                         });
+                        continue;
                     }
                 }
                 _ => (),

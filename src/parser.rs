@@ -183,6 +183,7 @@ impl Parser {
             }
             Token::NL => {
                 self.line = self.line + 1;
+                //println!("parse inner newline {} at {}", self.line, self.get_tok_around_colored(10));
                 body_str.push('\n');
             }
             tok => {
@@ -348,7 +349,7 @@ impl Parser {
 
     fn handle_def(&mut self, nodes: &mut Vec<Node>) {
         //- def ...
-
+        println!("start def");
         self.remove_spaces();
 
         let mut def_name = String::new();
@@ -567,6 +568,7 @@ impl Parser {
             conditions: conditions,
             defaults: defaults.clone(),
         });
+        println!("---- end def");
     }
 
     fn remove_spaces(&mut self) {
@@ -577,6 +579,7 @@ impl Parser {
                 }
                 Token::NL => {
                     self.line = self.line + 1;
+                    println!("remove spaces newline {}", self.line);
                     self.ptr_next();
                 }
                 _ => {
@@ -594,6 +597,11 @@ impl Parser {
                 Token::NL => {
                     self.ptr_next();
                     self.line = self.line + 1;
+                    println!(
+                        "remove till tl newline {} at {}",
+                        self.line,
+                        self.get_tok_around_colored(10)
+                    );
                     return;
                 }
                 _ => {
@@ -709,8 +717,9 @@ impl Parser {
                                         }
                                         match self.peek() {
                                             Token::NL => {
-                                                self.line = self.line + 1;
                                                 arg_str.push('\n');
+                                                self.line = self.line + 1;
+                                                println!("handle var newline {}", self.line);
                                                 has_new_line = true;
                                             }
                                             Token::DQUOTE => {
@@ -890,13 +899,17 @@ impl Parser {
                                 Token::DD => {
                                     self.ptr_next();
                                     self.remove_till_tl();
+                                    println!("--- endef: {:?}", self.peek());
+                                    if matches!(self.peek(), Token::NL) {
+                                        self.line = self.line - 1;
+                                    }
                                     self.unpop();
+                                    break;
                                 }
                                 _ => {
                                     handle_error_parser(CompilationError::NoDDEndef, self);
                                 }
                             }
-                            break;
                         }
                         /*- $#var -> -*/
                         Token::VAR => {
@@ -966,10 +979,12 @@ impl Parser {
                         }
                         Token::DEF => {
                             // inner def
+                            println!("inner def");
                             self.ptr_next();
                             let mut nodes: Vec<Node> = Vec::new();
                             self.handle_def(&mut nodes);
                             body.append(&mut nodes);
+                            println!("inner def exit ");
                         }
                         Token::PLACE => {
                             // inner place
@@ -981,6 +996,9 @@ impl Parser {
                             let mut nodes: Vec<Node> = Vec::new();
                             self.handle_place(&mut nodes);
                             body.append(&mut nodes);
+                            if matches!(self.peek(), Token::NL) {
+                                self.line = self.line - 1;
+                            }
                             self.unpop();
                         }
                         Token::INCLUDE => {
@@ -998,6 +1016,7 @@ impl Parser {
                 Token::NL => {
                     body_str.push_str("\n");
                     self.line = self.line + 1;
+                    println!("build body newline {}", self.line);
                 }
                 tok => {
                     body_str.push_str(&tok.val());
@@ -1028,6 +1047,7 @@ impl Parser {
 
         self.remove_spaces();
         let mut args = Vec::new();
+        let place_line = self.line;
         loop {
             match self.peek() {
                 // place ident:
@@ -1041,20 +1061,16 @@ impl Parser {
                     self.ptr_next();
                     args.append(&mut self.handle_var());
                     self.remove_till_tl();
-                }
+                },
                 _ => {
-                    panic!(
-                        "{:?} cant go in //- place <name> <here> at line {}, forgot \":\" or \",\" ?",
-                        self.peek(),
-                        self.line
-                    )
+                    handle_error_parser(CompilationError::InvalidPlaceOption, self)
                 }
             }
         }
         nodes.push(Node::PLACE {
             name: place_id,
             args: args,
-            line: self.line,
+            line: place_line,
         });
         return;
     }

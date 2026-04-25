@@ -34,7 +34,7 @@ pub fn handle_expected_error<S: Into<String>>(
         expected.into(),
         found.into(),
         after.into(),
-        line,
+        line + 1,
         file.into()
     );
 }
@@ -47,7 +47,7 @@ pub fn handle_error_parser(error_message: CompilationError, parser: &Parser) -> 
         msg,
         parser.get_tok_around_colored(10),
         parser.get_file_path(),
-        parser.get_line(),
+        parser.get_line() + 1,
         hint,
         example,
     );
