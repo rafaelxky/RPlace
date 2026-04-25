@@ -23,8 +23,6 @@ variable concatenation ex: $#name+controller
 () {} [] , . - : <- testing special character catch -> $#
 Hello world
 
-//- include ./examples/example.rs:
-
 /*- def b:
 
 () {} [] , . - :
@@ -66,12 +64,14 @@ Hello world
 //- def class:
     default class from $#origin
 //- endef:
-//- def class where lang = rust:
+
+//- def class when lang = rust:
     pub struct $#name {
         $#lang
     }
 //- endef:
-//- def class where lang = java:
+
+//- def class when lang = java:
     public class $#name {
         $#lang
     }

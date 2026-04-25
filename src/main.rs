@@ -68,7 +68,6 @@ fn main() {
         file.write_all(result.data.as_bytes())
             .expect("Unable to write");
 
-        println!("data for file {}: {}", result.path, result.data);
     });
 
     replaced.derives.iter().for_each(|derive| {

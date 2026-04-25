@@ -270,6 +270,7 @@ impl Writer {
                         line: _,
                     } = def
                     {
+                        // match conditions
                         match conditions {
                             Some(vec) => {
                                 for eval in vec {
@@ -303,7 +304,7 @@ impl Writer {
                 }
                 match matched.unwrap() {
                     Node::DEF {
-                        name: _,
+                        name: def_name,
                         body,
                         line,
                         conditions: _,
@@ -331,7 +332,7 @@ impl Writer {
                                         let replacement = match args_map.get(name) {
                                             Some(val) => val,
                                             None => {
-                                                handle_error(format!("No value specified for \"{}\"!", name), line.clone(), self.file_path.clone())
+                                                handle_error(format!("No value specified for \"{}\" in template {}!", name,def_name), line.clone(), self.file_path.clone())
                                             }
                                         };
                                         text.push_str(&replacement.value);
@@ -365,7 +366,7 @@ impl Writer {
                                         if result.is_some() {
                                             def_queue.as_mut().unwrap().append(&mut result.unwrap());
                                         }
-                                    }
+                                    },
                                     _ => {
                                         handle_error(format!("Body should only have data or var def, instead found {:?}", n), line.clone(), self.file_path.clone())
                                 },

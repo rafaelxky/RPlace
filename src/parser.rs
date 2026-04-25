@@ -1,5 +1,5 @@
 use core::panic;
-use std::{str};
+use std::str;
 
 use crate::{
     error_handler::{CompilationError, handle_error, handle_error_parser, handle_expected_error},
@@ -431,7 +431,6 @@ impl Parser {
                                                 match self.peek() {
                                                     // def name when name = val:
                                                     Token::DD => {
-                                                        println!("DD3");
                                                         self.remove_till_tl();
                                                         break;
                                                     }
@@ -614,7 +613,7 @@ impl Parser {
                 }
                 options.as_mut().unwrap().push(str);
             }
-            _ => handle_error_parser(CompilationError::InvalidVarOption, self)
+            _ => handle_error_parser(CompilationError::InvalidVarOption, self),
         }
         options
     }
@@ -658,6 +657,7 @@ impl Parser {
                                     match self.peek() {
                                         Token::COMMA => {
                                             self.ptr_next();
+                                            continue;
                                         }
                                         // ident = ident
                                         Token::DD => {
@@ -809,7 +809,7 @@ impl Parser {
                 Token::DD => {
                     return args;
                 }
-                _ => handle_error_parser(CompilationError::Invalid2ndPlaceVar, self),
+                _ => handle_error_parser(CompilationError::Invalid1stPlaceVar, self),
             }
         }
     }
@@ -855,7 +855,6 @@ impl Parser {
                     match self.peek() {
                         //- endef:
                         Token::ENDEF => {
-                            println!("endef");
                             self.ptr_next();
                             body.push(Node::DATA {
                                 data: body_str.to_string(),
@@ -864,7 +863,6 @@ impl Parser {
                             match self.peek() {
                                 // endef :
                                 Token::DD => {
-                                    println!("DD4");
                                     self.ptr_next();
                                     self.remove_till_tl();
                                     self.unpop();
@@ -887,13 +885,13 @@ impl Parser {
                                 Token::IDENT { str } => {
                                     let name = str;
                                     self.ptr_next();
-                                    let spaces = self.collect_spaces();
+                                    self.remove_spaces();
                                     match self.peek() {
                                         Token::RARROW => {
                                             self.ptr_next();
                                             self.remove_spaces();
                                             match self.peek() {
-                                                Token::MARK { kind } => {
+                                                Token::MARK { kind:_ } => {
                                                     self.ptr_next();
                                                     self.remove_spaces();
                                                     match self.peek() {
@@ -907,7 +905,7 @@ impl Parser {
                                                             match self.peek() {
                                                                 Token::PLUS => {
                                                                     self.ptr_next();
-                                                                }
+                                                                },
                                                                 _ => (),
                                                             }
                                                         }
@@ -1004,249 +1002,36 @@ impl Parser {
         };
 
         self.remove_spaces();
-        match self.peek() {
-            // place ident:
-            Token::DD => {
-                self.ptr_next();
-                nodes.push(Node::PLACE {
-                    name: place_id,
-                    args: Vec::new(),
-                    line: self.line,
-                });
-                self.remove_till_tl();
-                return;
-            }
-            // place ident were
-            Token::WHERE => {
-                let mut args: Vec<(String, Value)> = Vec::new();
-                loop {
+        let mut args = Vec::new();
+        loop {
+            match self.peek() {
+                // place ident:
+                Token::DD => {
                     self.ptr_next();
-                    self.remove_spaces();
-                    match self.peek() {
-                        Token::IDENT { str } => {
-                            self.ptr_next();
-                            self.remove_spaces();
-                            let from = str;
-                            match self.peek() {
-                                Token::EQUALS => {
-                                    self.ptr_next();
-                                    self.remove_spaces();
-                                    match self.peek() {
-                                        // ident = ident -> variable assignement
-                                        Token::IDENT { str } => {
-                                            self.ptr_next();
-                                            args.push((
-                                                from,
-                                                Value {
-                                                    value_type: ValueType::Literal,
-                                                    value: str,
-                                                    options: None,
-                                                },
-                                            ));
-                                            self.remove_spaces();
-                                            match self.peek() {
-                                                Token::COMMA => {
-                                                    self.ptr_next();
-                                                }
-                                                // ident = ident
-                                                Token::DD => {
-                                                    self.ptr_next();
-                                                    nodes.push(Node::PLACE {
-                                                        name: place_id.clone(),
-                                                        args: args,
-                                                        line: self.line,
-                                                    });
-                                                    self.remove_till_tl();
-                                                    return;
-                                                }
-                                                // second ident
-                                                _ => {
-                                                    handle_error_parser(
-                                                        CompilationError::Invalid2ndPlaceVar,
-                                                        self,
-                                                    );
-                                                }
-                                            }
-                                        }
-                                        // ident = "ident" -> quotation handling for multiline values
-                                        Token::DQUOTE => {
-                                            self.ptr_next();
-                                            let mut arg_str = String::new();
-                                            let mut has_new_line = false;
-
-                                            loop {
-                                                if !self.can_pop() {
-                                                    handle_error_parser(
-                                                        CompilationError::EOFInQuotVar,
-                                                        self,
-                                                    );
-                                                }
-                                                match self.peek() {
-                                                    Token::NL => {
-                                                        self.line = self.line + 1;
-                                                        arg_str.push('\n');
-                                                        has_new_line = true;
-                                                    }
-                                                    Token::DQUOTE => {
-                                                        if has_new_line {
-                                                            arg_str.push('"');
-                                                        } else {
-                                                            self.ptr_next();
-                                                            break;
-                                                        }
-                                                    }
-                                                    Token::MARK { kind } => {
-                                                        self.ptr_next();
-                                                        if !has_new_line {
-                                                            arg_str.push_str(&kind);
-                                                        } else {
-                                                            // if value has a newline after the first ", then ends at mark + "
-                                                            let mut spaces = String::new();
-                                                            let mut ends = false;
-                                                            loop {
-                                                                match self.peek() {
-                                                                    Token::SPACE => {
-                                                                        self.ptr_next();
-                                                                        spaces.push(' ');
-                                                                    }
-                                                                    Token::DQUOTE => {
-                                                                        self.ptr_next();
-                                                                        ends = true;
-                                                                        break;
-                                                                    }
-                                                                    _ => {
-                                                                        break;
-                                                                    }
-                                                                }
-                                                            }
-                                                            if ends {
-                                                                break;
-                                                            } else {
-                                                                arg_str.push_str(&spaces);
-                                                            }
-                                                            // if has " after mark
-                                                        }
-                                                    }
-                                                    tok => {
-                                                        arg_str.push_str(&tok.val());
-                                                    }
-                                                }
-                                                self.ptr_next();
-                                            }
-                                            args.push((
-                                                from,
-                                                Value {
-                                                    value_type: ValueType::Literal,
-                                                    value: arg_str,
-                                                    options: None,
-                                                },
-                                            ));
-                                            self.remove_spaces();
-                                            // ident = "ident"
-                                            match self.peek() {
-                                                Token::DD => {
-                                                    self.ptr_next();
-                                                    nodes.push(Node::PLACE {
-                                                        name: place_id.clone(),
-                                                        args: args,
-                                                        line: self.line,
-                                                    });
-                                                    self.remove_till_tl();
-                                                    return;
-                                                }
-                                                Token::COMMA => {
-                                                    self.ptr_next();
-                                                }
-                                                _ => {
-                                                    handle_error_parser(
-                                                        CompilationError::NoDDAfterQuotVar,
-                                                        self,
-                                                    );
-                                                }
-                                            }
-                                        }
-                                        Token::VAR => {
-                                            self.ptr_next();
-                                            match self.peek() {
-                                                Token::IDENT { str } => {
-                                                    self.ptr_next();
-                                                    args.push((
-                                                        from,
-                                                        Value {
-                                                            value_type: ValueType::Var,
-                                                            value: str,
-                                                            options: None,
-                                                        },
-                                                    ));
-                                                    self.remove_spaces();
-                                                    match self.peek() {
-                                                        Token::DD => {
-                                                            self.ptr_next();
-                                                            nodes.push(Node::PLACE {
-                                                                name: place_id.clone(),
-                                                                args: args,
-                                                                line: self.line,
-                                                            });
-                                                            self.remove_till_tl();
-                                                            return;
-                                                        }
-                                                        Token::COMMA => {
-                                                            self.ptr_next();
-                                                        }
-                                                        _ => {
-                                                            panic!(
-                                                                "expected , or : found {:?} in line {}",
-                                                                self.peek(),
-                                                                self.line
-                                                            );
-                                                        }
-                                                    }
-                                                }
-                                                _ => handle_error(
-                                                    format!(
-                                                        "Expected Ident found {:?} at place with variable value",
-                                                        self.peek()
-                                                    ),
-                                                    self.line,
-                                                    self.file_path.clone(),
-                                                ),
-                                            }
-                                        }
-                                        _ => {
-                                            handle_error_parser(
-                                                CompilationError::Invalid2ndPlaceVar,
-                                                self,
-                                            );
-                                        }
-                                    }
-                                }
-                                _ => {
-                                    handle_error_parser(CompilationError::InvalidPlaceAssign, self);
-                                }
-                            }
-                        }
-                        Token::DD => {
-                            self.ptr_next();
-                            nodes.push(Node::PLACE {
-                                name: place_id.clone(),
-                                args: Vec::new(),
-                                line: self.line,
-                            });
-                            self.remove_till_tl();
-                            return;
-                        }
-                        _ => handle_error_parser(CompilationError::Invalid2ndPlaceVar, self),
-                    }
+                    self.remove_till_tl();
+                    break;
+                }
+                // place ident were
+                Token::WHERE => {
+                    self.ptr_next();
+                    args.append(&mut self.handle_var());
+                    self.remove_till_tl();
+                },
+                _ => {
+                    panic!(
+                        "{:?} cant go in //- place <name> <here> at line {}, forgot \":\" or \",\" ?",
+                        self.peek(),
+                        self.line
+                    )
                 }
             }
-            _ => {
-                panic!(
-                    "{:?} cant go in //- place <name> <here> at line {}, forgot \":\" or \",\" ?",
-                    self.peek(),
-                    self.line
-                )
-            }
         }
+        nodes.push(Node::PLACE {
+            name: place_id,
+            args: args,
+            line: self.line,
+        });
+        return;
     }
 
     fn collect_spaces(&mut self) -> (String, bool) {

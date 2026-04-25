@@ -277,14 +277,14 @@ impl CompilationError {
                 format!("//- place {}template{}:", YELLOW, RESET),
             ),
             CompilationError::Invalid2ndPlaceVar => ErrorMessage::new(
-                format!("Invalid value after assignement in place where {:?}", parser.peek()),
+                format!("Invalid value after assignement in where {:?}", parser.peek()),
                 format!(
                     "Make sure the value contains only valid characters and not reserved keywords"
                 ),
                 format!("//- place template where var={}val{}:", YELLOW, RESET),
             ),
             CompilationError::InvalidPlaceAssign => ErrorMessage::new(
-                format!("Invalid assignement token in place were {:?}", parser.peek()), 
+                format!("Invalid assignement token in where {:?}", parser.peek()), 
                 format!("Add or replace your token for = in the variable assignement"), 
                 format!("//- place name where var{}={}val",YELLOW,RESET)
             ),
