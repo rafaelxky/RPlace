@@ -128,6 +128,7 @@ this will take regular text and transform it into a template
 - the default option will be \var and no regex
 
 # memo
+```
 //- place:
 //- def name:
 //- def name where var=val:
@@ -148,3 +149,4 @@ $#varname+sufix
 //- create folder/file.txt place name where var=val:
 //- place name where var=$#var_paren:
 //- derive path/file.txt where var="[Vv]ar"\regex, def="[Ss]truct"\def\regex:
+```
