@@ -13,7 +13,7 @@
 //- endef:
 
 //- def c:
-    //- def b: 
+    //- def b:
         innerdef var = $#val
     //- endef:
 //- endef:
