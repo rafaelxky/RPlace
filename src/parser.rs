@@ -1,5 +1,5 @@
 use core::panic;
-use std::str;
+use std::{str, vec};
 
 use crate::{
     error_handler::{CompilationError, handle_error, handle_error_parser, handle_expected_error},
@@ -165,7 +165,7 @@ impl Parser {
         }
         nodes.push(Node::DATA {
             data: body_str.to_string(),
-            line: self.line
+            line: self.line,
         });
         ParsingResult {
             nodes,
@@ -180,7 +180,7 @@ impl Parser {
             Token::MARK { kind: _ } => {
                 nodes.push(Node::DATA {
                     data: body_str.to_string(),
-                    line: self.line
+                    line: self.line,
                 });
                 body_str = String::new();
                 self.handle_func(nodes);
@@ -265,15 +265,11 @@ impl Parser {
                     Token::DD => {
                         self.ptr_next();
                         args
-                    },
-                    _ => {
-                        handle_error_parser(CompilationError::InvalidDeriveOption, self)
                     }
+                    _ => handle_error_parser(CompilationError::InvalidDeriveOption, self),
                 }
             }
-            _ => {
-                handle_error_parser(CompilationError::InvalidDeriveOption, self)
-            }
+            _ => handle_error_parser(CompilationError::InvalidDeriveOption, self),
         };
         nodes.push(Node::DERIVE {
             path: path,
@@ -307,7 +303,10 @@ impl Parser {
                 self.handle_place(&mut temp_nodes);
                 nodes.push(Node::CREATE {
                     path,
-                    content: Some(Box::new(Node::BODY { data: temp_nodes, line: starting_line })),
+                    content: Some(Box::new(Node::BODY {
+                        data: temp_nodes,
+                        line: starting_line,
+                    })),
                 });
                 return;
             }
@@ -395,10 +394,18 @@ impl Parser {
                             let place = nodes.remove(nodes.len() - 1);
                             body = Some(Box::new(place));
                             break;
-                        }
+                        },
                         _ => handle_error_parser(CompilationError::InvalidDefPlaceName, self),
                     }
-                }
+                },
+                Token::DERIVE => {
+                    // todo:
+                    self.ptr_next();
+                    let mut temp_nodes: Vec<Node> = Vec::new();
+                    self.handle_derive(&mut temp_nodes);
+                    body = Some(Box::new(temp_nodes[0].clone()));
+                    break;
+                },
                 // def name when condition
                 Token::WHEN => {
                     self.ptr_next();
@@ -1031,7 +1038,10 @@ impl Parser {
             }
             self.ptr_next();
         }
-        return Node::BODY { data: body, line: line_start };
+        return Node::BODY {
+            data: body,
+            line: line_start,
+        };
     }
 
     fn handle_place(&mut self, nodes: &mut Vec<Node>) {
@@ -1042,11 +1052,11 @@ impl Parser {
             Token::IDENT { str } => {
                 self.ptr_next();
                 str
-            }
+            },
             Token::PLACE => {
                 self.ptr_next();
                 "place".to_string()
-            }
+            },
             _ => {
                 handle_error_parser(CompilationError::InvalidPlaceName, self);
             }
@@ -1068,10 +1078,8 @@ impl Parser {
                     self.ptr_next();
                     args.append(&mut self.handle_var());
                     self.remove_till_tl();
-                },
-                _ => {
-                    handle_error_parser(CompilationError::InvalidPlaceOption, self)
                 }
+                _ => handle_error_parser(CompilationError::InvalidPlaceOption, self),
             }
         }
         nodes.push(Node::PLACE {

@@ -68,12 +68,19 @@ this will place the value in the variable as normal
 //- def a when lang=java place java_class where var=val:
 this will declare a template "a" wich will replace the variable "var" with "val" from "java_class" template if lang = java
 
-# def defaults
+## def defaults
 - def accept defaults trough def where
 - ex: 
 //- def name where var=val:
     $#var
 //- endef:
+
+## def derive
+- you can create a reverse template and define it
+- ex:
+//- def derived derive examples/to_derive.txt where var="[Vv]ar"\regex:
+- then you can place the result
+- ex: //- placed derived:
 
 # file include
 - //- include file_path:

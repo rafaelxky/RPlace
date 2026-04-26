@@ -1,0 +1,2 @@
+//- def derived derive examples/to_derive.txt where var="[Vv]ar"\regex, controller="hello.*?C"\regex\def:
+//- place derived:

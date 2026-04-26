@@ -50,7 +50,7 @@ fn main() {
             .expect("Unable to open file"),
     };
 
-    let last = replaced.file_data.pop().unwrap();
+    let last: writer::FileData = replaced.file_data.pop().unwrap();
     write!(&mut file, "{}", last.data).expect("Unable to write");
 
     replaced.file_data.iter_mut().for_each(|result| {

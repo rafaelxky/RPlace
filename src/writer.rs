@@ -1,7 +1,7 @@
 use std::{
     alloc::handle_alloc_error, collections::HashMap, path::{Path, PathBuf}, process::exit, str
 };
-use crate::{error_handler::CompilationError, parser::ValueType};
+use crate::{deriver::Deriver, error_handler::CompilationError, parser::ValueType};
 
 use crate::{
     error_handler::handle_error,
@@ -374,6 +374,10 @@ impl Writer {
                         },
                         Node::PLACE { name, args, line } => {
                             self.handle_place(text, def_map, name, args, line, args_map);
+                        },
+                        Node::DERIVE { path, val } => {
+                            let result = Deriver::derive(&Derive { path: path.clone(), vals: val.clone() });
+                            text.push_str(&result);
                         },
                         _ => handle_error(
                             format!(

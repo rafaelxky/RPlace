@@ -77,3 +77,5 @@ so for example
 and it would be able to translate to multiple languages
 
 - make a completion provider for VsCode
+- def a derive ...
+- palce derive
