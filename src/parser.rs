@@ -350,7 +350,6 @@ impl Parser {
 
     fn handle_def(&mut self, nodes: &mut Vec<Node>) {
         //- def ...
-        println!("start def");
         self.remove_spaces();
 
         let mut def_name = String::new();
@@ -577,7 +576,6 @@ impl Parser {
             conditions: conditions,
             defaults: defaults.clone(),
         });
-        println!("---- end def");
     }
 
     fn remove_spaces(&mut self) {
@@ -588,7 +586,6 @@ impl Parser {
                 }
                 Token::NL => {
                     self.line = self.line + 1;
-                    println!("remove spaces newline {}", self.line);
                     self.ptr_next();
                 }
                 _ => {
@@ -606,11 +603,6 @@ impl Parser {
                 Token::NL => {
                     self.ptr_next();
                     self.line = self.line + 1;
-                    println!(
-                        "remove till tl newline {} at {}",
-                        self.line,
-                        self.get_tok_around_colored(10)
-                    );
                     return;
                 }
                 _ => {
@@ -728,7 +720,6 @@ impl Parser {
                                             Token::NL => {
                                                 arg_str.push('\n');
                                                 self.line = self.line + 1;
-                                                println!("handle var newline {}", self.line);
                                                 has_new_line = true;
                                             }
                                             Token::DQUOTE => {
@@ -911,7 +902,6 @@ impl Parser {
                                 Token::DD => {
                                     self.ptr_next();
                                     self.remove_till_tl();
-                                    println!("--- endef: {:?}", self.peek());
                                     if matches!(self.peek(), Token::NL) {
                                         self.line = self.line - 1;
                                     }
@@ -992,12 +982,10 @@ impl Parser {
                         }
                         Token::DEF => {
                             // inner def
-                            println!("inner def");
                             self.ptr_next();
                             let mut nodes: Vec<Node> = Vec::new();
                             self.handle_def(&mut nodes);
                             body.append(&mut nodes);
-                            println!("inner def exit ");
                         }
                         Token::PLACE => {
                             // inner place
@@ -1030,7 +1018,6 @@ impl Parser {
                 Token::NL => {
                     body_str.push_str("\n");
                     self.line = self.line + 1;
-                    println!("build body newline {}", self.line);
                 }
                 tok => {
                     body_str.push_str(&tok.val());

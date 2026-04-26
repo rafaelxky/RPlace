@@ -1,0 +1,4 @@
+//- def a:
+    helloa
+//- endef:
+//- place a:
