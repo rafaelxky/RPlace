@@ -121,29 +121,32 @@ impl Writer {
             _ => (),
         }};
 
-        let imports: Vec<(String, Vec<Node>)> = vec![];
-        let _ = to_import.par_iter().map(|(path, line)|{
-            let (mut stream, data_source) = get_data_stream(path);
+        let imports: Vec<Vec<(String,Vec<Node>)>> = to_import.par_iter().map(|(path, line)|{
+            let (mut stream, _) = get_data_stream(path);
+            let mut imp = Vec::new();
             loop {
                 let data = stream.next();
                 if data.is_none() {
                     break;
                 }
                 let (data, path) = data.unwrap();
-                self.handle_import(data, *line,path);
+                imp.push(self.handle_import(data, *line,path));
             }
-        });
+            imp
+        }).collect();
 
-        for (path, import) in imports {
+        for imports_inner in imports{
+        for (_, import) in imports_inner {
             for node in import {
                 match &node {
-                    Node::DEF { conditions, defaults, name, body, line } => {
+                    Node::DEF { conditions:_, defaults:_, name, body:_, line:_ } => {
                         def_map.entry(name.clone()).or_insert_with(Vec::new).push(node.clone());
                     },
                     _ => ()
                 }
             }
         }
+    }
         
     }
 
@@ -434,11 +437,15 @@ impl Writer {
                     ),
                 }
             }
-            None => handle_error(
-                format!("No such template named {}", name),
+            None => {
+                let mut defs = String::new();
+                def_map.iter().for_each(|(name,_)|{defs.push_str(&format!(" {} ", name));});
+                handle_error(
+                format!("No such template named {}, available{}", name, defs),
                 *line,
                 self.file_path.clone(),
-            ),
+            )
+        },
         }
         return def_queue;
     }

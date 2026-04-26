@@ -23,7 +23,10 @@ pub struct FileDataStream {
 impl FileDataStream {
     pub fn new(path: String) -> Self {
         let mut paths: Vec<String> = Vec::new();
-        for entry in WalkDir::new(path) {
+        for entry in WalkDir::new(path.clone()) {
+            if entry.is_err() {
+                panic!("No such file {}", path)
+            }
             let entry = entry.unwrap();
             if entry.file_type().is_file() {
                 paths.push(entry.path().to_str().unwrap().to_string());
