@@ -3,9 +3,8 @@ use std::io::Write;
 use std::path::Path;
 use std::process::exit;
 
-use crate::data_stream::get_data_stream;
+use crate::data_stream::{DataSouce, get_data_stream};
 use crate::deriver::Deriver;
-use crate::term::data_providers::{DataSouce, TextProvider};
 use crate::writer::WriterResult;
 use crate::{lexer::Lexer, parser::Parser, term::terminal_handler::handle_args, writer::Writer};
 
@@ -34,7 +33,9 @@ fn main() {
     // todo fix target path to create subfolders
     // todo make so that derive can create folders
     // todo fix paths inside of the folder to reference according to folder path instead of program execution
-    // todo avoid access to upper folders from file 
+    // todo avoid access to upper folders from  
+    // fix imports check b.txt
+    // fix import space between : and ident not working
     loop {
         let data = stream.next();
         if data.is_none() {

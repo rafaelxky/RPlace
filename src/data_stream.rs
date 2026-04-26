@@ -3,8 +3,10 @@ use std::{fs, path::Path, process::exit};
 use walkdir::WalkDir;
 use reqwest::blocking::get;
 
-use crate::term::data_providers::DataSouce;
-
+pub enum DataSouce {
+    WEB,
+    FILE,
+}
 pub fn get_data_stream(path: &str) -> (Box<dyn DataStream>, DataSouce) {
     if path.starts_with("http") {
         return (Box::new(WebDataStream::new(path.to_string())), DataSouce::WEB);

@@ -1,4 +1,6 @@
+//- include ../c.txt:
 //- def a:
     helloa
 //- endef:
 //- place a:
+//- place b:

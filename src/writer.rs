@@ -5,13 +5,12 @@ use std::sync::{Arc, RwLock};
 use rayon::{collections::hash_map, prelude::*};
 use rayon::iter::IntoParallelRefIterator;
 
-use crate::{deriver::Deriver, error_handler::CompilationError, parser::ValueType};
+use crate::{data_stream::get_data_stream, deriver::Deriver, error_handler::CompilationError, parser::ValueType};
 
 use crate::{
     error_handler::handle_error,
     lexer::Lexer,
     parser::{Node, Parser, ParsingResult, Value},
-    term::data_providers::TextProvider,
 };
 #[derive(Debug, Clone)]
 pub struct ResValue{
@@ -67,8 +66,9 @@ impl Writer {
         }
     }
 
-    fn handle_import(&self, path: &String, line: usize) -> (String, Vec<Node>) {
+    fn handle_import(&self, data: String, line: usize, path: String) -> (String, Vec<Node>) {
         let mut imports: Vec<Node> = Vec::new();
+        /* 
          let mut path = path.clone();
                 if let Some(stripped) = path.strip_prefix("~") {
                     let stripped = stripped.strip_prefix("/").unwrap_or(stripped);
@@ -81,7 +81,8 @@ impl Writer {
                 if !Path::new(&path).exists() {
                     handle_error("Couldnt find import", line, &self.file_path);
                 }
-                let lexer = Lexer::new(path.clone(), TextProvider::get_text(&path).0);
+                */
+                let lexer = Lexer::new(path.clone(), data);
                 let parser = Parser::new(lexer.parse());
                 let nodes = parser.parse();
                 nodes.nodes.iter().for_each(|n| {
@@ -120,12 +121,28 @@ impl Writer {
             _ => (),
         }};
 
-        let imports: Vec<(String, Vec<Node>)> = to_import.par_iter().map(|(path, line)|{
-            self.handle_import(&path, *line)
-        }).collect();
+        let imports: Vec<(String, Vec<Node>)> = vec![];
+        let _ = to_import.par_iter().map(|(path, line)|{
+            let (mut stream, data_source) = get_data_stream(path);
+            loop {
+                let data = stream.next();
+                if data.is_none() {
+                    break;
+                }
+                let (data, path) = data.unwrap();
+                self.handle_import(data, *line,path);
+            }
+        });
 
         for (path, import) in imports {
-            def_map.insert(path, import);
+            for node in import {
+                match &node {
+                    Node::DEF { conditions, defaults, name, body, line } => {
+                        def_map.entry(name.clone()).or_insert_with(Vec::new).push(node.clone());
+                    },
+                    _ => ()
+                }
+            }
         }
         
     }

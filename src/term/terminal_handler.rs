@@ -1,9 +1,4 @@
-use std::{fs::{OpenOptions}, process::exit};
-
 use clap::{Parser};
-
-use crate::{lexer::Lexer, parser::Parser as Ps, term::data_providers::TextProvider, writer::Writer};
-use std::io::Write;
 
 #[derive(Parser, Debug)]
 pub struct Args {

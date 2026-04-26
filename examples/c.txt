@@ -1,0 +1,4 @@
+//- def b:
+    hellob
+//- endef:
+//- place b:
