@@ -1,6 +1,10 @@
 use std::{
     alloc::handle_alloc_error, collections::HashMap, path::{Path, PathBuf}, process::exit, str
 };
+use std::sync::{Arc, RwLock};
+use rayon::{collections::hash_map, prelude::*};
+use rayon::iter::IntoParallelRefIterator;
+
 use crate::{deriver::Deriver, error_handler::CompilationError, parser::ValueType};
 
 use crate::{
@@ -63,20 +67,9 @@ impl Writer {
         }
     }
 
-    fn initial_sweap(&mut self, def_map: &mut HashMap<String, Vec<Node>>) {
-        // initial sweap
-        self.nodes.iter().for_each(|node| match node {
-            Node::DEF {
-                name,
-                body: _,
-                line: _,
-                conditions: _,
-                defaults:_,
-            } => {
-                self.handle_def(def_map, &node, &name);
-            }
-            Node::INCLUDE { path, line } => {
-                let mut path = path.clone();
+    fn handle_import(&self, path: &String, line: usize) -> (String, Vec<Node>) {
+        let mut imports: Vec<Node> = Vec::new();
+         let mut path = path.clone();
                 if let Some(stripped) = path.strip_prefix("~") {
                     let stripped = stripped.strip_prefix("/").unwrap_or(stripped);
                     path = PathBuf::from(std::env::var("HOME").unwrap())
@@ -86,7 +79,7 @@ impl Writer {
                         .to_string();
                 }
                 if !Path::new(&path).exists() {
-                    handle_error("Couldnt find import", *line, &self.file_path);
+                    handle_error("Couldnt find import", line, &self.file_path);
                 }
                 let lexer = Lexer::new(path.clone(), TextProvider::get_text(&path).0);
                 let parser = Parser::new(lexer.parse());
@@ -100,15 +93,41 @@ impl Writer {
                         defaults: _,
                     } = n
                     {
-                        def_map
-                            .entry(name.clone())
-                            .or_insert_with(Vec::new)
-                            .push(n.clone());
+                        imports.push(n.clone());
                     }
                 });
+                (path, imports)
+    }
+
+    fn initial_sweap(&mut self, def_map: &mut HashMap<String, Vec<Node>>) {
+        // initial sweap
+        let mut to_import: Vec<(String,usize)> = Vec::new();
+
+        for node in &self.nodes {
+            match node {
+            Node::DEF {
+                name,
+                body: _,
+                line: _,
+                conditions: _,
+                defaults:_,
+            } => {
+                self.handle_def(&mut *def_map, &node, &name);
+            },
+            Node::INCLUDE { path, line } => {
+               to_import.push((path.clone(),*line));
             }
             _ => (),
-        });
+        }};
+
+        let imports: Vec<(String, Vec<Node>)> = to_import.par_iter().map(|(path, line)|{
+            self.handle_import(&path, *line)
+        }).collect();
+
+        for (path, import) in imports {
+            def_map.insert(path, import);
+        }
+        
     }
 
     fn handle_def(&self, def_map: &mut HashMap<String, Vec<Node>>, node: &Node, name: &String) {
@@ -123,8 +142,7 @@ impl Writer {
         let mut result = WriterResult::new();
 
         let mut text = String::new();
-        let mut def_map: HashMap<String, Vec<Node>> = HashMap::new();
-
+        let mut def_map = HashMap::new();
         self.initial_sweap(&mut def_map);
 
         let nodes = &self.nodes;
