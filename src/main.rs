@@ -31,7 +31,10 @@ fn main() {
         DataSouce::FILE => (),
     }
 
-    // todo fix target to create subfolders
+    // todo fix target path to create subfolders
+    // todo make so that derive can create folders
+    // todo fix paths inside of the folder to reference according to folder path instead of program execution
+    // todo avoid access to upper folders from file 
     loop {
         let data = stream.next();
         if data.is_none() {
