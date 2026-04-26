@@ -159,4 +159,5 @@ $#varname+sufix
 //- create folder/file.txt place name where var=val:
 //- place name where var=$#var_paren:
 //- derive path/file.txt where var="[Vv]ar"\regex, def="[Ss]truct"\def\regex:
+//- def derived derive path/file.txt where var=val:
 ```

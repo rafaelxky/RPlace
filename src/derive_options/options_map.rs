@@ -9,6 +9,7 @@ static DERIVE_OPTIONS: LazyLock<MapType> = LazyLock::new(||{
     hm.insert("def", def);
     hm.insert("var", arrow_var);
     hm.insert("regex", regex);
+    hm.insert("placea", placea);
     hm
 });
 
@@ -54,4 +55,6 @@ pub fn arrow_var(var: &str, _:&str, range: &Range<usize>) -> FnReturn{
 pub fn regex(_: &str, _:&str, _ : &Range<usize>) -> FnReturn{
     None
 }
-
+pub fn placea(var: &str, _:&str, range: &Range<usize>) -> FnReturn{
+    return Some(vec![(range.clone(), DeriveScope::After(format!("\n//- place {var}:\n")))]);
+}
