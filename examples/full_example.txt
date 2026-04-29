@@ -25,3 +25,4 @@
 //- place c:
 //- def d place a where default_2=default2:
 //- create out/out.txt place d where var=val:
+This is your output on the output file, the real output is in out/out.txt 
