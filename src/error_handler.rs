@@ -1,11 +1,7 @@
-use clap::builder::Str;
 
 use crate::parser::Parser;
 
-const RED: &str = "\x1b[31m";
-const GREEN: &str = "\x1b[32m";
 const YELLOW: &str = "\x1b[33m";
-const BLUE: &str = "\x1b[34m";
 const RESET: &str = "\x1b[0m";
 
 pub fn handle_error<S: Into<String>>(msg: S, line: usize, file: S) -> ! {

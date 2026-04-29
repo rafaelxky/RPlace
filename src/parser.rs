@@ -1,8 +1,7 @@
-use core::panic;
-use std::{str, vec};
+use std::{str};
 
 use crate::{
-    error_handler::{CompilationError, handle_error, handle_error_parser, handle_expected_error},
+    error_handler::{CompilationError, handle_error, handle_error_parser},
     lexer::{Token, TokenResult},
 };
 
@@ -352,25 +351,24 @@ impl Parser {
         //- def ...
         self.remove_spaces();
 
-        let mut def_name = String::new();
         let mut conditions: Option<Vec<(String, String, Condition)>> = None;
         let mut defaults: Option<Vec<(String, String)>> = None;
         let mut body: Option<Box<Node>> = None;
 
         // get def name
-        match self.peek() {
+        let def_name = match self.peek() {
             Token::IDENT { str } => {
                 self.ptr_next();
-                def_name = str;
+                str
             }
             Token::PLACE => {
                 self.ptr_next();
-                def_name = "place".to_string();
+                "place".to_string()
             }
             _ => {
                 handle_error_parser(CompilationError::InvalidDefName, self);
             }
-        }
+        };
 
         self.remove_spaces();
 
@@ -655,7 +653,7 @@ impl Parser {
     fn handle_var(&mut self) -> Vec<(String, Value)> {
         let mut args: Vec<(String, Value)> = Vec::new();
         loop {
-            let mut options_1: Option<Vec<String>> = None;
+            //let mut options_1: Option<Vec<String>> = None;
             let mut options_2: Option<Vec<String>> = None;
             self.remove_spaces();
             match self.peek() {
@@ -664,7 +662,7 @@ impl Parser {
                     let from = str;
                     if matches!(self.peek(), Token::BSLASH) {
                         self.ptr_next();
-                        options_1 = self.handle_var_options();
+                        //options_1 = self.handle_var_options();
                     }
                     self.remove_spaces();
                     match self.peek() {
@@ -885,7 +883,7 @@ impl Parser {
                         }
                     }
                 }
-                Token::MARK { kind } => {
+                Token::MARK { kind:_ } => {
                     self.ptr_next();
                     self.remove_spaces();
                     match self.peek() {
@@ -1075,27 +1073,5 @@ impl Parser {
             line: place_line,
         });
         return;
-    }
-
-    fn collect_spaces(&mut self) -> (String, bool) {
-        let mut spaces = String::new();
-        let mut ends = false;
-        loop {
-            match self.peek() {
-                Token::SPACE => {
-                    self.ptr_next();
-                    spaces.push(' ');
-                }
-                Token::DQUOTE => {
-                    self.ptr_next();
-                    ends = true;
-                    break;
-                }
-                _ => {
-                    break;
-                }
-            }
-        }
-        (spaces, ends)
     }
 }

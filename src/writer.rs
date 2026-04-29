@@ -1,11 +1,10 @@
 use std::{
-    alloc::handle_alloc_error, collections::HashMap, path::{Path, PathBuf}, process::exit, str
+    collections::HashMap, process::exit, str
 };
-use std::sync::{Arc, RwLock};
-use rayon::{collections::hash_map, prelude::*};
+use rayon::{ prelude::*};
 use rayon::iter::IntoParallelRefIterator;
 
-use crate::{data_stream::get_data_stream, deriver::Deriver, error_handler::CompilationError, parser::ValueType};
+use crate::{data_stream::get_data_stream, deriver::Deriver, parser::ValueType};
 
 use crate::{
     error_handler::handle_error,
@@ -15,7 +14,6 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct ResValue{
     value:String,
-    options: Option<Vec<String>>,
 }
 pub enum FileWriteOptions{
     Override,
@@ -66,28 +64,14 @@ impl Writer {
         }
     }
 
-    fn handle_import(&self, data: String, line: usize, path: String) -> (String, Vec<Node>) {
+    fn handle_import(&self, data: String, path: String) -> (String, Vec<Node>) {
         let mut imports: Vec<Node> = Vec::new();
-        /* 
-         let mut path = path.clone();
-                if let Some(stripped) = path.strip_prefix("~") {
-                    let stripped = stripped.strip_prefix("/").unwrap_or(stripped);
-                    path = PathBuf::from(std::env::var("HOME").unwrap())
-                        .join(".rplace")
-                        .join(stripped)
-                        .to_string_lossy()
-                        .to_string();
-                }
-                if !Path::new(&path).exists() {
-                    handle_error("Couldnt find import", line, &self.file_path);
-                }
-                */
                 let lexer = Lexer::new(path.clone(), data);
                 let parser = Parser::new(lexer.parse());
                 let nodes = parser.parse();
                 nodes.nodes.iter().for_each(|n| {
                     if let Node::DEF {
-                        name,
+                        name:_,
                         body: _,
                         line: _,
                         conditions: _,
@@ -121,7 +105,7 @@ impl Writer {
             _ => (),
         }};
 
-        let imports: Vec<Vec<(String,Vec<Node>)>> = to_import.par_iter().map(|(path, line)|{
+        let imports: Vec<Vec<(String,Vec<Node>)>> = to_import.par_iter().map(|(path, _line)|{
             let (mut stream, _) = get_data_stream(path);
             let mut imp = Vec::new();
             loop {
@@ -130,7 +114,7 @@ impl Writer {
                     break;
                 }
                 let (data, path) = data.unwrap();
-                imp.push(self.handle_import(data, *line,path));
+                imp.push(self.handle_import(data,path));
             }
             imp
         }).collect();
@@ -168,9 +152,9 @@ impl Writer {
         let nodes = &self.nodes;
         for node in nodes {
             match node {
-                Node::BODY { data, line } => {
+                Node::BODY { data, line:_ } => {
                     data.iter().for_each(|n| match n {
-                        Node::DATA { data, line } => {
+                        Node::DATA { data, line:_ } => {
                             text.push_str(data);
                         }
                         Node::VARTEMPLATE { name } => {
@@ -179,7 +163,7 @@ impl Writer {
                         _ => (),
                     });
                 },
-                Node::DATA { data, line } => {
+                Node::DATA { data, line:_ } => {
                     text.push_str(&data);
                 },
                 Node::PLACE { name, args, line } => {
@@ -271,7 +255,7 @@ impl Writer {
             // this is to avoid children overriding parent values
             if !args_map.contains_key(&arg.0.clone()) {
                 match &arg.1.value_type {
-                    &ValueType::Literal => { args_map.insert(arg.0.clone(), ResValue { value: arg.1.value.to_string(), options: arg.1.options.clone() }); }
+                    &ValueType::Literal => { args_map.insert(arg.0.clone(), ResValue { value: arg.1.value.to_string() }); }
                     &ValueType::Var => {
                         let val = args_map.get(name);
                         match val {
@@ -351,7 +335,7 @@ impl Writer {
                         if defaults.is_some() {
                             defaults.as_ref().unwrap().iter().for_each(|(var,val)|{
                                 if !args_map.contains_key(var) {
-                                    args_map.insert(var.clone(), ResValue { value: val.clone(), options: None });
+                                    args_map.insert(var.clone(), ResValue { value: val.clone()});
                                 }
                             });
                         }
@@ -361,7 +345,7 @@ impl Writer {
                             // go trough the body and handle the cases
                             data.iter().for_each(|n| match n {
                                     // here is handled anything inside the def
-                                    Node::DATA { data, line } => {
+                                    Node::DATA { data, line:_ } => {
                                         // just text
                                         text.push_str(data);
                                     },
@@ -381,7 +365,7 @@ impl Writer {
                                             Some(val) => val,
                                             None => {
                                                 match default {
-                                                    Some(default) => &ResValue { value: default.to_string(), options: None },
+                                                    Some(default) => &ResValue { value: default.to_string()},
                                                     None => handle_error(format!("No value specified for \"{}\" in right arrow variable declaration!", name), line.clone(), self.file_path.clone())
                                                 }
                                             }

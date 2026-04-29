@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs,
-    ops::{Range, RangeFrom},
+    ops::{Range},
 };
 
 use crate::{
@@ -18,7 +18,7 @@ impl Deriver {
         if text.is_err() {
             panic!("Error: no such file {} for derive", derive.path)
         }
-        let mut text = text.unwrap();
+        let text = text.unwrap();
         let mut all_changes: Vec<(Range<usize>, DeriveScope)> = Vec::new();
 
         derive.vals.iter().for_each(|(var, pattern)| {
