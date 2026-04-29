@@ -5,8 +5,7 @@ use std::{
 };
 
 use crate::{
-    derive_options::options_map::{DeriveScope, apply_options, arrow_var},
-    writer::Derive,
+    derive_options::options_map::{DeriveScope, apply_options, arrow_var}, writer::Derive
 };
 use regex::Regex;
 
@@ -15,6 +14,7 @@ impl Deriver {
     // todo: resolve variable derive
     pub fn derive(derive: &Derive) -> String {
         let text = fs::read_to_string(derive.path.clone());
+        //let data_stream = get_data_stream(&derive.path.clone());
         if text.is_err() {
             panic!("Error: no such file {} for derive", derive.path)
         }
@@ -38,7 +38,7 @@ impl Deriver {
 
             if is_regex {
                 let re = Regex::new(&pattern.value).unwrap();
-
+                
                 for mat in re.find_iter(&text) {
                     if mat.start() == mat.end() {
                         continue;

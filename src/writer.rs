@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap, process::exit, str
+    collections::HashMap,str
 };
 use rayon::{ prelude::*};
 use rayon::iter::IntoParallelRefIterator;
@@ -168,9 +168,9 @@ impl Writer {
                 },
                 Node::PLACE { name, args, line } => {
                     let mut args_map: HashMap<String, ResValue> = HashMap::new();
-                    let inner_defs =
+                    let (inner_defs,result_inner) =
                         self.handle_place(&mut text, &mut def_map, name, args, line, &mut args_map);
-
+                    result.append(result_inner);
                     if matches!(inner_defs, Some(_)) {
                         inner_defs.unwrap().iter().for_each(|def| {
                             if let Node::DEF {
@@ -218,16 +218,14 @@ impl Writer {
                                     result.push_elements(text, path.clone());
                                 },
                                 _ => {
-                                    eprintln!("Expected only place inside of create instead found {:?} in line {}", place, line);
-                                    exit(1);
+                                    panic!("Expected only place inside of create instead found {:?} in line {}", place, line);
                                 }
                             }
                         });
                         return result;
                     },
                     _ => {
-                        eprintln!("Internal error, no body found inside create, found instead {:?}",node);
-                        exit(1);
+                        panic!("Internal error, no body found inside create, found instead {:?}",node);
                     }
                 }
             },
@@ -239,6 +237,7 @@ impl Writer {
     }
 
     // todo: inner create
+    // supported inner commands: def, derive
     fn handle_place(
         &self,
         text: &mut String,
@@ -249,7 +248,7 @@ impl Writer {
         args_map: &mut HashMap<String, ResValue>,
     ) 
     // def queue
-    -> Option<Vec<Node>> {
+    -> (Option<Vec<Node>>, WriterResult) {
         // maps variables to values
         args.iter().for_each(|arg| {
             // this is to avoid children overriding parent values
@@ -272,6 +271,7 @@ impl Writer {
         });
 
         let mut def_queue: Option<Vec<Node>> = None;
+        let mut result = WriterResult::new();
 
         match def_map.get(name) {
             // check if template exists
@@ -324,6 +324,7 @@ impl Writer {
                         self.file_path.clone(),
                     )
                 }
+                // template to place
                 match matched.unwrap() {
                     Node::DEF {
                         name: def_name,
@@ -384,10 +385,15 @@ impl Writer {
                                         if def_queue.is_none() {
                                             def_queue = Some(Vec::new());
                                         }
-                                        let result = self.handle_place(text, &def_map, name, args, line, args_map);
-                                        if result.is_some() {
-                                            def_queue.as_mut().unwrap().append(&mut result.unwrap());
+                                        let (result_inner, writer_result) = self.handle_place(text, &def_map, name, args, line, args_map);
+                                        result.append(writer_result);
+                                        if result_inner.is_some() {
+                                            def_queue.as_mut().unwrap().append(&mut result_inner.unwrap());
                                         }
+                                    },
+                                    Node::CREATE { path, content } =>{
+                                        let result_inner = self.handle_create(path, content, def_map);
+                                        result.append(result_inner);
                                     },
                                     _ => {
                                         handle_error(format!("Body should only have data or var def, instead found {:?}", n), line.clone(), self.file_path.clone())
@@ -400,6 +406,9 @@ impl Writer {
                         Node::DERIVE { path, val } => {
                             let result = Deriver::derive(&Derive { path: path.clone(), vals: val.clone() });
                             text.push_str(&result);
+                        },
+                        Node::CREATE { path, content } => {
+                            self.handle_create(path, content, def_map);
                         },
                         _ => handle_error(
                             format!(
@@ -431,6 +440,6 @@ impl Writer {
             )
         },
         }
-        return def_queue;
+        return (def_queue,result);
     }
 }
