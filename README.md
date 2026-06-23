@@ -137,7 +137,7 @@ this will take regular text and transform it into a template
 - \var
 - the default option will be \var and no regex
 
-# memo
+# list of examples
 ```
 //- place:
 //- def name:

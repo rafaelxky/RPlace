@@ -565,7 +565,8 @@ impl Parser {
             return;
         }
 
-        // body handling
+        // if nothing defines a body then its a def of kind /*- def name: ... endef -*/
+        // so we need to build the body
         let body = self.build_body();
         nodes.push(Node::DEF {
             name: def_name.to_string(),

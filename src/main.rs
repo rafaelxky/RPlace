@@ -33,9 +33,10 @@ fn main() {
     // todo fix target path to create subfolders
     // todo make so that derive can create folders
     // todo fix paths inside of the folder to reference according to folder path instead of program execution
-    // todo avoid access to upper folders from  
+    // todo avoid access to upper folders from
     // fix imports check b.txt
     // fix import space between : and ident not working
+    // tests
     loop {
         let data = stream.next();
         if data.is_none() {

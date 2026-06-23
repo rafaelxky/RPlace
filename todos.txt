@@ -3,7 +3,7 @@
 - inherit spaces when placing
 - config
 - conditional variables if a = b else and defaults
-- variable manipulation by commands
+- variable manipulation by commands-
 ex: 
 change 
 $#var/UPPERFIRST
@@ -62,7 +62,6 @@ same for place ex: //- place a where A=B?
 - rules for error output
 - sujestions for typos using Levenshtein distance
 
-- inner place
 - improve derive
 - add more variable options
 - derive the entire folder structure
@@ -79,3 +78,5 @@ and it would be able to translate to multiple languages
 - make a completion provider for VsCode
 - def a derive ...
 - palce derive
+
+- for loops or iteration over a list
