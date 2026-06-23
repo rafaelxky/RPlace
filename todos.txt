@@ -80,3 +80,4 @@ and it would be able to translate to multiple languages
 - palce derive
 
 - for loops or iteration over a list
+- json integration
