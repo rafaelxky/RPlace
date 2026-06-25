@@ -89,15 +89,15 @@ this will declare a template "a" wich will replace the variable "var" with "val"
 - supports http includes, the url must provide raw text only
 
 # place
+- place is how you call your definitions with values assigned
 - ex: //- place def_name where var_name=var_value, var2=val2:
-//- place def_name where body = "
+- it suports single line and multiline double quote variables
+- ex: //- place def_name where body = "
     multiline variable
 //- ":
-- this is how you call your definitions with value assignements
-- it suports single line and multiline double quote variables
-- if no value or default is provided the program will trow
+- if no value or default is provided the program will throw
 - you can define defaults with def place or arrow variables
-- you can use variables inside place 
+- you can use variables inside place
 - ex: //- place name where a=$#var
 - in this case "a" will be replaced by the value of "var" from the parent
 
@@ -186,5 +186,9 @@ $#varname+sufix
         //- place b:
     //- end:
 //- end:
+
+//- place def_name where body = "
+    multiline variable
+//- ":
 
 ```
