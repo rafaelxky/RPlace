@@ -210,7 +210,7 @@ impl Parser {
                     path,
                     content: None,
                 });
-                self.remove_till_tl();
+                self.remove_till_nl();
                 return;
             }
             Token::PLACE => {
@@ -231,13 +231,13 @@ impl Parser {
         self.remove_spaces();
 
         let path = match self.peek() {
-            Token::IDENT { str } => self.get_path(),
+            Token::IDENT { str:_ } => self.get_path(),
             _ => {
                 handle_error_parser(CompilationError::InvalidTokenInIncludePath, self);
             }
         };
 
-        self.remove_till_tl();
+        self.remove_till_nl();
 
         match self.pop() {
             Token::DD => {}
@@ -285,7 +285,7 @@ impl Parser {
                 // def name:
                 Token::DD => {
                     self.ptr_next();
-                    self.remove_till_tl();
+                    self.remove_till_nl();
                     break;
                 }
                 // def name place name where ...
@@ -345,7 +345,7 @@ impl Parser {
                                                 match self.peek() {
                                                     // def name when name = val:
                                                     Token::DD => {
-                                                        self.remove_till_tl();
+                                                        self.remove_till_nl();
                                                         break;
                                                     }
                                                     Token::COMMA => {
@@ -417,7 +417,7 @@ impl Parser {
                                                 defaults.as_mut().unwrap().push((var, val));
                                                 match self.peek() {
                                                     Token::DD => {
-                                                        self.remove_till_tl();
+                                                        self.remove_till_nl();
                                                         break;
                                                     }
                                                     Token::COMMA => {
@@ -500,7 +500,7 @@ impl Parser {
             }
         }
     }
-    fn remove_till_tl(&mut self) {
+    fn remove_till_nl(&mut self) {
         loop {
             match self.peek() {
                 Token::SPACE => {
@@ -754,12 +754,14 @@ impl Parser {
         }
     }
 
+    /// handles any mark found inside a body
+    /// this is ONLY called coming from a body
+    /// already consumed the mark
     fn handle_mark_at_body(&mut self, body_str: &mut String, body: &mut Vec<Node>) -> bool {
-        self.ptr_next();
         self.remove_spaces();
         match self.peek() {
-            //- endef:
-            Token::ENDEF => {
+            //- end:
+            Token::END => {
                 self.ptr_next();
                 body.push(Node::DATA {
                     data: body_str.to_string(),
@@ -767,10 +769,10 @@ impl Parser {
                 });
                 self.remove_spaces();
                 match self.peek() {
-                    // endef :
+                    // end :
                     Token::DD => {
                         self.ptr_next();
-                        self.remove_till_tl();
+                        self.remove_till_nl();
                         if matches!(self.peek(), Token::NL) {
                             self.line = self.line - 1;
                         }
@@ -871,10 +873,16 @@ impl Parser {
                 self.unpop();
             }
             Token::INCLUDE => {
+                // inner include
                 self.ptr_next();
                 let mut nodes = ParsingResult::new(self.file_path.clone());
                 self.handle_include(&mut nodes);
                 body.append(&mut nodes.nodes);
+            }
+            Token::MATCH => {
+                self.ptr_next();
+                let node = self.handle_match();
+                body.push(node);
             }
             _ => {
                 handle_error_parser(CompilationError::InvalidBodyCommand, self);
@@ -883,7 +891,78 @@ impl Parser {
         return false;
     }
 
-    // ends at endef
+    fn handle_match(&mut self) -> Node {
+        self.remove_till_nl();
+        let var_name = match self.pop() {
+            Token::IDENT { str } => str,
+            _ => panic!("todo error message"),
+        };
+        self.remove_till_nl();
+        match self.pop() {
+            Token::DD => {}
+            _ => panic!("todo error message"),
+        };
+
+        let mut matches = Vec::new();
+        self.remove_spaces();
+        loop {
+            match self.pop() {
+                Token::CASE => {
+                    let arm_body = self.handle_match_arm();
+                    matches.push(arm_body);
+                    self.remove_spaces();
+                    match self.pop() {
+                        Token::MARK { kind:_ } => {
+                            self.remove_till_nl();
+                            match self.peek() {
+                                Token::END => {
+                                    self.ptr_next();
+                                    break;
+                                },
+                                _ => {
+                                    continue;
+                                },
+                            }
+                        }
+                        _ => panic!("todo error message"),
+                    }
+                }
+                _ => panic!("todo error message"),
+            }
+        }
+
+        return Node::MATCH {
+            line: self.line,
+            var_name: var_name,
+            val: matches,
+        };
+    }
+
+    /// handles match arm
+    /// already poped match token here
+    /// returns a body node and the match value inside the match arm struct
+    fn handle_match_arm(&mut self) -> MatchArm {
+        self.remove_till_nl();
+        let match_value = match self.pop() {
+            Token::IDENT { str } => str,
+            _ => panic!("todo error message"),
+        };
+
+        self.remove_till_nl();
+        match self.pop() {
+            Token::DD => {}
+            _ => panic!("todo error message"),
+        };
+        self.remove_till_nl();
+
+        let body = self.build_body();
+        MatchArm::new(match_value, body)
+    }
+
+    /// builds a body Node
+    /// contains raw text and any nodes supported inside of a def body
+    /// ends at "end"
+    /// comes from def or match arm
     fn build_body(&mut self) -> Node {
         let mut body_str = String::new();
         let mut body: Vec<Node> = Vec::new();
@@ -921,6 +1000,7 @@ impl Parser {
                     }
                 }
                 Token::MARK { kind: _ } => {
+                    self.ptr_next();
                     let should_break = self.handle_mark_at_body(&mut body_str, &mut body);
                     if should_break {
                         break;
@@ -969,14 +1049,14 @@ impl Parser {
                 // place ident:
                 Token::DD => {
                     self.ptr_next();
-                    self.remove_till_tl();
+                    self.remove_till_nl();
                     break;
                 }
                 // place ident were
                 Token::WHERE => {
                     self.ptr_next();
                     args.append(&mut self.handle_var());
-                    self.remove_till_tl();
+                    self.remove_till_nl();
                 }
                 _ => handle_error_parser(CompilationError::InvalidPlaceOption, self),
             }

@@ -74,6 +74,21 @@ pub enum Node {
         path: String,
         val: Vec<(String, Value)>,
     },
+    MATCH  {
+        line: usize,
+        var_name: String,
+        val: Vec<MatchArm>,
+    }
+}
+#[derive(Debug, Clone)]
+pub struct MatchArm{
+    match_value: String,
+    body: Node,
+}
+impl MatchArm {
+    pub fn new(match_value: String, body: Node)-> Self{
+        Self { match_value, body: body }
+    }
 }
 impl Node {
     pub fn new_create(path: String, content: Vec<Node>, starting_line: usize) -> Node {

@@ -6,7 +6,7 @@ use std::{
 
 use regex::Regex;
 
-use crate::{derive::options_map::{DeriveScope, apply_options, arrow_var}, writer::Derive};
+use crate::{derive::options_map::{DeriveScope, apply_options, arrow_var}, writer::writer_structs::Derive};
 
 pub struct Deriver {}
 impl Deriver {

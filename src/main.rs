@@ -3,8 +3,9 @@ use std::process::exit;
 
 use crate::data_stream::{DataSouce, get_data_stream};
 use crate::output_stream::OutputWriter;
-use crate::writer::WriterResult;
-use crate::{lexer::Lexer, parser::Parser, term::terminal_handler::handle_args, writer::Writer};
+use crate::writer::writer::{Writer};
+use crate::writer::writer_structs::WriterResult;
+use crate::{lexer::Lexer, parser::Parser, term::terminal_handler::handle_args};
 
 pub mod output_stream;
 pub mod data_stream;

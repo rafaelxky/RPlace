@@ -3,7 +3,7 @@
 pub enum Token {
     IDENT { str: String },
     DEF,
-    ENDEF,
+    END,
     VAR,
     MARK { kind: String },
     DD,
@@ -24,13 +24,15 @@ pub enum Token {
     CREATE,
     BSLASH,
     DERIVE,
+    CASE,
+    MATCH,
 }
 impl Token {
     pub fn val(&self) -> String {
         return match self {
             Token::IDENT { str } => str,
             Token::DEF => "def",
-            Token::ENDEF => "endef",
+            Token::END => "end",
             Token::VAR => "$#",
             Token::MARK { kind } => kind,
             Token::DD => ":",
@@ -51,19 +53,23 @@ impl Token {
             Token::CREATE => "create",
             Token::BSLASH => "\\",
             Token::DERIVE => "derive",
+            Token::CASE => "case",
+            Token::MATCH => "match",
         }
         .to_string();
     }
     pub fn try_get_soft_keyword(&self) -> Option<String> {
         let res = match self {
             Token::DEF => "def",
-            Token::ENDEF => "endef",
+            Token::END => "endef",
             Token::PLACE => "place",
             Token::WHERE => "where",
             Token::INCLUDE => "include",
             Token::WHEN => "when",
             Token::CREATE => "create",
             Token::DERIVE => "derive",
+            Token::CASE => "case",
+            Token::MATCH => "match",
             _ => ""
         };
         if res.is_empty() {
@@ -291,8 +297,8 @@ impl Lexer {
                     tokens.push(Token::DEF);
                     continue;
                 }
-                "endef" => {
-                    tokens.push(Token::ENDEF);
+                "end" => {
+                    tokens.push(Token::END);
                     continue;
                 }
                 "where" => {
@@ -312,6 +318,12 @@ impl Lexer {
                 },
                 "derive" => {
                     tokens.push(Token::DERIVE);
+                },
+                "case" => {
+                    tokens.push(Token::CASE);
+                },
+                "match" => {
+                    tokens.push(Token::MATCH);
                 },
                 _ => {
                     tokens.push(Token::IDENT { str });

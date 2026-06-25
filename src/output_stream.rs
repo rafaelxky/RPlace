@@ -1,6 +1,6 @@
 use std::{fs::{self, File, OpenOptions}};
 
-use crate::{derive::deriver::Deriver,writer::{FileData, WriterResult}};
+use crate::{derive::deriver::Deriver, writer::{writer_structs::{FileData, WriterResult}}};
 use std::io::Write;
 use std::path::Path;
 
