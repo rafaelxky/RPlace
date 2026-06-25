@@ -131,14 +131,18 @@ it will call the default def
 
 # reverse templates / derive
 - rplace supports reverse templates
-this will take regular text and transform it into a template
+this will take regular text and transform it into a template acording to rules
 - ex: //- derive path/file.txt where var="[Vv]ar"\regex:
-- this will inser an arrow variable with name "var" before any match 
+- this will insert an arrow variable with name "var" before any match 
 - also supports specific options
 - \regex
 - \def
 - \var
 - the default option will be \var and no regex
+- you can also do it on the same file
+- ex: //- derive where var="name":
+
+
 
 # controll flow
 ## match
@@ -178,6 +182,7 @@ $#varname+sufix
 //- place name where var=$#var_paren:
 //- derive path/file.txt where var="[Vv]ar"\regex, def="[Ss]truct"\def\regex:
 //- def derived derive path/file.txt where var=val:
+//- derive where var="name":
 //- include path/file.txt:
 
 //- match word:
