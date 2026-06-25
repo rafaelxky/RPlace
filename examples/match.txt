@@ -1,3 +1,6 @@
+//- def c:
+    apples
+//- end:
 //- def a where word=a:
     hello
 
@@ -9,7 +12,7 @@
             melons
         //- end:
         //- case c:
-            apples
+            //- place c:
         //- end:
     //- end:
     

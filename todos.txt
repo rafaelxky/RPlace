@@ -81,15 +81,5 @@ and it would be able to translate to multiple languages
 
 - for loops or iteration over a list
 - json integration
-- match
-    ex:
-    //- match var
-    //- case a
-
-    //- end
-    //- case b
-    
-    //- end
-    //- case c
-    //- end
 - if else
+- implement any / _ for match

@@ -35,7 +35,7 @@ pub struct /*- $#struct_name -> -*/ Vec2
 - define template
 /*- def def_name:
     template here $#var
-*///- endef:
+*///- end:
 
 ## def place / inheritance
 inheritance is possible with def place
@@ -61,7 +61,7 @@ it will call the default def
 ex:
 //- def name when var=val:
     $#var
-//- endef:
+//- end:
 this will place the value in the variable as normal
 
 - inheritance and overloading can be used at the same time like
@@ -73,7 +73,7 @@ this will declare a template "a" wich will replace the variable "var" with "val"
 - ex: 
 //- def name where var=val:
     $#var
-//- endef:
+//- end:
 
 ## def derive
 - you can create a reverse template and define it
@@ -138,6 +138,21 @@ this will take regular text and transform it into a template
 - \var
 - the default option will be \var and no regex
 
+# controll flow
+## match
+- inside of template bodies you can match variables
+- ex: 
+//- match var:
+    //- case valA:
+        stuff
+    //- end: 
+    //- case valB:
+        more stuff
+    //- end:
+//- end:
+- the first matched case will be placed
+- can have inner instructions wich will be executed
+
 # list of examples
 ```
 //- place:
@@ -145,7 +160,7 @@ this will take regular text and transform it into a template
 //- def name where var=val:
 //- def name when var = val:
 //- def name where varA=valA when varB=valB:
-//- endef:
+//- end:
 //- place name:
 //- place name where varA=valA, varB=valB:
 //- def nameA place nameB:
@@ -162,4 +177,14 @@ $#varname+sufix
 //- derive path/file.txt where var="[Vv]ar"\regex, def="[Ss]truct"\def\regex:
 //- def derived derive path/file.txt where var=val:
 //- include path/file.txt:
+
+//- match word:
+    //- case apple
+        apple
+    //- end:
+    //- case banana:
+        //- place b:
+    //- end:
+//- end:
+
 ```
