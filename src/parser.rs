@@ -1,7 +1,9 @@
 use std::str;
 
 use crate::{
-    error_handler::{CompilationError, handle_error, handle_error_parser}, lexer::{Token, TokenResult}, structs::*,
+    error_handler::{CompilationError, handle_error, handle_error_parser},
+    lexer::{Token, TokenResult},
+    structs::*,
 };
 
 pub struct Parser {
@@ -141,10 +143,11 @@ impl Parser {
         }
     }
 
+    /// gets the file path from tokens
+    /// at this point we know a path is to come but no ident has been consumed
+    /// ex: parent/child.txt
     fn get_path(&mut self) -> String {
         let mut path: String = String::new();
-        // filepath
-        // ex: parent/child.txt
         self.remove_spaces();
         loop {
             match self.peek() {
@@ -225,37 +228,30 @@ impl Parser {
     }
 
     fn handle_include(&mut self, nodes: &mut ParsingResult) {
-        let mut path = String::new();
-
         self.remove_spaces();
 
-        loop {
-            match self.peek() {
-                Token::IDENT { str } => {
-                    path.push_str(&str);
-                }
-                // include
-                Token::DD => {
-                    self.ptr_next();
-                    nodes.push(Node::INCLUDE {
-                        path: path.clone(),
-                        line: self.line,
-                    });
-                    self.remove_till_tl();
-                    return;
-                }
-                Token::INCLUDE => {
-                    path.push_str("include");
-                }
-                Token::WHERE => {
-                    path.push_str("where");
-                }
-                _ => {
-                    handle_error_parser(CompilationError::InvalidTokenInIncludePath, self);
-                }
+        let path = match self.peek() {
+            Token::IDENT { str } => self.get_path(),
+            _ => {
+                handle_error_parser(CompilationError::InvalidTokenInIncludePath, self);
             }
-            self.ptr_next();
+        };
+
+        self.remove_till_tl();
+
+        match self.pop() {
+            Token::DD => {}
+            _ => {
+                panic!("todo error message")
+            }
         }
+
+        nodes.push(Node::INCLUDE {
+            path: path.clone(),
+            line: self.line,
+        });
+
+        return;
     }
 
     fn handle_def(&mut self, nodes: &mut ParsingResult) {
@@ -309,7 +305,7 @@ impl Parser {
                 Token::DERIVE => {
                     // todo:
                     self.ptr_next();
-                    let mut temp_nodes= ParsingResult::new(self.file_path.clone());
+                    let mut temp_nodes = ParsingResult::new(self.file_path.clone());
                     self.handle_derive(&mut temp_nodes);
                     body = Some(Box::new(temp_nodes.nodes[0].clone()));
                     break;
@@ -854,7 +850,7 @@ impl Parser {
             Token::DEF => {
                 // inner def
                 self.ptr_next();
-                let mut nodes= ParsingResult::new(self.file_path.clone());
+                let mut nodes = ParsingResult::new(self.file_path.clone());
                 self.handle_def(&mut nodes);
                 body.append(&mut nodes.nodes);
             }
@@ -866,7 +862,7 @@ impl Parser {
                     line: self.line,
                 });
                 *body_str = String::new();
-                let mut nodes= ParsingResult::new(self.file_path.clone());
+                let mut nodes = ParsingResult::new(self.file_path.clone());
                 self.handle_place(&mut nodes);
                 body.append(&mut nodes.nodes);
                 if matches!(self.peek(), Token::NL) {
@@ -876,7 +872,7 @@ impl Parser {
             }
             Token::INCLUDE => {
                 self.ptr_next();
-                let mut nodes= ParsingResult::new(self.file_path.clone());
+                let mut nodes = ParsingResult::new(self.file_path.clone());
                 self.handle_include(&mut nodes);
                 body.append(&mut nodes.nodes);
             }
