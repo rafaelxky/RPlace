@@ -1,4 +1,7 @@
 //- def a when var=val where default_3=def3: 
+
+  
+
     arrow default -> /*- $#default -> -*/ arrow_default_value
     expected: arrow_default_value
     where default from def place -> $#default_2
@@ -10,19 +13,32 @@
     default from def where -> $#default_3
     expected def3
     //- place b where val = value:
-//- endef:
+    expected innerdef var = value
+
+      before match
+       //- match word:
+        //- case a:
+            should place
+        //- end:
+        //- case b:
+            shouldnt place
+        //- end:
+    //- end:
+    after match
+    
+//- end:
 
 //- def c:
     //- def b:
         innerdef var = $#val
-    //- endef:
-//- endef:
+    //- end:
+//- end:
 
 //- def a:
     shouldn't place
-//- endef:
+//- end:
 
 //- place c:
-//- def d place a where default_2=default2:
+//- def d place a where default_2=default2, word=a:
 //- create out/out.txt place d where var=val:
 This is your output on the output file, the real output is in out/out.txt 

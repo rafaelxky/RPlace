@@ -1,0 +1,20 @@
+//- def a where word=a:
+    hello
+
+    //- match word:
+        //- case a:
+            world
+        //- end:
+        //- case b:
+            melons
+        //- end:
+        //- case c:
+            apples
+        //- end:
+    //- end:
+    
+//- end:
+
+//- place a:
+//- place a where word = c:
+//- place a where word = b:

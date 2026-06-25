@@ -82,12 +82,15 @@ pub enum Node {
 }
 #[derive(Debug, Clone)]
 pub struct MatchArm{
-    match_value: String,
-    body: Node,
+    pub match_value: String,
+    pub body: Node,
 }
 impl MatchArm {
     pub fn new(match_value: String, body: Node)-> Self{
         Self { match_value, body: body }
+    }
+    pub fn matches(&self, val: String) -> bool {
+        self.match_value == *val
     }
 }
 impl Node {

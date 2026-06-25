@@ -231,7 +231,7 @@ impl Parser {
         self.remove_spaces();
 
         let path = match self.peek() {
-            Token::IDENT { str:_ } => self.get_path(),
+            Token::IDENT { str: _ } => self.get_path(),
             _ => {
                 handle_error_parser(CompilationError::InvalidTokenInIncludePath, self);
             }
@@ -881,6 +881,11 @@ impl Parser {
             }
             Token::MATCH => {
                 self.ptr_next();
+                body.push(Node::DATA {
+                    data: body_str.to_string(),
+                    line: self.line,
+                });
+                *body_str = String::new();
                 let node = self.handle_match();
                 body.push(node);
             }
@@ -906,28 +911,26 @@ impl Parser {
         let mut matches = Vec::new();
         self.remove_spaces();
         loop {
+            self.remove_spaces();
+            match self.pop() {
+                Token::MARK { kind } => {}
+                _ => panic!("forgot mark"),
+            }
+            self.remove_spaces();
             match self.pop() {
                 Token::CASE => {
                     let arm_body = self.handle_match_arm();
                     matches.push(arm_body);
-                    self.remove_spaces();
-                    match self.pop() {
-                        Token::MARK { kind:_ } => {
-                            self.remove_till_nl();
-                            match self.peek() {
-                                Token::END => {
-                                    self.ptr_next();
-                                    break;
-                                },
-                                _ => {
-                                    continue;
-                                },
-                            }
-                        }
-                        _ => panic!("todo error message"),
-                    }
                 }
-                _ => panic!("todo error message"),
+                Token::END => {
+                    self.ptr_next();
+                    break;
+                }
+                tok => panic!(
+                    "todo error message l: {} expected case found {:?}",
+                    self.get_line(),
+                    tok
+                ),
             }
         }
 

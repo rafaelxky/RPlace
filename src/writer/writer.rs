@@ -204,6 +204,93 @@ impl Writer {
         }
     }
 
+    fn handle_def_body(&self, data: &Vec<Node>, text: &mut String, args_map: &mut HashMap<String, ResValue>,def_queue: &mut Option<Vec<Node>>,  def_name: &String, line: &usize, def_map: &HashMap<String, Vec<Node>>, result: &mut WriterResult){
+        // for each body node
+        // go trough the body and handle the cases
+        data.iter().for_each(|n| match n {
+            // here is handled anything inside the def
+            Node::DATA { data, line:_ } => {
+                // just text
+                text.push_str(data);
+            },
+            Node::MATCH { line, var_name, val } => {
+                let match_line = line;
+                let var_name = var_name;
+                let var = args_map.get(var_name);
+                let var_value = match var {
+                    Some(val) => val,
+                    None => panic!("todo error message"),
+                };
+                let matched = val.iter().find(|arm|{
+                    arm.matches(var_value.value.to_string())
+                });
+
+                match matched {
+                    Some(matched) => {
+                        match &matched.body {
+                            Node::BODY { data, line } => {
+                                self.handle_def_body(data, text, args_map, def_queue, def_name, match_line, def_map, result);
+                            }
+                            _ => panic!("todo error message"),
+                        }
+                    },
+                    None => {
+                        panic!("todo error message")
+                    }
+                }
+
+            }
+            Node::VARTEMPLATE { name } => {
+                // $#
+                let replacement = match args_map.get(name) {
+                    Some(val) => val,
+                    None => {
+                        handle_error(format!("No value specified for \"{}\" in template {}!", name,def_name), line.clone(), self.file_path.clone())
+                    }
+                };
+                text.push_str(&replacement.value);
+            },
+            Node::RARROWVAR { name, default } => {
+                // ->
+                    let replacement = match args_map.get(name) {
+                    Some(val) => val,
+                    None => {
+                        match default {
+                            Some(default) => &ResValue { value: default.to_string()},
+                            None => handle_error(format!("No value specified for \"{}\" in right arrow variable declaration!", name), line.clone(), self.file_path.clone())
+                        }
+                    }
+                };
+                // todo: handle options here
+                text.push_str(&replacement.value);
+            },
+            Node::DEF { conditions: _, name: _, body:_, line: _ , defaults: _} => {
+                if def_queue.is_none() {
+                    *def_queue = Some(Vec::new());
+                }
+                def_queue.as_mut().unwrap().push(n.clone());
+            }, 
+                Node::PLACE { name, args, line } => {
+                // def ident place ident ...
+                if def_queue.is_none() {
+                    *def_queue = Some(Vec::new());
+                }
+                let (result_inner, writer_result) = self.handle_place(text, &def_map, name, args, line, args_map);
+                result.append(writer_result);
+                if result_inner.is_some() {
+                    def_queue.as_mut().unwrap().append(&mut result_inner.unwrap());
+                }
+            },
+            Node::CREATE { path, content } =>{
+                let result_inner = self.handle_create(path, content, def_map);
+                result.append(result_inner);
+            },
+            _ => {
+                handle_error(format!("Body should only have data or var def, instead found {:?}", n), line.clone(), self.file_path.clone())
+            },
+        });
+    }
+
     // todo: inner create
     // todo: supported inner commands: def, derive
     fn handle_place(
@@ -309,64 +396,9 @@ impl Writer {
                             });
                         }
                         match body.as_ref() {
+                        // outer match is for stuff like def place, inner is for true body
                         Node::BODY { data, line } => {
-                            // for each body node
-                            // go trough the body and handle the cases
-                            data.iter().for_each(|n| match n {
-                                    // here is handled anything inside the def
-                                    Node::DATA { data, line:_ } => {
-                                        // just text
-                                        text.push_str(data);
-                                    },
-                                    Node::VARTEMPLATE { name } => {
-                                        // $#
-                                        let replacement = match args_map.get(name) {
-                                            Some(val) => val,
-                                            None => {
-                                                handle_error(format!("No value specified for \"{}\" in template {}!", name,def_name), line.clone(), self.file_path.clone())
-                                            }
-                                        };
-                                        text.push_str(&replacement.value);
-                                    },
-                                    Node::RARROWVAR { name, default } => {
-                                        // ->
-                                         let replacement = match args_map.get(name) {
-                                            Some(val) => val,
-                                            None => {
-                                                match default {
-                                                    Some(default) => &ResValue { value: default.to_string()},
-                                                    None => handle_error(format!("No value specified for \"{}\" in right arrow variable declaration!", name), line.clone(), self.file_path.clone())
-                                                }
-                                            }
-                                        };
-                                        // todo: handle options here
-                                        text.push_str(&replacement.value);
-                                    },
-                                    Node::DEF { conditions: _, name: _, body:_, line: _ , defaults: _} => {
-                                        if def_queue.is_none() {
-                                            def_queue = Some(Vec::new());
-                                        }
-                                        def_queue.as_mut().unwrap().push(n.clone());
-                                    }, 
-                                        Node::PLACE { name, args, line } => {
-                                        // def ident place ident ...
-                                        if def_queue.is_none() {
-                                            def_queue = Some(Vec::new());
-                                        }
-                                        let (result_inner, writer_result) = self.handle_place(text, &def_map, name, args, line, args_map);
-                                        result.append(writer_result);
-                                        if result_inner.is_some() {
-                                            def_queue.as_mut().unwrap().append(&mut result_inner.unwrap());
-                                        }
-                                    },
-                                    Node::CREATE { path, content } =>{
-                                        let result_inner = self.handle_create(path, content, def_map);
-                                        result.append(result_inner);
-                                    },
-                                    _ => {
-                                        handle_error(format!("Body should only have data or var def, instead found {:?}", n), line.clone(), self.file_path.clone())
-                                },
-                                });
+                           self.handle_def_body(data, text, args_map, &mut def_queue, def_name, line, def_map, &mut result);
                         },
                         // def place
                         Node::PLACE { name, args, line } => {
