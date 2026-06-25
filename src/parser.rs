@@ -146,7 +146,7 @@ impl Parser {
     /// gets the file path from tokens
     /// at this point we know a path is to come but no ident has been consumed
     /// ex: parent/child.txt
-    fn get_path(&mut self) -> String {
+    fn handle_path(&mut self) -> String {
         let mut path: String = String::new();
         self.remove_spaces();
         loop {
@@ -169,7 +169,13 @@ impl Parser {
     }
 
     fn handle_derive(&mut self, nodes: &mut ParsingResult) {
-        let path: String = self.get_path();
+        self.remove_spaces();
+        let path = match self.peek() {
+            Token::IDENT { str:_ } => {
+                self.handle_path()
+            },
+            _ => self.file_path.to_string(), 
+        };
         self.remove_spaces();
 
         // derive options
@@ -196,7 +202,7 @@ impl Parser {
 
     // create filepath place defname:
     fn handle_create(&mut self, nodes: &mut ParsingResult) {
-        let path: String = self.get_path();
+        let path: String = self.handle_path();
         let starting_line = self.get_line();
         // filepath
         // ex: parent/child.txt
@@ -231,7 +237,7 @@ impl Parser {
         self.remove_spaces();
 
         let path = match self.peek() {
-            Token::IDENT { str: _ } => self.get_path(),
+            Token::IDENT { str: _ } => self.handle_path(),
             _ => {
                 handle_error_parser(CompilationError::InvalidTokenInIncludePath, self);
             }
