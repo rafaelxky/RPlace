@@ -19,7 +19,7 @@
 ## regular variables
 - variable declaration $#var_name
 - variables must be inside templates
-- you can do $#var_name+suffix, here + is used to append something to the var name
+- you can do $#var_name+suffix, here + is used to append something to the var name, + will be removed so the value and sufix will have no space in between 
 
 ## arrow variables
 - right arrow var dec /*- $#var_name -> -*/ default,
@@ -80,7 +80,7 @@ this will declare a template "a" wich will replace the variable "var" with "val"
 - ex:
 //- def derived derive examples/to_derive.txt where var="[Vv]ar"\regex:
 - then you can place the result
-- ex: //- placed derived:
+- ex: //- place derived:
 
 # file include
 - //- include file_path:
@@ -112,8 +112,9 @@ this will declare a template "a" wich will replace the variable "var" with "val"
 
 # create
 - create allows you to create files and folders and place data inside it
-- create folder/file.txt place name:
-- this will create folder/file.txt and place the "name" def inside
+
+- ex: //- create folder/file.txt place name:
+- this will create "folder/file.txt" and place the "name" template inside
 
 # variable options
 - variable options allow you to modify variables

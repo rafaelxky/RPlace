@@ -105,6 +105,19 @@ impl Writer {
             .push(node.clone());
     }
 
+    /// raw body text just takes the values and pushes it to buffer
+    fn handle_raw_text(text: &mut String, data: &Vec<Node>){
+         data.iter().for_each(|n| match n {
+                        Node::DATA { data, line:_ } => {
+                            text.push_str(data);
+                        }
+                        Node::VARTEMPLATE { name } => {
+                            text.push_str(&format!("$#{}", name));
+                        }
+                        _ => (),
+                    });
+    }
+
     pub fn replace(mut self) -> WriterResult {
         let mut result = WriterResult::new();
 
@@ -116,15 +129,7 @@ impl Writer {
         for node in nodes {
             match node {
                 Node::BODY { data, line:_ } => {
-                    data.iter().for_each(|n| match n {
-                        Node::DATA { data, line:_ } => {
-                            text.push_str(data);
-                        }
-                        Node::VARTEMPLATE { name } => {
-                            text.push_str(&format!("$#{}", name));
-                        }
-                        _ => (),
-                    });
+                    Self::handle_raw_text(&mut text, data);
                 },
                 Node::DATA { data, line:_ } => {
                     text.push_str(&data);
@@ -200,7 +205,7 @@ impl Writer {
     }
 
     // todo: inner create
-    // supported inner commands: def, derive
+    // todo: supported inner commands: def, derive
     fn handle_place(
         &self,
         text: &mut String,
@@ -363,13 +368,16 @@ impl Writer {
                                 },
                                 });
                         },
+                        // def place
                         Node::PLACE { name, args, line } => {
                             self.handle_place(text, def_map, name, args, line, args_map);
                         },
+                        // def derive
                         Node::DERIVE { path, val } => {
                             let result = Deriver::derive(&Derive { path: path.clone(), vals: val.clone() });
                             text.push_str(&result);
                         },
+                        // def create
                         Node::CREATE { path, content } => {
                             self.handle_create(path, content, def_map);
                         },
