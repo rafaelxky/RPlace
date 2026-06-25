@@ -46,27 +46,27 @@ here "a" will be placed with c=d, however, you can call
 this will place with c=e so it allows overrides
 also usefull to provide defaults
 
-## def overload / when
-- def overload is possible using the keyword when
+## template overload / when
+- template overload is possible using the keyword when
 - ex: //- def name when var=val:
 - if var = val then this will be called
 - ex: //- place name where var=val:
 - it will trow if var is undefined
 but you can define a default def with no parameters wich will be called instead
-ex: //- def name:
-if you call //- place name:
+- ex: //- def name:
+- if you call //- place name:
 it will call the default def
 - variables still work as normal
 - you can use the var name inside the body
-ex:
+- ex:
 //- def name when var=val:
     $#var
 //- end:
-this will place the value in the variable as normal
+- this will place the value in the variable as normal
 
 - inheritance and overloading can be used at the same time like
-//- def a when lang=java place java_class where var=val:
-this will declare a template "a" wich will replace the variable "var" with "val" from "java_class" template if lang = java
+- //- def a when lang=java place java_class where var=val:
+- this will declare a template "a" wich will replace the variable "var" with "val" from "java_class" template if lang = java
 
 ## def defaults
 - def accept defaults trough def where
@@ -97,7 +97,9 @@ this will declare a template "a" wich will replace the variable "var" with "val"
 //- ":
 - if no value or default is provided the program will throw
 - you can define defaults with def place or arrow variables
-- you can use variables inside place
+
+# parent variables
+- you can use parent variables inside place
 - ex: //- place name where a=$#var
 - in this case "a" will be replaced by the value of "var" from the parent
 
