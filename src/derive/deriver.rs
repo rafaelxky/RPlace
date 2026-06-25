@@ -4,10 +4,9 @@ use std::{
     ops::{Range},
 };
 
-use crate::{
-    derive_options::options_map::{DeriveScope, apply_options, arrow_var}, writer::Derive
-};
 use regex::Regex;
+
+use crate::{derive::options_map::{DeriveScope, apply_options, arrow_var}, writer::Derive};
 
 pub struct Deriver {}
 impl Deriver {

@@ -4,12 +4,14 @@ use std::{
 use rayon::{ prelude::*};
 use rayon::iter::IntoParallelRefIterator;
 
-use crate::{data_stream::get_data_stream, deriver::Deriver, parser::ValueType};
+use crate::derive::deriver::Deriver;
+use crate::structs::*;
+use crate::{data_stream::get_data_stream};
 
 use crate::{
     error_handler::handle_error,
     lexer::Lexer,
-    parser::{Node, Parser, ParsingResult, Value},
+    parser::{Parser},
 };
 #[derive(Debug, Clone)]
 pub struct ResValue{

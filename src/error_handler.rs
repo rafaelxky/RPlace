@@ -34,22 +34,27 @@ pub fn handle_expected_error<S: Into<String>>(
         file.into()
     );
 }
-pub fn handle_error_parser(error_message: CompilationError, parser: &Parser) -> ! {
+pub fn get_pretty_err(error_message: &CompilationError, parser: &Parser) ->String{
     let error_msg = error_message.get_msg(&parser);
     let msg = error_msg.msg;
     let hint = error_msg.hint;
     let example = error_msg.example;
-    panic!("\x1b[31mError:\x1b[0m {} \n\n-> {} \n\nFile: {}:{} \n\nHint: {} \n\nExample:\n {}",
+    format!("\x1b[31mError:\x1b[0m {} \n\n-> {} \n\nFile: {}:{} \n\nHint: {} \n\nExample:\n {}",
         msg,
         parser.get_tok_around_colored(10),
         parser.get_file_path(),
         parser.get_line() + 1,
         hint,
         example,
-    );
+    )
+}
+pub fn handle_error_parser(error_message: CompilationError, parser: &Parser) -> ! {
+   let err = get_pretty_err(&error_message, parser);
+   panic!("{}",err);
 }
 
-struct ErrorMessage {
+#[derive(Debug, Clone)]
+pub struct ErrorMessage {
     msg: String,
     hint: String,
     example: String,
@@ -97,7 +102,7 @@ pub enum CompilationError {
     InvalidDeriveOption,
 }
 impl CompilationError {
-    fn get_msg(&self, parser: &Parser) -> ErrorMessage {
+    pub fn get_msg(&self, parser: &Parser) -> ErrorMessage {
         match self {
             CompilationError::InvalidFunc => ErrorMessage::new(
                 format!("Invalid token after mark {:?}", parser.peek()),
@@ -316,5 +321,9 @@ impl CompilationError {
                 format!("//- derive to_derive.txt where var=\"var\"{}:{}", YELLOW,RESET)
             )
         }
+    }
+    #[allow(dead_code)]
+    fn get_pretty_error(&self, parser: &Parser) -> String {
+        get_pretty_err(self, parser)
     }
 }

@@ -1,91 +1,9 @@
-use std::{str};
+use std::str;
 
 use crate::{
-    error_handler::{CompilationError, handle_error, handle_error_parser},
-    lexer::{Token, TokenResult},
+    error_handler::{CompilationError, handle_error, handle_error_parser}, lexer::{Token, TokenResult}, structs::*,
 };
 
-#[derive(Debug, Clone)]
-pub enum Condition {
-    EQUALS,
-}
-impl Condition {
-    pub fn eval(&self, first: &str, sec: &str) -> bool {
-        match self {
-            Condition::EQUALS => {
-                return first == sec;
-            }
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum ValueType {
-    Literal,
-    Var,
-}
-#[derive(Debug, Clone)]
-pub struct Value {
-    pub value_type: ValueType,
-    pub value: String,
-    pub options: Option<Vec<String>>,
-}
-impl ToString for Value {
-    fn to_string(&self) -> String {
-        self.value.to_string()
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum Node {
-    // - def template_1
-    DEF {
-        conditions: Option<Vec<(String, String, Condition)>>,
-        defaults: Option<Vec<(String, String)>>,
-        name: String,
-        body: Box<Node>,
-        line: usize,
-    },
-    // either data or var ($a)
-    BODY {
-        data: Vec<Node>,
-        line: usize,
-    },
-    // def body
-    DATA {
-        data: String,
-        line: usize,
-    },
-    // def variables
-    VARTEMPLATE {
-        name: String,
-    },
-    RARROWVAR {
-        name: String,
-        default: Option<String>,
-    },
-    PLACE {
-        name: String,
-        args: Vec<(String, Value)>,
-        line: usize,
-    },
-    INCLUDE {
-        path: String,
-        line: usize,
-    },
-    CREATE {
-        path: String,
-        content: Option<Box<Node>>,
-    },
-    DERIVE {
-        path: String,
-        val: Vec<(String, Value)>,
-    },
-}
-pub struct ParsingResult {
-    pub nodes: Vec<Node>,
-    pub file_path: String,
-}
 pub struct Parser {
     tokens: Vec<Token>,
     ptr: usize,
@@ -157,22 +75,19 @@ impl Parser {
     }
 
     pub fn parse(mut self) -> ParsingResult {
-        let mut nodes: Vec<Node> = Vec::new();
         let mut body_str = String::new();
+        let mut parser_result = ParsingResult::new(self.file_path.clone());
         while self.can_pop() {
-            body_str = self.parse_inner(&mut nodes, body_str);
+            body_str = self.parse_inner(&mut parser_result, body_str);
         }
-        nodes.push(Node::DATA {
+        parser_result.push(Node::DATA {
             data: body_str.to_string(),
             line: self.line,
         });
-        ParsingResult {
-            nodes,
-            file_path: self.file_path,
-        }
+        parser_result
     }
 
-    fn parse_inner(&mut self, nodes: &mut Vec<Node>, body_str: String) -> String {
+    fn parse_inner(&mut self, nodes: &mut ParsingResult, body_str: String) -> String {
         let curr = self.pop();
         let mut body_str = body_str;
         match curr {
@@ -196,7 +111,7 @@ impl Parser {
         return body_str;
     }
 
-    fn handle_func(&mut self, nodes: &mut Vec<Node>) {
+    fn handle_func(&mut self, nodes: &mut ParsingResult) {
         let mut nodes = nodes;
         self.remove_spaces();
         match self.peek() {
@@ -250,7 +165,7 @@ impl Parser {
         path
     }
 
-    fn handle_derive(&mut self, nodes: &mut Vec<Node>) {
+    fn handle_derive(&mut self, nodes: &mut ParsingResult) {
         let path: String = self.get_path();
         self.remove_spaces();
 
@@ -277,7 +192,7 @@ impl Parser {
     }
 
     // create filepath place defname:
-    fn handle_create(&mut self, nodes: &mut Vec<Node>) {
+    fn handle_create(&mut self, nodes: &mut ParsingResult) {
         let path: String = self.get_path();
         let starting_line = self.get_line();
         // filepath
@@ -297,23 +212,19 @@ impl Parser {
             }
             Token::PLACE => {
                 self.ptr_next();
-                let mut temp_nodes: Vec<Node> = Vec::new();
+                let mut temp_nodes = ParsingResult::new(path.clone());
                 // returns one place
                 self.handle_place(&mut temp_nodes);
-                nodes.push(Node::CREATE {
-                    path,
-                    content: Some(Box::new(Node::BODY {
-                        data: temp_nodes,
-                        line: starting_line,
-                    })),
-                });
+                //let content = Some(Box::new(Node::BODY { data: temp_nodes, line: starting_line }))
+                let node = Node::new_create(path, temp_nodes.nodes, starting_line);
+                nodes.push(node);
                 return;
             }
             _ => handle_error_parser(CompilationError::InvalidAfterFilePath, self),
         }
     }
 
-    fn handle_include(&mut self, nodes: &mut Vec<Node>) {
+    fn handle_include(&mut self, nodes: &mut ParsingResult) {
         let mut path = String::new();
 
         self.remove_spaces();
@@ -347,7 +258,7 @@ impl Parser {
         }
     }
 
-    fn handle_def(&mut self, nodes: &mut Vec<Node>) {
+    fn handle_def(&mut self, nodes: &mut ParsingResult) {
         //- def ...
         self.remove_spaces();
 
@@ -391,18 +302,18 @@ impl Parser {
                             let place = nodes.remove(nodes.len() - 1);
                             body = Some(Box::new(place));
                             break;
-                        },
+                        }
                         _ => handle_error_parser(CompilationError::InvalidDefPlaceName, self),
                     }
-                },
+                }
                 Token::DERIVE => {
                     // todo:
                     self.ptr_next();
-                    let mut temp_nodes: Vec<Node> = Vec::new();
+                    let mut temp_nodes= ParsingResult::new(self.file_path.clone());
                     self.handle_derive(&mut temp_nodes);
-                    body = Some(Box::new(temp_nodes[0].clone()));
+                    body = Some(Box::new(temp_nodes.nodes[0].clone()));
                     break;
-                },
+                }
                 // def name when condition
                 Token::WHEN => {
                     self.ptr_next();
@@ -847,6 +758,135 @@ impl Parser {
         }
     }
 
+    fn handle_mark_at_body(&mut self, body_str: &mut String, body: &mut Vec<Node>) -> bool {
+        self.ptr_next();
+        self.remove_spaces();
+        match self.peek() {
+            //- endef:
+            Token::ENDEF => {
+                self.ptr_next();
+                body.push(Node::DATA {
+                    data: body_str.to_string(),
+                    line: self.line,
+                });
+                self.remove_spaces();
+                match self.peek() {
+                    // endef :
+                    Token::DD => {
+                        self.ptr_next();
+                        self.remove_till_tl();
+                        if matches!(self.peek(), Token::NL) {
+                            self.line = self.line - 1;
+                        }
+                        self.unpop();
+                        return true;
+                    }
+                    _ => {
+                        handle_error_parser(CompilationError::NoDDEndef, self);
+                    }
+                }
+            }
+            /*- $#var -> -*/
+            Token::VAR => {
+                self.ptr_next();
+                body.push(Node::DATA {
+                    data: body_str.to_string(),
+                    line: self.line,
+                });
+                *body_str = String::new();
+                match self.peek() {
+                    /*- #$ident -> -*/
+                    Token::IDENT { str } => {
+                        let name = str;
+                        self.ptr_next();
+                        self.remove_spaces();
+                        match self.peek() {
+                            Token::RARROW => {
+                                self.ptr_next();
+                                self.remove_spaces();
+                                match self.peek() {
+                                    Token::MARK { kind: _ } => {
+                                        self.ptr_next();
+                                        self.remove_spaces();
+                                        match self.peek() {
+                                            Token::IDENT { str } => {
+                                                self.ptr_next();
+                                                body.push(Node::RARROWVAR {
+                                                    name,
+                                                    default: Some(str.clone()),
+                                                });
+                                                /* $#var -> *///+
+                                                match self.peek() {
+                                                    Token::PLUS => {
+                                                        self.ptr_next();
+                                                    }
+                                                    _ => (),
+                                                }
+                                            }
+                                            Token::NL => {
+                                                handle_error_parser(
+                                                    CompilationError::NLArrowVarName,
+                                                    self,
+                                                );
+                                            }
+                                            tok => {
+                                                self.ptr_next();
+                                                body.push(Node::RARROWVAR {
+                                                    name,
+                                                    default: Some(tok.val()),
+                                                });
+                                            }
+                                        }
+                                        return false;
+                                    }
+                                    _ => handle_error_parser(
+                                        CompilationError::NotMarkAfterArrowVar,
+                                        self,
+                                    ),
+                                }
+                            }
+                            _ => handle_error_parser(CompilationError::NotArrow, self),
+                        }
+                    }
+                    _ => handle_error_parser(CompilationError::InvalidArrowVarName, self),
+                }
+            }
+            Token::DEF => {
+                // inner def
+                self.ptr_next();
+                let mut nodes= ParsingResult::new(self.file_path.clone());
+                self.handle_def(&mut nodes);
+                body.append(&mut nodes.nodes);
+            }
+            Token::PLACE => {
+                // inner place
+                self.ptr_next();
+                body.push(Node::DATA {
+                    data: body_str.to_string(),
+                    line: self.line,
+                });
+                *body_str = String::new();
+                let mut nodes= ParsingResult::new(self.file_path.clone());
+                self.handle_place(&mut nodes);
+                body.append(&mut nodes.nodes);
+                if matches!(self.peek(), Token::NL) {
+                    self.line = self.line - 1;
+                }
+                self.unpop();
+            }
+            Token::INCLUDE => {
+                self.ptr_next();
+                let mut nodes= ParsingResult::new(self.file_path.clone());
+                self.handle_include(&mut nodes);
+                body.append(&mut nodes.nodes);
+            }
+            _ => {
+                handle_error_parser(CompilationError::InvalidBodyCommand, self);
+            }
+        }
+        return false;
+    }
+
     // ends at endef
     fn build_body(&mut self) -> Node {
         let mut body_str = String::new();
@@ -884,133 +924,10 @@ impl Parser {
                         }
                     }
                 }
-                Token::MARK { kind:_ } => {
-                    self.ptr_next();
-                    self.remove_spaces();
-                    match self.peek() {
-                        //- endef:
-                        Token::ENDEF => {
-                            self.ptr_next();
-                            body.push(Node::DATA {
-                                data: body_str.to_string(),
-                                line: self.line,
-                            });
-                            self.remove_spaces();
-                            match self.peek() {
-                                // endef :
-                                Token::DD => {
-                                    self.ptr_next();
-                                    self.remove_till_tl();
-                                    if matches!(self.peek(), Token::NL) {
-                                        self.line = self.line - 1;
-                                    }
-                                    self.unpop();
-                                    break;
-                                }
-                                _ => {
-                                    handle_error_parser(CompilationError::NoDDEndef, self);
-                                }
-                            }
-                        }
-                        /*- $#var -> -*/
-                        Token::VAR => {
-                            self.ptr_next();
-                            body.push(Node::DATA {
-                                data: body_str.to_string(),
-                                line: self.line,
-                            });
-                            body_str = String::new();
-                            match self.peek() {
-                                /*- #$ident -> -*/
-                                Token::IDENT { str } => {
-                                    let name = str;
-                                    self.ptr_next();
-                                    self.remove_spaces();
-                                    match self.peek() {
-                                        Token::RARROW => {
-                                            self.ptr_next();
-                                            self.remove_spaces();
-                                            match self.peek() {
-                                                Token::MARK { kind: _ } => {
-                                                    self.ptr_next();
-                                                    self.remove_spaces();
-                                                    match self.peek() {
-                                                        Token::IDENT { str } => {
-                                                            self.ptr_next();
-                                                            body.push(Node::RARROWVAR {
-                                                                name,
-                                                                default: Some(str.clone()),
-                                                            });
-                                                            /* $#var -> *///+
-                                                            match self.peek() {
-                                                                Token::PLUS => {
-                                                                    self.ptr_next();
-                                                                }
-                                                                _ => (),
-                                                            }
-                                                        }
-                                                        Token::NL => {
-                                                            handle_error_parser(
-                                                                CompilationError::NLArrowVarName,
-                                                                self,
-                                                            );
-                                                        }
-                                                        tok => {
-                                                            self.ptr_next();
-                                                            body.push(Node::RARROWVAR {
-                                                                name,
-                                                                default: Some(tok.val()),
-                                                            });
-                                                        }
-                                                    }
-                                                    continue;
-                                                }
-                                                _ => handle_error_parser(
-                                                    CompilationError::NotMarkAfterArrowVar,
-                                                    self,
-                                                ),
-                                            }
-                                        }
-                                        _ => handle_error_parser(CompilationError::NotArrow, self),
-                                    }
-                                }
-                                _ => {
-                                    handle_error_parser(CompilationError::InvalidArrowVarName, self)
-                                }
-                            }
-                        }
-                        Token::DEF => {
-                            // inner def
-                            self.ptr_next();
-                            let mut nodes: Vec<Node> = Vec::new();
-                            self.handle_def(&mut nodes);
-                            body.append(&mut nodes);
-                        }
-                        Token::PLACE => {
-                            // inner place
-                            self.ptr_next();
-                            body.push(Node::DATA {
-                                data: body_str.to_string(),
-                                line: self.line,
-                            });
-                            body_str = String::new();
-                            let mut nodes: Vec<Node> = Vec::new();
-                            self.handle_place(&mut nodes);
-                            body.append(&mut nodes);
-                            if matches!(self.peek(), Token::NL) {
-                                self.line = self.line - 1;
-                            }
-                            self.unpop();
-                        }
-                        Token::INCLUDE => {
-                            self.ptr_next();
-                            let mut nodes: Vec<Node> = Vec::new();
-                            self.handle_include(&mut nodes);
-                            body.append(&mut nodes);
-                        }
-                        _ => {
-                            handle_error_parser(CompilationError::InvalidBodyCommand, self);
-                        }
+                Token::MARK { kind: _ } => {
+                    let should_break = self.handle_mark_at_body(&mut body_str, &mut body);
+                    if should_break {
+                        break;
                     }
                 }
                 Token::EOF => handle_error_parser(CompilationError::BodyEOF, self),
@@ -1030,7 +947,7 @@ impl Parser {
         };
     }
 
-    fn handle_place(&mut self, nodes: &mut Vec<Node>) {
+    fn handle_place(&mut self, nodes: &mut ParsingResult) {
         // reaches here as //- place
         self.remove_spaces();
 
@@ -1038,11 +955,11 @@ impl Parser {
             Token::IDENT { str } => {
                 self.ptr_next();
                 str
-            },
+            }
             Token::PLACE => {
                 self.ptr_next();
                 "place".to_string()
-            },
+            }
             _ => {
                 handle_error_parser(CompilationError::InvalidPlaceName, self);
             }
