@@ -17,7 +17,7 @@ trow if not to standard
 $#var/CAMEL
 $#var/PASCAL
 $#var/KEBAB
-$#var/SNAKE
+$#var/SNAKE X
 $#var/SCREAMING
 chaining
 $#var/UPPERFIRST/UPPERLAST

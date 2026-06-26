@@ -147,9 +147,10 @@ this will take regular text and transform it into a template acording to rules
 # controll flow
 ## match
 - inside of template bodies you can match variables
+- match allows you to conditionally place blocks of code if the value matches the arm
 - ex: 
 //- match var:
-    //- case valA:
+    //- case valA
         stuff
     //- end: 
     //- case valB:
