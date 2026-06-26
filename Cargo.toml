@@ -1,5 +1,5 @@
 [package]
-name = "RPlace"
+name = "rplace"
 version = "0.1.0"
 edition = "2024"
 
@@ -10,3 +10,6 @@ reqwest = { version = "0.13.2", features = ["json", "blocking"] }
 regex = "1.12.3"
 rayon = "1.12.0"
 walkdir = "2.5.0"
+
+[install]
+root = "~/.local"

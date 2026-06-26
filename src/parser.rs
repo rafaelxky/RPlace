@@ -427,6 +427,7 @@ impl Parser {
                                                         break;
                                                     }
                                                     Token::COMMA => {
+                                                        self.ptr_next();
                                                         continue;
                                                     }
                                                     _ => {

@@ -1,0 +1,4 @@
+//- def a where b=c, n=o:
+
+//- end:
+//- place a:
