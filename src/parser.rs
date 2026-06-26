@@ -525,6 +525,10 @@ impl Parser {
         }
     }
 
+    /// handles variable options 
+    /// reaches here at the ident after \
+    /// returns a list of the options
+    /// ex: $#var\CAMEL
     fn handle_var_options(&mut self) -> Option<Vec<String>> {
         let mut options: Option<Vec<String>> = None;
         loop {
@@ -920,7 +924,7 @@ impl Parser {
         loop {
             self.remove_spaces();
             match self.pop() {
-                Token::MARK { kind } => {}
+                Token::MARK { kind:_ } => {}
                 _ => panic!("forgot mark"),
             }
             self.remove_spaces();
@@ -992,15 +996,24 @@ impl Parser {
                         // $#ident
                         Token::IDENT { str } => {
                             self.ptr_next();
+                            let mut option = None; 
                             match self.peek() {
                                 Token::PLUS => {
                                     self.ptr_next();
-                                }
+                                },
+                                Token::BSLASH => {
+                                    self.ptr_next();
+                                    option = self.handle_var_options();
+                                    match self.peek() {
+                                        Token::PLUS => {
+                                            self.ptr_next();
+                                        }
+                                        _ => (),
+                                    }
+                                },
                                 _ => (),
                             }
-                            body.push(Node::VARTEMPLATE {
-                                name: str.to_string(),
-                            });
+                            body.push(Node::var_template(str,option));
                             continue;
                         }
                         // $#name

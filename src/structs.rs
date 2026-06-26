@@ -23,6 +23,11 @@ pub struct Value {
     pub value: String,
     pub options: Option<Vec<String>>,
 }
+#[derive(Debug, Clone)]
+pub struct TemplateValue {
+    pub value: String,
+    pub options: Option<Vec<String>>,
+}
 impl ToString for Value {
     fn to_string(&self) -> String {
         self.value.to_string()
@@ -51,7 +56,7 @@ pub enum Node {
     },
     // def variables
     VARTEMPLATE {
-        name: String,
+        val: TemplateValue,
     },
     RARROWVAR {
         name: String,
@@ -80,6 +85,16 @@ pub enum Node {
         val: Vec<MatchArm>,
     }
 }
+impl Node {
+    pub fn new_create(path: String, content: Vec<Node>, starting_line: usize) -> Node {
+        let body = Node::BODY { data: content, line: starting_line };
+        let body = Some(Box::new(body));
+        Node::CREATE { content: body, path }
+    }
+    pub fn var_template<T:ToString>(name: T, options: Option<Vec<String>>) -> Self{
+        Self::VARTEMPLATE { val: TemplateValue { value: name.to_string(), options: options } }
+    }
+}
 #[derive(Debug, Clone)]
 pub struct MatchArm{
     pub match_value: String,
@@ -93,13 +108,7 @@ impl MatchArm {
         self.match_value == *val
     }
 }
-impl Node {
-    pub fn new_create(path: String, content: Vec<Node>, starting_line: usize) -> Node {
-        let body = Node::BODY { data: content, line: starting_line };
-        let body = Some(Box::new(body));
-        Node::CREATE { content: body, path }
-    }
-}
+
 #[derive(Debug, Clone)]
 pub struct ParsingError {
     error_msg: String,

@@ -5,6 +5,7 @@ use rayon::{ prelude::*};
 use rayon::iter::IntoParallelRefIterator;
 
 use crate::derive::deriver::Deriver;
+use crate::options::var_options::exec_option;
 use crate::structs::*;
 use crate::writer::writer_structs::{Derive, ResValue, WriterResult};
 use crate::{data_stream::get_data_stream};
@@ -111,7 +112,8 @@ impl Writer {
                         Node::DATA { data, line:_ } => {
                             text.push_str(data);
                         }
-                        Node::VARTEMPLATE { name } => {
+                        Node::VARTEMPLATE { val } => {
+                            let name = &val.value;
                             text.push_str(&format!("$#{}", name));
                         }
                         _ => (),
@@ -228,7 +230,7 @@ impl Writer {
                 match matched {
                     Some(matched) => {
                         match &matched.body {
-                            Node::BODY { data, line } => {
+                            Node::BODY { data, line:_ } => {
                                 self.handle_def_body(data, text, args_map, def_queue, def_name, match_line, def_map, result);
                             }
                             _ => panic!("todo error message"),
@@ -240,7 +242,8 @@ impl Writer {
                 }
 
             }
-            Node::VARTEMPLATE { name } => {
+            Node::VARTEMPLATE { val } => {
+                let name = &val.value;
                 // $#
                 let replacement = match args_map.get(name) {
                     Some(val) => val,
@@ -248,7 +251,20 @@ impl Writer {
                         handle_error(format!("No value specified for \"{}\" in template {}!", name,def_name), line.clone(), self.file_path.clone())
                     }
                 };
-                text.push_str(&replacement.value);
+                let opts = &val.options;
+                let replaced = match opts {
+                    Some(opts) => {
+                        let mut curr = replacement.value.to_string();
+                        for opt in opts {
+                            curr = exec_option(opt, curr);
+                        }
+                        curr
+                    }
+                    None => {
+                        replacement.value.to_string()
+                    },
+                };
+                text.push_str(&replaced);
             },
             Node::RARROWVAR { name, default } => {
                 // ->

@@ -83,3 +83,9 @@ and it would be able to translate to multiple languages
 - json integration
 - if else
 - implement any / _ for match
+
+- array example
+//- for (var, type) in collection var:
+    $#var+: $#type
+//- end:
+//- place a where arr=(a,b),(c,d),(e,f), var=val:

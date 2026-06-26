@@ -16,6 +16,7 @@ pub mod parser;
 pub mod structs;
 pub mod term;
 pub mod writer;
+pub mod options;
 
 fn main() {
     let args = handle_args();

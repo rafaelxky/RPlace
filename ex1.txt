@@ -1,4 +1,4 @@
 //- def a where b=c, n=o:
-
+    $#b\snakecase
 //- end:
-//- place a:
+//- place a where b=StructName:
