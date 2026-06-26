@@ -1,4 +1,7 @@
 //- def a where b=c, n=o:
     $#b\snakecase
+    $#b\camelcase
+    $#b\screaming
+    $#b\pascalcase
 //- end:
-//- place a where b=StructName:
+//- place a where b=structName:

@@ -13,22 +13,21 @@ static VAR_OPTIONS: LazyLock<MapType> = LazyLock::new(|| {
 });
 pub fn to_pascal_case(input: String) -> String {
     let mut result = String::new();
-    let mut capitalize_next = true;
+    let mut capitalize_next = false;
 
     for ch in input.chars() {
         if ch == ' ' || ch == '-' || ch == '_' {
             capitalize_next = true;
-        } else {
-            if capitalize_next {
-                for c in ch.to_uppercase() {
-                    result.push(c);
-                }
-                capitalize_next = false;
-            } else {
-                for c in ch.to_lowercase() {
-                    result.push(c);
-                }
+            continue;
+        }
+
+        if capitalize_next {
+            for c in ch.to_uppercase() {
+                result.push(c);
             }
+            capitalize_next = false;
+        } else {
+            result.push(ch);
         }
     }
 
@@ -86,22 +85,21 @@ pub fn to_camel_case(input: String) -> String {
     let mut result = String::new();
     let mut capitalize_next = false;
 
-    for (i, ch) in input.chars().enumerate() {
+    for ch in input.chars() {
         if ch == ' ' || ch == '-' || ch == '_' {
             capitalize_next = true;
-        } else {
-            if i == 0 {
-                result.push(ch.to_lowercase().next().unwrap());
-            } else if capitalize_next {
-                for c in ch.to_uppercase() {
-                    result.push(c);
-                }
-                capitalize_next = false;
-            } else {
-                for c in ch.to_lowercase() {
-                    result.push(c);
-                }
+            continue;
+        }
+
+        if result.is_empty() {
+            result.push(ch.to_lowercase().next().unwrap());
+        } else if capitalize_next {
+            for c in ch.to_uppercase() {
+                result.push(c);
             }
+            capitalize_next = false;
+        } else {
+            result.push(ch);
         }
     }
 
