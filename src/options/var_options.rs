@@ -7,8 +7,33 @@ static VAR_OPTIONS: LazyLock<MapType> = LazyLock::new(|| {
     let mut hm: MapType = HashMap::new();
     hm.insert("snakecase", to_snake_case);
     hm.insert("camelcase", to_camel_case);
+    hm.insert("screaming", to_screaming_case);
+    hm.insert("pascalcase", to_pascal_case);
     hm
 });
+pub fn to_pascal_case(input: String) -> String {
+    let mut result = String::new();
+    let mut capitalize_next = true;
+
+    for ch in input.chars() {
+        if ch == ' ' || ch == '-' || ch == '_' {
+            capitalize_next = true;
+        } else {
+            if capitalize_next {
+                for c in ch.to_uppercase() {
+                    result.push(c);
+                }
+                capitalize_next = false;
+            } else {
+                for c in ch.to_lowercase() {
+                    result.push(c);
+                }
+            }
+        }
+    }
+
+    result
+}
 pub fn exec_option(name: &str, val: String) -> String {
     let opt = VAR_OPTIONS.get(name);
     let opt = match opt {
@@ -16,6 +41,26 @@ pub fn exec_option(name: &str, val: String) -> String {
         None => panic!("todo errro message, no option found {}", name),
     };
     opt(val)
+}
+pub fn to_screaming_case(input: String) -> String {
+    let mut result = String::new();
+
+    for (i, ch) in input.chars().enumerate() {
+        if ch.is_uppercase() {
+            if i != 0 {
+                result.push('_');
+            }
+            for c in ch.to_uppercase() {
+                result.push(c);
+            }
+        } else if ch == ' ' || ch == '-' {
+            result.push('_');
+        } else {
+            result.push(ch.to_ascii_uppercase());
+        }
+    }
+
+    result
 }
 pub fn to_snake_case(var: String) -> String {
     let mut result = String::new();

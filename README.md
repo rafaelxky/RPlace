@@ -128,6 +128,12 @@ it will call the default def
     - \regex -> allows regex
     - \def -> places def around match
     - \var -> places arrow variable around match
+- template variables
+    - \snakecase -> turns to snake case
+    - \camelcase -> turns to camel case
+    - \screaming -> turns to screaming case
+    - \pascalcase -> turns to pascal case
+
 
 # reverse templates / derive
 - rplace supports reverse templates
