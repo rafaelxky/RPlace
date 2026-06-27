@@ -1,7 +1,5 @@
-//- def a where b=c, n=o:
-    $#b\snakecase
-    $#b\camelcase
-    $#b\screaming
-    $#b\pascalcase
-//- end:
-//- place a where b=structName:
+
+    struct_name
+    structName
+    STRUCT_NAME
+    structName

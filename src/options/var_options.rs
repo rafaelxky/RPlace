@@ -21,7 +21,9 @@ pub fn to_pascal_case(input: String) -> String {
             continue;
         }
 
-        if capitalize_next {
+        if result.is_empty() {
+            result.push(ch.to_uppercase().next().unwrap());
+        } else if capitalize_next {
             for c in ch.to_uppercase() {
                 result.push(c);
             }
