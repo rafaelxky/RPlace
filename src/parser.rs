@@ -647,7 +647,6 @@ impl Parser {
                                     break;
                                 }
                                 _ => {
-                                    self.ptr_next();
                                     break;
                                 }
                             }

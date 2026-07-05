@@ -98,6 +98,18 @@ it will call the default def
 - if no value or default is provided the program will throw
 - you can define defaults with def place or arrow variables
 
+# place arguments
+- you can pass arguments to place like so
+- ex: //- place a where var = val:
+- you can also use "double quotes" 
+- ex: //- place a where var = "hello world":
+- multiline variables are also allowed like so 
+- //- place c where var = " 
+    Hello
+    World
+    !
+//-":
+
 # parent variables
 - you can use parent variables inside place
 - ex: //- place name where a=$#var
@@ -177,7 +189,7 @@ this will take regular text and transform it into a template acording to rules
 # config
 - the config.json has some program specifications
 - allow_lua -> allows lua code (default: off)
-- allow_import -> allows code import from other files (default: true)
+- allow_import -> allows code import from other files(default: true)
 
 # list of examples
 ```
@@ -220,5 +232,12 @@ $#varname+sufix
 
 $#var\snakecase
 $#var\lua::"return args[1]..\" world \""
+
+//- place c where var = " 
+    Hello
+    World
+    !
+//-":
+//- place b where var = "Hello World!":
 
 ```

@@ -3,4 +3,7 @@
     $#var\lua::"return args[1]..\" world ABC\""
 //- end:
 
-//- place a where var="hello", var_a="hello world A":
+//- place a where var="
+hello wolrf
+I am leg
+//-", var_a="hello world A":
