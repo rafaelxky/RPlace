@@ -123,6 +123,8 @@ it will call the default def
 - they are marked with "\"
 - ex: var=val\regex:
 - can also be chained
+- :: can be used for args
+- ex: $#var\lua::"return args[1]..\" world\""
 - supported:
 - derive:
     - \regex -> allows regex
@@ -133,6 +135,7 @@ it will call the default def
     - \camelcase -> turns to camel case
     - \screaming -> turns to screaming case
     - \pascalcase -> turns to pascal case
+    - \lua -> executes inline code, places the returned string
 
 
 # reverse templates / derive
@@ -165,6 +168,16 @@ this will take regular text and transform it into a template acording to rules
 //- end:
 - the first matched case will be placed
 - can have inner instructions wich will be executed
+
+# lua
+## inline lua options
+- you can use inline lua to manipulate variables
+- ex: $#var\lua::"return args[1]..\" world \""
+
+# config
+- the config.json has some program specifications
+- allow_lua -> allows lua code (default: off)
+- allow_import -> allows code import from other files (default: true)
 
 # list of examples
 ```
@@ -206,4 +219,6 @@ $#varname+sufix
 //- ":
 
 $#var\snakecase
+$#var\lua::"return args[1]..\" world \""
+
 ```
