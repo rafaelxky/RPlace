@@ -1,5 +1,7 @@
 
-    struct_name
-    structName
-    STRUCT_NAME
-    structName
+
+
+
+
+
+    This is your output on the output file, the real output is in out/out.txt 

@@ -546,6 +546,17 @@ impl Parser {
                                         self.ptr_next();
                                         if let Some(options) = options.as_mut() {
                                             if let Some(last) = options.last_mut() {
+                                                println!("bs - {}",str);
+                                                last.push_arg(str);
+                                            }
+                                        }
+                                    }
+                                    Token::DQUOTE => {
+                                        self.ptr_next();
+                                        if let Some(options) = options.as_mut() {
+                                            if let Some(last) = options.last_mut() {
+                                                let str = self.get_dquote_var();
+                                                println!("a - {}",str);
                                                 last.push_arg(str);
                                             }
                                         }
@@ -583,8 +594,7 @@ impl Parser {
         options
     }
 
-    fn get_dquote_var(&mut self, options_2: &mut Option<Vec<VarOption>>, args: &mut Vec<(String, Value)>, from: &mut String) -> bool{
-        self.ptr_next();
+    fn get_dquote_var(&mut self) -> String {
         let mut arg_str = String::new();
         let mut has_new_line = false;
 
@@ -597,9 +607,23 @@ impl Parser {
                     arg_str.push('\n');
                     self.line = self.line + 1;
                     has_new_line = true;
+                    self.ptr_next();
+                }
+                Token::BSLASH => {
+                    self.ptr_next();
+                    match self.peek() {
+                        Token::DQUOTE => {
+                            self.ptr_next();
+                            arg_str.push('"');
+                        }
+                        _ => {
+                            arg_str.push('\\');
+                        }
+                    }
                 }
                 Token::DQUOTE => {
                     if has_new_line {
+                        self.ptr_next();
                         arg_str.push('"');
                     } else {
                         self.ptr_next();
@@ -626,6 +650,7 @@ impl Parser {
                                     break;
                                 }
                                 _ => {
+                                    self.ptr_next();
                                     break;
                                 }
                             }
@@ -639,11 +664,23 @@ impl Parser {
                     }
                 }
                 tok => {
+                    self.ptr_next();
                     arg_str.push_str(&tok.val());
                 }
             }
-            self.ptr_next();
         }
+        arg_str
+    }
+
+    /// gets here right after " in arg
+    fn get_dquote_arg_var(
+        &mut self,
+        options_2: &mut Option<Vec<VarOption>>,
+        args: &mut Vec<(String, Value)>,
+        from: &mut String,
+    ) -> bool {
+        let arg_str = self.get_dquote_var();
+
         if matches!(self.peek(), Token::BSLASH) {
             self.ptr_next();
             *options_2 = self.handle_var_options();
@@ -681,7 +718,7 @@ impl Parser {
             match self.peek() {
                 Token::IDENT { str } => {
                     self.ptr_next();
-                    let from = str;
+                    let mut from = str;
                     if matches!(self.peek(), Token::BSLASH) {
                         self.ptr_next();
                         //options_1 = self.handle_var_options();
@@ -726,92 +763,13 @@ impl Parser {
                                 // ident = "ident" -> quotation handling for multiline values
                                 Token::DQUOTE => {
                                     self.ptr_next();
-                                    let mut arg_str = String::new();
-                                    let mut has_new_line = false;
-
-                                    loop {
-                                        if !self.can_pop() {
-                                            handle_error_parser(
-                                                CompilationError::EOFInQuotVar,
-                                                self,
-                                            );
-                                        }
-                                        match self.peek() {
-                                            Token::NL => {
-                                                arg_str.push('\n');
-                                                self.line = self.line + 1;
-                                                has_new_line = true;
-                                            }
-                                            Token::DQUOTE => {
-                                                if has_new_line {
-                                                    arg_str.push('"');
-                                                } else {
-                                                    self.ptr_next();
-                                                    break;
-                                                }
-                                            }
-                                            Token::MARK { kind } => {
-                                                self.ptr_next();
-                                                if !has_new_line {
-                                                    arg_str.push_str(&kind);
-                                                } else {
-                                                    // if value has a newline after the first ", then ends at mark + "
-                                                    let mut spaces = String::new();
-                                                    let mut ends = false;
-                                                    loop {
-                                                        match self.peek() {
-                                                            Token::SPACE => {
-                                                                self.ptr_next();
-                                                                spaces.push(' ');
-                                                            }
-                                                            Token::DQUOTE => {
-                                                                self.ptr_next();
-                                                                ends = true;
-                                                                break;
-                                                            }
-                                                            _ => {
-                                                                break;
-                                                            }
-                                                        }
-                                                    }
-                                                    if ends {
-                                                        break;
-                                                    } else {
-                                                        arg_str.push_str(&spaces);
-                                                    }
-                                                    // if has " after mark
-                                                }
-                                            }
-                                            tok => {
-                                                arg_str.push_str(&tok.val());
-                                            }
-                                        }
-                                        self.ptr_next();
-                                    }
-                                    if matches!(self.peek(), Token::BSLASH) {
-                                        self.ptr_next();
-                                        options_2 = self.handle_var_options();
-                                    }
-                                    self.remove_spaces();
-                                    args.push((
-                                        from,
-                                        Value {
-                                            value_type: ValueType::Literal,
-                                            value: arg_str,
-                                            options: options_2,
-                                        },
-                                    ));
-                                    // ident = "ident"
-                                    match self.peek() {
-                                        Token::DD => {
-                                            return args;
-                                        }
-                                        Token::COMMA => {
-                                            self.ptr_next();
-                                        }
-                                        _ => {
-                                            return args;
-                                        }
+                                    let should_return = self.get_dquote_arg_var(
+                                        &mut options_2,
+                                        &mut args,
+                                        &mut from,
+                                    );
+                                    if should_return {
+                                        return args;
                                     }
                                 }
                                 Token::VAR => {
@@ -871,6 +829,7 @@ impl Parser {
     /// handles any mark found inside a body
     /// this is ONLY called coming from a body
     /// already consumed the mark
+    /// ex: //-, /*- -*/ etc
     fn handle_mark_at_body(&mut self, body_str: &mut String, body: &mut Vec<Node>) -> bool {
         self.remove_spaces();
         match self.peek() {

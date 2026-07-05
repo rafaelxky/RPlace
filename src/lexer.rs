@@ -129,6 +129,10 @@ impl Lexer {
 
             match curr {
                 ':' => {
+                    if !self.can_pop() {
+                        tokens.push(Token::DD);
+                        continue;
+                    }
                     match self.peek() {
                         ':' => {
                             self.pop();

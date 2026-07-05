@@ -12,6 +12,7 @@ static VAR_OPTIONS: LazyLock<MapType> = LazyLock::new(|| {
     hm.insert("camelcase", to_camel_case);
     hm.insert("screaming", to_screaming_case);
     hm.insert("pascalcase", to_pascal_case);
+    hm.insert("lua", lua);
     hm
 });
 pub fn to_pascal_case(input: String, arg: &Vec<ArgType>) -> String {
@@ -47,10 +48,10 @@ pub fn exec_option(opt: &VarOption, val: String) -> String {
     };
     func(val, &opt.args)
 }
-pub fn lua(input: String, args: &Vec<ArgType>){
+pub fn lua(input: String, args: &Vec<ArgType>) -> String{
     let mut args_inner = vec![input];
     args_inner.extend(args.clone());
-    LUA_ENGINE.read().unwrap().execute(&args[0], args_inner);
+    LUA_ENGINE.read().unwrap().execute(&args[0], args_inner)
 }
 pub fn to_screaming_case(input: String, args: &Vec<ArgType>) -> String {
     let mut result = String::new();
