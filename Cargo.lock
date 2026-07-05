@@ -68,6 +68,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
+name = "autocfg"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
+
+[[package]]
 name = "aws-lc-rs"
 version = "1.16.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -100,6 +106,16 @@ name = "bitflags"
 version = "2.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4512299f36f043ab09a583e57bceb5a5aab7a73db1805848e8fef3c9e8c78b3"
+
+[[package]]
+name = "bstr"
+version = "1.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5cee35f73844aa3014bb606320a6c1f010249dbdf43342fe54b5a4f6a8ed4b79"
+dependencies = [
+ "memchr",
+ "serde_core",
+]
 
 [[package]]
 name = "bumpalo"
@@ -891,6 +907,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "112b39cec0b298b6c1999fee3e31427f74f676e4cb9879ed1a121b43661a4154"
 
 [[package]]
+name = "lua-src"
+version = "550.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e836dc8ae16806c9bdcf42003a88da27d163433e3f9684c52f0301258004a4fb"
+dependencies = [
+ "cc",
+]
+
+[[package]]
+name = "luajit-src"
+version = "210.6.6+707c12b"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a86cc925d4053d0526ae7f5bc765dbd0d7a5d1a63d43974f4966cb349ca63295"
+dependencies = [
+ "cc",
+ "which",
+]
+
+[[package]]
 name = "memchr"
 version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -912,6 +947,45 @@ dependencies = [
  "log",
  "wasi",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "mlua"
+version = "0.11.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ccd36acfa49ce6ee56d1307a061dd302c564eee757e6e4cd67eb4f7204846fab"
+dependencies = [
+ "bstr",
+ "either",
+ "libc",
+ "mlua-sys",
+ "num-traits",
+ "parking_lot",
+ "rustc-hash",
+ "rustversion",
+]
+
+[[package]]
+name = "mlua-sys"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f1c3a7fc7580227ece249fd90aa2fa3b39eb2b49d3aec5e103b3e85f2c3dfc8"
+dependencies = [
+ "cc",
+ "cfg-if",
+ "libc",
+ "lua-src",
+ "luajit-src",
+ "pkg-config",
+]
+
+[[package]]
+name = "num-traits"
+version = "0.2.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
+dependencies = [
+ "autocfg",
 ]
 
 [[package]]
@@ -972,6 +1046,12 @@ name = "pin-project-lite"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
+
+[[package]]
+name = "pkg-config"
+version = "0.3.33"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19f132c84eca552bf34cab8ec81f1c1dcc229b811638f9d283dceabe58c5569e"
 
 [[package]]
 name = "potential_utf"
@@ -1232,6 +1312,7 @@ dependencies = [
  "clap",
  "crossterm",
  "directories",
+ "mlua",
  "rayon",
  "regex",
  "reqwest",
@@ -1904,6 +1985,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f31141ce3fc3e300ae89b78c0dd67f9708061d1d2eda54b8209346fd6be9a92c"
 dependencies = [
  "rustls-pki-types",
+]
+
+[[package]]
+name = "which"
+version = "8.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48d7cd18d4acb58fb3cdfe9ea54e6cd96a4e7d4cc45c56338b236e82dad47248"
+dependencies = [
+ "libc",
 ]
 
 [[package]]

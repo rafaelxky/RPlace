@@ -19,6 +19,7 @@ pub mod term;
 pub mod writer;
 pub mod options;
 pub mod config;
+pub mod lua;
 
 fn main() {
     let args = handle_args();
