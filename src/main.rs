@@ -1,6 +1,7 @@
 use std::fs::{OpenOptions};
 use std::process::exit;
 
+use crate::config::config::CONFIG;
 use crate::data_stream::{DataSouce, get_data_stream};
 use crate::output_stream::OutputWriter;
 use crate::writer::writer::{Writer};
@@ -17,8 +18,10 @@ pub mod structs;
 pub mod term;
 pub mod writer;
 pub mod options;
+pub mod config;
 
 fn main() {
+    println!("{}", CONFIG.lock().unwrap().allow_lua);
     let args = handle_args();
     let (mut stream, origin) = get_data_stream(&args.origin);
     match origin {
