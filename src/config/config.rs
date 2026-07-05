@@ -2,7 +2,7 @@ use std::{
     fs::{self, File},
     io::{BufReader, BufWriter},
     path::Path,
-    sync::{Arc, LazyLock, Mutex},
+    sync::{Arc, LazyLock, Mutex, RwLock},
 };
 
 use directories::ProjectDirs;
@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompilerConfig {
     pub allow_lua: bool,
+    pub allow_import: bool,
 }
 impl CompilerConfig {
     pub fn load(path: &Path) -> Self {
@@ -35,15 +36,15 @@ impl CompilerConfig {
         }
     }
     pub fn default() -> Self {
-        Self { allow_lua: false }
+        Self { allow_lua: false, allow_import: true, }
     }
 }
-pub static CONFIG: LazyLock<Arc<Mutex<CompilerConfig>>> = LazyLock::new(|| {
+pub static CONFIG: LazyLock<Arc<RwLock<CompilerConfig>>> = LazyLock::new(|| {
     let dir = ProjectDirs::from("io", "rplace", "rplace");
     let dir = match dir {
         Some(dir) => dir,
         None => {
-            return Arc::new(Mutex::new(CompilerConfig::default()));
+            return Arc::new(RwLock::new(CompilerConfig::default()));
         }
     };
 
@@ -75,5 +76,5 @@ pub static CONFIG: LazyLock<Arc<Mutex<CompilerConfig>>> = LazyLock::new(|| {
         CompilerConfig::load(&config)
     };
 
-    return Arc::new(Mutex::new(conf));
+    return Arc::new(RwLock::new(conf));
 });

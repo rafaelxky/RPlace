@@ -4,6 +4,7 @@ use std::{
 use rayon::{ prelude::*};
 use rayon::iter::IntoParallelRefIterator;
 
+use crate::config::config::CONFIG;
 use crate::derive::deriver::Deriver;
 use crate::options::var_options::exec_option;
 use crate::structs::*;
@@ -78,6 +79,9 @@ impl Writer {
                     break;
                 }
                 let (data, path) = data.unwrap();
+                if !CONFIG.read().unwrap().allow_import {
+                    continue;
+                }
                 imp.push(self.handle_import(data,path));
             }
             imp

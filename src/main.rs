@@ -21,7 +21,6 @@ pub mod options;
 pub mod config;
 
 fn main() {
-    println!("{}", CONFIG.lock().unwrap().allow_lua);
     let args = handle_args();
     let (mut stream, origin) = get_data_stream(&args.origin);
     match origin {
