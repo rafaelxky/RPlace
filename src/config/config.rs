@@ -72,7 +72,6 @@ pub static CONFIG: LazyLock<Arc<RwLock<CompilerConfig>>> = LazyLock::new(|| {
             conf
         }
     } else {
-        println!("Loaded file from {}", config.to_str().unwrap());
         CompilerConfig::load(&config)
     };
 

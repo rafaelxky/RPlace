@@ -103,7 +103,6 @@ impl Parser {
             }
             Token::NL => {
                 self.line = self.line + 1;
-                //println!("parse inner newline {} at {}", self.line, self.get_tok_around_colored(10));
                 body_str.push('\n');
             }
             tok => {
@@ -546,7 +545,6 @@ impl Parser {
                                         self.ptr_next();
                                         if let Some(options) = options.as_mut() {
                                             if let Some(last) = options.last_mut() {
-                                                println!("bs - {}",str);
                                                 last.push_arg(str);
                                             }
                                         }
@@ -556,7 +554,6 @@ impl Parser {
                                         if let Some(options) = options.as_mut() {
                                             if let Some(last) = options.last_mut() {
                                                 let str = self.get_dquote_var();
-                                                println!("a - {}",str);
                                                 last.push_arg(str);
                                             }
                                         }

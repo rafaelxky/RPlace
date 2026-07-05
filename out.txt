@@ -1,7 +1,4 @@
 
 
-
-
-
-
-    This is your output on the output file, the real output is in out/out.txt 
+    hello world A
+    hello world ABC

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::LazyLock};
 
-use crate::{lua::lua::LUA_ENGINE, structs::VarOption};
+use crate::{config::config::CONFIG, lua::lua::LUA_ENGINE, structs::VarOption};
 
 type ArgType = String;
 type FnReturn = String;
@@ -49,6 +49,9 @@ pub fn exec_option(opt: &VarOption, val: String) -> String {
     func(val, &opt.args)
 }
 pub fn lua(input: String, args: &Vec<ArgType>) -> String{
+    if !CONFIG.read().unwrap().allow_lua {
+        return input;
+    }
     let mut args_inner = vec![input];
     args_inner.extend(args.clone());
     LUA_ENGINE.read().unwrap().execute(&args[0], args_inner)
