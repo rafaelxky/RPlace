@@ -6,7 +6,7 @@ use std::{
 
 use regex::Regex;
 
-use crate::{derive::options_map::{DeriveScope, apply_options, arrow_var}, writer::writer_structs::Derive};
+use crate::{derive::options_map::{DeriveScope, apply_options, arrow_var}, structs::VarOption, writer::writer_structs::Derive};
 
 pub struct Deriver {}
 impl Deriver {
@@ -32,7 +32,7 @@ impl Deriver {
                 .unwrap_or(false);
 
             let default_place = opts
-                .map(|o| !o.iter().any(|opt| opt.as_str() != "regex"))
+                .map(|o| !o.iter().any(|opt| opt.option.as_str() != "regex"))
                 .unwrap_or(true);
 
             if is_regex {
@@ -46,7 +46,7 @@ impl Deriver {
                     let matched = &text[mat.range()];
 
                     let mut replacement = if default_place {
-                        arrow_var(var, matched, &mat.range())
+                        arrow_var(var, matched, &mat.range(), &vec![])
                     } else {
                         apply_options(var, matched, &mat.range(), features_vec.unwrap())
                     };
@@ -65,7 +65,7 @@ impl Deriver {
                     let matched = &text[range.clone()];
 
                     let mut replacement = if default_place {
-                        arrow_var(var, matched, &range)
+                        arrow_var(var, matched, &range, &vec![])
                     } else {
                         apply_options(var, matched, &range, features_vec.unwrap())
                     };
@@ -97,10 +97,10 @@ impl Deriver {
         }
         return text;
     }
-    fn get_features(opts: &Vec<String>) -> HashMap<String, usize> {
+    fn get_features(opts: &Vec<VarOption>) -> HashMap<String, usize> {
         let mut map: HashMap<String, usize> = HashMap::new();
         opts.iter().enumerate().for_each(|(i, opt)| {
-            map.insert(opt.clone(), i);
+            map.insert(opt.option.clone(), i);
         });
         map
     }

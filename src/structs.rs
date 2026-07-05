@@ -1,3 +1,16 @@
+#[derive(Debug,Clone)]
+pub struct VarOption{
+    pub option: String,
+    pub args: Vec<String>,
+}
+impl VarOption {
+    pub fn new(option: String, args: Vec<String>) -> Self { 
+        Self { option, args }
+    }
+    pub fn push_arg(&mut self, arg: String){ 
+        self.args.push(arg);
+    }
+}
 #[derive(Debug, Clone)]
 pub enum Condition {
     EQUALS,
@@ -21,12 +34,12 @@ pub enum ValueType {
 pub struct Value {
     pub value_type: ValueType,
     pub value: String,
-    pub options: Option<Vec<String>>,
+    pub options: Option<Vec<VarOption>>,
 }
 #[derive(Debug, Clone)]
 pub struct TemplateValue {
     pub value: String,
-    pub options: Option<Vec<String>>,
+    pub options: Option<Vec<VarOption>>,
 }
 impl ToString for Value {
     fn to_string(&self) -> String {
@@ -91,7 +104,7 @@ impl Node {
         let body = Some(Box::new(body));
         Node::CREATE { content: body, path }
     }
-    pub fn var_template<T:ToString>(name: T, options: Option<Vec<String>>) -> Self{
+    pub fn var_template<T:ToString>(name: T, options: Option<Vec<VarOption>>) -> Self{
         Self::VARTEMPLATE { val: TemplateValue { value: name.to_string(), options: options } }
     }
 }

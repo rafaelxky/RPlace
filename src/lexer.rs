@@ -26,6 +26,7 @@ pub enum Token {
     DERIVE,
     CASE,
     MATCH,
+    QD,
 }
 impl Token {
     pub fn val(&self) -> String {
@@ -55,6 +56,7 @@ impl Token {
             Token::DERIVE => "derive",
             Token::CASE => "case",
             Token::MATCH => "match",
+            Token::QD => "::",
         }
         .to_string();
     }
@@ -127,6 +129,14 @@ impl Lexer {
 
             match curr {
                 ':' => {
+                    match self.peek() {
+                        ':' => {
+                            self.pop();
+                            tokens.push(Token::QD);
+                            continue;
+                        },
+                        _ => (),
+                    }
                     tokens.push(Token::DD);
                     continue;
                 }

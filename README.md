@@ -205,4 +205,5 @@ $#varname+sufix
     multiline variable
 //- ":
 
+$#var\snakecase
 ```

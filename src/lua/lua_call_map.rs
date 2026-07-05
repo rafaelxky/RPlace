@@ -3,7 +3,7 @@ use std::{collections::HashMap, fs, path::Path};
 use directories::ProjectDirs;
 use mlua::{Function, Lua, LuaNativeFn, Value};
 
-use crate::{config::config::CONFIG};
+use crate::config::config::CONFIG;
 
 pub struct LuaCallMap {
     map: HashMap<String, Function>,
@@ -36,7 +36,10 @@ impl LuaCallMap {
 
                 if path.extension().is_some_and(|e| e == "lua") {
                     let source = fs::read_to_string(&path).unwrap();
-                    lua.load(&source).set_name(path.to_string_lossy()).exec().unwrap();
+                    lua.load(&source)
+                        .set_name(path.to_string_lossy())
+                        .exec()
+                        .unwrap();
 
                     for pair in lua.globals().pairs::<String, Value>() {
                         let (name, value) = pair.unwrap();
@@ -51,19 +54,23 @@ impl LuaCallMap {
             Self { map, lua }
         }
     }
-    pub fn run<T:ToString>(&self, name: T) -> String{
+    pub fn run<T: ToString>(&self, name: T) -> String {
         let fun = self.map.get(&name.to_string());
         let fun: Result<String, mlua::Error> = match fun {
-            Some(fun) => {
-                fun.call(())
-            },
+            Some(fun) => fun.call(()),
             None => panic!("No such lua function called {}", name.to_string()),
         };
         match fun {
-            Ok(res) => {return res;},
+            Ok(res) => {
+                return res;
+            }
             Err(e) => {
                 panic!("Error calling function {}", &name.to_string())
-            },
+            }
         }
+    }
+    pub fn execute(&self, code: &str, args: Vec<String>) -> String {
+        self.lua.globals().set("args", args).unwrap();
+        self.lua.load(code).eval::<String>().unwrap()
     }
 }

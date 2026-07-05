@@ -1,0 +1,5 @@
+//- def a:
+    $#var\lua::"return args[1]..\" world\""
+//- end:
+
+//- place a where var="hello": 

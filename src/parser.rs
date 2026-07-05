@@ -171,10 +171,8 @@ impl Parser {
     fn handle_derive(&mut self, nodes: &mut ParsingResult) {
         self.remove_spaces();
         let path = match self.peek() {
-            Token::IDENT { str:_ } => {
-                self.handle_path()
-            },
-            _ => self.file_path.to_string(), 
+            Token::IDENT { str: _ } => self.handle_path(),
+            _ => self.file_path.to_string(),
         };
         self.remove_spaces();
 
@@ -525,26 +523,42 @@ impl Parser {
         }
     }
 
-    /// handles variable options 
+    /// handles variable options
     /// reaches here at the ident after \
     /// returns a list of the options
     /// ex: $#var\CAMEL
-    fn handle_var_options(&mut self) -> Option<Vec<String>> {
-        let mut options: Option<Vec<String>> = None;
-        loop {
+    fn handle_var_options(&mut self) -> Option<Vec<VarOption>> {
+        let mut options: Option<Vec<VarOption>> = None;
+        'outer: loop {
             match self.peek() {
                 Token::IDENT { str } => {
                     self.ptr_next();
                     if options.is_none() {
                         options = Some(Vec::new());
                     }
-                    options.as_mut().unwrap().push(str);
-                    match self.peek() {
-                        Token::BSLASH => {
-                            self.ptr_next();
-                            continue;
+                    options.as_mut().unwrap().push(VarOption::new(str, vec![]));
+                    'inner: loop {
+                        match self.peek() {
+                            Token::QD => {
+                                self.ptr_next();
+                                match self.peek() {
+                                    Token::IDENT { str } => {
+                                        self.ptr_next();
+                                        if let Some(options) = options.as_mut() {
+                                            if let Some(last) = options.last_mut() {
+                                                last.push_arg(str);
+                                            }
+                                        }
+                                    }
+                                    _ => panic!("todo panic msg {:?}", self.peek()),
+                                }
+                            }
+                            Token::BSLASH => {
+                                self.ptr_next();
+                                break 'inner;
+                            }
+                            _ => break 'outer,
                         }
-                        _ => break,
                     }
                 }
                 _ => match self.peek().try_get_soft_keyword() {
@@ -553,7 +567,7 @@ impl Parser {
                         if options.is_none() {
                             options = Some(Vec::new());
                         }
-                        options.as_mut().unwrap().push(str);
+                        options.as_mut().unwrap().push(VarOption::new(str, vec![]));
                         match self.peek() {
                             Token::BSLASH => {
                                 self.ptr_next();
@@ -569,11 +583,100 @@ impl Parser {
         options
     }
 
+    fn get_dquote_var(&mut self, options_2: &mut Option<Vec<VarOption>>, args: &mut Vec<(String, Value)>, from: &mut String) -> bool{
+        self.ptr_next();
+        let mut arg_str = String::new();
+        let mut has_new_line = false;
+
+        loop {
+            if !self.can_pop() {
+                handle_error_parser(CompilationError::EOFInQuotVar, self);
+            }
+            match self.peek() {
+                Token::NL => {
+                    arg_str.push('\n');
+                    self.line = self.line + 1;
+                    has_new_line = true;
+                }
+                Token::DQUOTE => {
+                    if has_new_line {
+                        arg_str.push('"');
+                    } else {
+                        self.ptr_next();
+                        break;
+                    }
+                }
+                Token::MARK { kind } => {
+                    self.ptr_next();
+                    if !has_new_line {
+                        arg_str.push_str(&kind);
+                    } else {
+                        // if value has a newline after the first ", then ends at mark + "
+                        let mut spaces = String::new();
+                        let mut ends = false;
+                        loop {
+                            match self.peek() {
+                                Token::SPACE => {
+                                    self.ptr_next();
+                                    spaces.push(' ');
+                                }
+                                Token::DQUOTE => {
+                                    self.ptr_next();
+                                    ends = true;
+                                    break;
+                                }
+                                _ => {
+                                    break;
+                                }
+                            }
+                        }
+                        if ends {
+                            break;
+                        } else {
+                            arg_str.push_str(&spaces);
+                        }
+                        // if has " after mark
+                    }
+                }
+                tok => {
+                    arg_str.push_str(&tok.val());
+                }
+            }
+            self.ptr_next();
+        }
+        if matches!(self.peek(), Token::BSLASH) {
+            self.ptr_next();
+            *options_2 = self.handle_var_options();
+        }
+        self.remove_spaces();
+        args.push((
+            from.to_string(),
+            Value {
+                value_type: ValueType::Literal,
+                value: arg_str,
+                options: options_2.clone(),
+            },
+        ));
+        // ident = "ident"
+        match self.peek() {
+            Token::DD => {
+                return true;
+            }
+            Token::COMMA => {
+                self.ptr_next();
+            }
+            _ => {
+                return true;
+            }
+        }
+        return false;
+    }
+
     fn handle_var(&mut self) -> Vec<(String, Value)> {
         let mut args: Vec<(String, Value)> = Vec::new();
         loop {
             //let mut options_1: Option<Vec<String>> = None;
-            let mut options_2: Option<Vec<String>> = None;
+            let mut options_2: Option<Vec<VarOption>> = None;
             self.remove_spaces();
             match self.peek() {
                 Token::IDENT { str } => {
@@ -924,7 +1027,7 @@ impl Parser {
         loop {
             self.remove_spaces();
             match self.pop() {
-                Token::MARK { kind:_ } => {}
+                Token::MARK { kind: _ } => {}
                 _ => panic!("forgot mark"),
             }
             self.remove_spaces();
@@ -996,11 +1099,11 @@ impl Parser {
                         // $#ident
                         Token::IDENT { str } => {
                             self.ptr_next();
-                            let mut option = None; 
+                            let mut option = None;
                             match self.peek() {
                                 Token::PLUS => {
                                     self.ptr_next();
-                                },
+                                }
                                 Token::BSLASH => {
                                     self.ptr_next();
                                     option = self.handle_var_options();
@@ -1010,10 +1113,10 @@ impl Parser {
                                         }
                                         _ => (),
                                     }
-                                },
+                                }
                                 _ => (),
                             }
-                            body.push(Node::var_template(str,option));
+                            body.push(Node::var_template(str, option));
                             continue;
                         }
                         // $#name
