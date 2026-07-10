@@ -66,7 +66,7 @@ fn main() {
                 .open(&path)
                 .expect("Unable to open file"),
             (None, Some(file_path_config)) => {
-                
+                OpenOptions::new().write(true).create(true).truncate(true).open(config.path).expect("Unable to open file")
             },
             (None, None) => OpenOptions::new()
                 .write(true)
