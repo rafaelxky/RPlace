@@ -40,19 +40,22 @@ impl Writer {
     }
 
     fn handle_import(&self, data: String, path: String) -> ParsingResult {
-        let import_lock = self.imports.read().unwrap();
-        let maybe_import = import_lock.get(&path);
+        {
+            let import_lock = self.imports.read().unwrap();
+            let maybe_import = import_lock.get(&path);
 
-        match maybe_import {
-            Some(result) => {
-                return result.clone();
-            },
-            None => (),
+            match maybe_import {
+                Some(result) => {
+                    return result.clone();
+                },
+                None => (),
+            }
         }
-
                 let lexer = Lexer::new(path.clone(), data);
                 let parser = Parser::new(lexer.parse());
                 let nodes = parser.parse();
+                let mut import_lock = self.imports.write().unwrap();
+                import_lock.insert(nodes.file_path.clone(), nodes.clone());
                 nodes
     }
 
@@ -91,14 +94,6 @@ impl Writer {
                 }
                 imp.push(self.handle_import(data,path));
             }
-            imp.iter().for_each(|result|{
-                let import_lock = self.imports.read().unwrap();
-                if import_lock.get(&result.file_path).is_some() {
-                    drop(import_lock);
-                    let mut import_lock = self.imports.write().unwrap();
-                    import_lock.insert(result.file_path.clone(), result.clone());
-                }
-            });
             imp
         }).collect();
 
