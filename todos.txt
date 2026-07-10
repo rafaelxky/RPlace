@@ -1,8 +1,8 @@
 - replacement in the entire project
 - place tracking and updating taking into consideration changes
-- inherit spaces when placing
-- config
-- conditional variables if a = b else and defaults
+- inherit spaces when placing X
+- config X 
+- conditional variables if a = b else and defaults 
 - variable manipulation by commands-
 ex: 
 change 
@@ -73,11 +73,11 @@ so for example
     let a = b;
     println!("a");
 ": 
-and it would be able to translate to multiple languages
+and it would be able to translate to multiple languages X
 
 - make a completion provider for VsCode
 - def a derive ...
-- palce derive
+- place derive
 
 - for loops or iteration over a list
 - json integration
@@ -91,5 +91,19 @@ and it would be able to translate to multiple languages
 //- place a where arr=(a,b),(c,d),(e,f), var=val:
 
 - package manager
+rplace.toml
+ex: 
+[project]
+name = "name"
+version = "version"
+
+[packages]
+package1 = {version = "1.0.0.0", features = ["stuffA"]}
+
+- lib.rp file listing all public available templates to be used
+
+package2
 - better imports
 imports must allow for ./ and not break with the import map so I'd need to store the absolute path
+
+- better inner def scope

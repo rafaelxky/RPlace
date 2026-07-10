@@ -27,6 +27,8 @@ pub enum Token {
     CASE,
     MATCH,
     QD,
+    LPAREN,
+    RPAREN,
 }
 impl Token {
     pub fn val(&self) -> String {
@@ -57,6 +59,8 @@ impl Token {
             Token::CASE => "case",
             Token::MATCH => "match",
             Token::QD => "::",
+            Token::LPAREN => "(",
+            Token::RPAREN => ")",
         }
         .to_string();
     }
