@@ -1,5 +1,7 @@
+use std::collections::HashMap;
 use std::fs::{OpenOptions};
 use std::process::exit;
+use std::sync::{Arc, RwLock};
 
 use crate::config::config::CONFIG;
 use crate::data_stream::{DataSouce, get_data_stream};
@@ -41,6 +43,7 @@ fn main() {
     // fix imports check b.txt
     // fix import space between : and ident not working
     // tests
+    let imports = Arc::new(RwLock::new(HashMap::new()));
     loop {
         let data = stream.next();
         if data.is_none() {
@@ -51,7 +54,7 @@ fn main() {
         let tokens = lexer.parse();
         let parser = Parser::new(tokens);
         let nodes = parser.parse();
-        let writer = Writer::new(nodes);
+        let writer = Writer::new_with_imports(nodes, imports.clone());
         let replaced: WriterResult = writer.replace();
 
         let file = match &args.target {

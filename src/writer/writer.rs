@@ -31,6 +31,13 @@ impl Writer {
             imports: Arc::new(RwLock::new(HashMap::new())),
         }
     }
+    pub fn new_with_imports(nodes: ParsingResult, imports: Arc<RwLock<HashMap<String,ParsingResult>>>) -> Self{
+        Self {
+            nodes: nodes.nodes,
+            file_path: nodes.file_path,
+            imports: imports,
+        }
+    }
 
     fn handle_import(&self, data: String, path: String) -> ParsingResult {
         let import_lock = self.imports.read().unwrap();
