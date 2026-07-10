@@ -29,24 +29,12 @@ impl Writer {
         }
     }
 
-    fn handle_import(&self, data: String, path: String) -> (String, Vec<Node>) {
+    fn handle_import(&self, data: String, path: String) -> ParsingResult {
         let mut imports: Vec<Node> = Vec::new();
                 let lexer = Lexer::new(path.clone(), data);
                 let parser = Parser::new(lexer.parse());
                 let nodes = parser.parse();
-                nodes.nodes.iter().for_each(|n| {
-                    if let Node::DEF {
-                        name:_,
-                        body: _,
-                        line: _,
-                        conditions: _,
-                        defaults: _,
-                    } = n
-                    {
-                        imports.push(n.clone());
-                    }
-                });
-                (path, imports)
+                nodes
     }
 
     fn initial_sweap(&mut self, def_map: &mut HashMap<String, Vec<Node>>) {
@@ -70,7 +58,7 @@ impl Writer {
             _ => (),
         }};
 
-        let imports: Vec<Vec<(String,Vec<Node>)>> = to_import.par_iter().map(|(path, _line)|{
+        let imports: Vec<Vec<ParsingResult>> = to_import.par_iter().map(|(path, _line)|{
             let (mut stream, _) = get_data_stream(path);
             let mut imp = Vec::new();
             loop {
@@ -88,8 +76,8 @@ impl Writer {
         }).collect();
 
         for imports_inner in imports{
-        for (_, import) in imports_inner {
-            for node in import {
+        for (import) in imports_inner {
+            for node in import.nodes {
                 match &node {
                     Node::DEF { conditions:_, defaults:_, name, body:_, line:_ } => {
                         def_map.entry(name.clone()).or_insert_with(Vec::new).push(node.clone());
