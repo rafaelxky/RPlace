@@ -9,12 +9,25 @@ export function activate(context: vscode.ExtensionContext) {
 			const before = line.slice(0, position.character);
 			const after = line.slice(position.character);
 
-			const start = before.lastIndexOf("//-");
+			const marker = before.lastIndexOf("//-");
+			const colon = before.indexOf(":", marker);
 
-			return [
-				new vscode.CompletionItem("place"),
-				new vscode.CompletionItem("def"),
-			];
+			if (marker === -1 || colon !== -1) {
+				return;
+			}
+
+			const range = new vscode.Range(
+				position.line,
+				marker + 4,
+				position.line,
+				position.character
+			);
+			const place = new vscode.CompletionItem("place");
+			place.range = range;
+			const def = new vscode.CompletionItem("def");
+			def.range = range;
+			return [place, def];
+
 		}
 	};
 
@@ -33,6 +46,14 @@ export function activate(context: vscode.ExtensionContext) {
 			const position = editor.selection.active;
 			const line = editor.document.lineAt(position).text;
 			const before = line.slice(0, position.character);
+
+
+			const marker = before.lastIndexOf("//-");
+			const colon = line.indexOf(":", marker);
+
+			if (marker === -1 || colon !== -1) {
+				return;
+			}
 
 			// autocomplete sujestions
 			vscode.commands.executeCommand(
