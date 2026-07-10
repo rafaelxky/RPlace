@@ -1,4 +1,22 @@
 #[derive(Debug,Clone)]
+pub struct FileConfig {
+    pub output: Option<String>,
+}
+impl FileConfig {
+    pub fn set_val(&mut self, var: &str, val: String){
+        match var {
+            "output" => {
+                self.output = Some(val);
+            },
+            _ => panic!("todo message: no such file option {}", var),
+        }
+    }
+    pub fn default() -> Self{ 
+        Self { output: None }
+    }
+}
+
+#[derive(Debug,Clone)]
 pub struct VarOption{
     pub option: String,
     pub args: Vec<String>,

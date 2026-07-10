@@ -107,3 +107,5 @@ package2
 imports must allow for ./ and not break with the import map so I'd need to store the absolute path
 
 - better inner def scope
+
+- make so it can execute other files

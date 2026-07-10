@@ -138,6 +138,11 @@ impl Parser {
 
         let val = self.handle_val();
 
+        match self.pop() {
+            Token::DD => (),
+            _ => panic!("todo message: forgot :")
+        }
+
         nodes.push(Node::SETVARIABLE { var: var, val: val });
     }
 

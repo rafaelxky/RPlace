@@ -22,6 +22,7 @@ pub struct Writer {
     nodes: Vec<Node>,
     file_path: String,
     imports: Arc<RwLock<HashMap<String, ParsingResult>>>,
+    file_config: FileConfig,
 }
 impl Writer {
     pub fn new(nodes: ParsingResult) -> Self {
@@ -29,6 +30,7 @@ impl Writer {
             nodes: nodes.nodes,
             file_path: nodes.file_path,
             imports: Arc::new(RwLock::new(HashMap::new())),
+            file_config: FileConfig::default(),
         }
     }
     pub fn new_with_imports(nodes: ParsingResult, imports: Arc<RwLock<HashMap<String,ParsingResult>>>) -> Self{
@@ -36,6 +38,7 @@ impl Writer {
             nodes: nodes.nodes,
             file_path: nodes.file_path,
             imports: imports,
+            file_config: FileConfig::default(),
         }
     }
 
@@ -76,7 +79,19 @@ impl Writer {
             },
             Node::INCLUDE { path, line } => {
                to_import.push((path.clone(),*line));
-            }
+            },
+            Node::SETVARIABLE { var, val } => {
+                if var.len() < 1 {
+                    panic!("todo message: var assignement cant be empty");
+                }
+                
+                if var.len() == 1 {
+                    self.file_config.set_val(&var[0], val.value.clone());
+                    continue;
+                }
+
+                panic!("todo message: var assignement cant be empty");
+            },
             _ => (),
         }};
 
@@ -134,7 +149,7 @@ impl Writer {
                     });
     }
 
-    pub fn replace(mut self) -> WriterResult {
+    pub fn replace(mut self) -> (WriterResult, FileConfig) {
         let mut result = WriterResult::new();
 
         let mut text = String::new();
@@ -181,7 +196,7 @@ impl Writer {
             }
         }
         result.push_elements(text, self.file_path);
-        result
+        (result, self.file_config)
     }
 
     fn handle_create(&self, path: &str, body: &Option<Box<Node>>, def_map: &HashMap<String, Vec<Node>>) -> WriterResult {

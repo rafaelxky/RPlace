@@ -6,6 +6,7 @@ use std::sync::{Arc, RwLock};
 use crate::config::config::CONFIG;
 use crate::data_stream::{DataSouce, get_data_stream};
 use crate::output_stream::OutputWriter;
+use crate::structs::FileConfig;
 use crate::writer::writer::{Writer};
 use crate::writer::writer_structs::WriterResult;
 use crate::{lexer::Lexer, parser::Parser, term::terminal_handler::handle_args};
@@ -55,16 +56,19 @@ fn main() {
         let parser = Parser::new(tokens);
         let nodes = parser.parse();
         let writer = Writer::new_with_imports(nodes, imports.clone());
-        let replaced: WriterResult = writer.replace();
+        let (replaced, config): (WriterResult, FileConfig) = writer.replace();
 
-        let file = match &args.target {
-            Some(path) => OpenOptions::new()
+        let file = match (&args.target, &config.output) {
+            (Some(path), _) => OpenOptions::new()
                 .write(true)
                 .create(true)
                 .truncate(true)
                 .open(&path)
                 .expect("Unable to open file"),
-            None => OpenOptions::new()
+            (None, Some(file_path_config)) => {
+                
+            },
+            (None, None) => OpenOptions::new()
                 .write(true)
                 .create(false)
                 .truncate(true)
@@ -72,7 +76,7 @@ fn main() {
                 .expect("Unable to open file"),
         };
 
-        let output = OutputWriter::new(replaced, file);
+        let output = OutputWriter::new(replaced, file, config);
         output.write();
     }
 }
