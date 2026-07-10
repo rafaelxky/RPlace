@@ -89,3 +89,7 @@ and it would be able to translate to multiple languages
     $#var+: $#type
 //- end:
 //- place a where arr=(a,b),(c,d),(e,f), var=val:
+
+- package manager
+- better imports
+imports must allow for ./ and not break with the import map so I'd need to store the absolute path
