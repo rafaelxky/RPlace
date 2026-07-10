@@ -1,1 +1,0 @@
-Vec<_, _>: From<fn(std::string::String, std::string::String) -> Vec<DeriveOption> {arrow_var}>

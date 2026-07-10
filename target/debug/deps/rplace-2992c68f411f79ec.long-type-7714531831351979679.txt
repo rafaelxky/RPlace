@@ -1,1 +1,0 @@
-std::option::Option<&for<'a> fn(std::string::String, &'a Vec<std::string::String>) -> std::string::String>

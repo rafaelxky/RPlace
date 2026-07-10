@@ -1,1 +1,0 @@
-LazyLock<HashMap<&str, fn(std::string::String, std::string::String) -> Vec<DeriveOption>>, fn() -> HashMap<&str, fn(std::string::String, std::string::String) -> Vec<DeriveOption>>>

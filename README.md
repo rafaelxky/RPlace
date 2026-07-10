@@ -1,4 +1,30 @@
-
+# Index
+## Introduction
+## markers
+## variables
+### regular variables
+### arrow variables
+# def 
+## define templates
+## def place / inheritance
+## template overload / when
+## def defaults
+## def derive
+## file include
+## place
+## place arguments
+## parent variables
+## data sources
+## inner macros
+## create
+## variable options
+## reverse templates / derive
+## controll flow
+### match
+## lua
+### inline lua options
+## config
+## examples
 
 # Introduction
 - rplace is a preprocessing template language that allows you to write templates and place them over any text file
@@ -117,7 +143,7 @@ it will call the default def
 - ex: //- place name where a=$#var
 - in this case "a" will be replaced by the value of "var" from the parent
 
-# data source
+# data sources
 - rplace allows for file text data and http
 - for http you must provide a file whose body is pure text similar to as if it was a file 
 
