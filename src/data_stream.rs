@@ -1,7 +1,7 @@
 use std::{fs, path::Path, process::exit};
 
-use walkdir::WalkDir;
 use reqwest::blocking::get;
+use walkdir::WalkDir;
 
 pub enum DataSouce {
     WEB,
@@ -9,12 +9,22 @@ pub enum DataSouce {
 }
 pub fn get_data_stream(path: &str) -> (Box<dyn DataStream>, DataSouce) {
     if path.starts_with("http") {
-        return (Box::new(WebDataStream::new(path.to_string())), DataSouce::WEB);
+        return (
+            Box::new(WebDataStream::new(path.to_string())),
+            DataSouce::WEB,
+        );
     }
-    return (Box::new(FileDataStream::new(path.to_string())),DataSouce::FILE);
+    return (
+        Box::new(FileDataStream::new(path.to_string())),
+        DataSouce::FILE,
+    );
+}
+pub trait PathStream {
+    fn next(&mut self) -> Option<String>;
 }
 pub trait DataStream {
     fn next(&mut self) -> Option<(String, String)>;
+    fn to_path_stream(self) -> Box<dyn PathStream>;
 }
 pub struct FileDataStream {
     paths: Vec<String>,
@@ -52,40 +62,69 @@ impl DataStream for FileDataStream {
         self.i = self.i + 1;
         return Some((self.get_from_file(path.to_string()), path));
     }
+
+    fn to_path_stream(self) -> Box<dyn PathStream> {
+        return Box::new(self);
+    }
 }
-pub struct WebDataStream{
+impl PathStream for FileDataStream {
+    fn next(&mut self) -> Option<String> {
+        if self.i > 0 {
+            return None;
+        }
+        self.i = self.i + 1;
+        return Some(self.paths[self.i].clone());
+    }
+}
+pub struct WebDataStream {
     path: Vec<String>,
     i: usize,
 }
 impl WebDataStream {
-    pub fn new(path: String) -> Self{
-        Self { path: vec![path], i: 0 }
+    pub fn new(path: String) -> Self {
+        Self {
+            path: vec![path],
+            i: 0,
+        }
     }
 }
 impl DataStream for WebDataStream {
-    fn next(&mut self) -> Option<(String,String)> {
+    fn next(&mut self) -> Option<(String, String)> {
         if self.i > 0 {
             return None;
         }
         self.i = self.i + 1;
         return Some((get_from_http(&self.path[0]), self.path[0].clone()));
     }
+
+    fn to_path_stream(self) -> Box<dyn PathStream> {
+        return Box::new(self);
+    }
+}
+impl PathStream for WebDataStream {
+    fn next(&mut self) -> Option<String> {
+        if self.i > 0 {
+            return None;
+        }
+        self.i += 1;
+        return Some(self.path[0].clone());
+    }
 }
 fn get_from_http(path: &str) -> String {
-        let body = get(path);
-        match body {
-            Ok(response) => match response.text() {
-                Ok(text) => text,
-                Err(e) => {
-                    //todo
-                    eprintln!("Failed to read body: {}", e);
-                    exit(1);
-                }
-            },
+    let body = get(path);
+    match body {
+        Ok(response) => match response.text() {
+            Ok(text) => text,
             Err(e) => {
                 //todo
-                eprintln!("Request failed {}", e);
+                eprintln!("Failed to read body: {}", e);
                 exit(1);
             }
+        },
+        Err(e) => {
+            //todo
+            eprintln!("Request failed {}", e);
+            exit(1);
         }
     }
+}

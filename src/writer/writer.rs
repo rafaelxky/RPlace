@@ -30,6 +30,7 @@ impl Writer {
     }
 
     fn handle_import(&self, data: String, path: String) -> ParsingResult {
+        
         let mut imports: Vec<Node> = Vec::new();
                 let lexer = Lexer::new(path.clone(), data);
                 let parser = Parser::new(lexer.parse());
