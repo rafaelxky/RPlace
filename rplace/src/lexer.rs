@@ -29,6 +29,7 @@ pub enum Token {
     QD,
     LPAREN,
     RPAREN,
+    DOT,
 }
 impl Token {
     pub fn val(&self) -> String {
@@ -61,6 +62,7 @@ impl Token {
             Token::QD => "::",
             Token::LPAREN => "(",
             Token::RPAREN => ")",
+            Token::DOT => ".",
         }
         .to_string();
     }
@@ -132,6 +134,10 @@ impl Lexer {
             let curr = self.pop();
 
             match curr {
+                '.' => {
+                    tokens.push(Token::DOT);
+                    continue;
+                },
                 ':' => {
                     if !self.can_pop() {
                         tokens.push(Token::DD);

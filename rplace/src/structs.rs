@@ -27,7 +27,9 @@ impl Condition {
 
 #[derive(Debug, Clone)]
 pub enum ValueType {
+    // $#var
     Literal,
+    // "var"
     Var,
 }
 #[derive(Debug, Clone)]
@@ -96,6 +98,10 @@ pub enum Node {
         line: usize,
         var_name: String,
         val: Vec<MatchArm>,
+    },
+    SETVARIABLE {
+        var: Vec<String>,
+        val: Value,
     }
 }
 impl Node {

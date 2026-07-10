@@ -112,6 +112,35 @@ impl Parser {
         return body_str;
     }
 
+    // gets here after //- $#
+    // currently only handles global variable set for stuff like file config
+    fn handle_set_variable(&mut self, nodes: &mut ParsingResult) {
+        let mut var = vec![];
+        loop {
+            let var_name = match self.pop() {
+                Token::IDENT { str } => str,
+                tok => panic!("Expected Ident found {:?}", tok),
+            };
+            var.push(var_name);
+            match self.peek() {
+                Token::DOT => {
+                    self.ptr_next();
+                }
+                tok => break,
+            }
+        }
+        self.remove_spaces();
+        match self.pop() {
+            Token::EQUALS => {}
+            tok => panic!("Expected = found {:?}", tok),
+        }
+        self.remove_spaces();
+
+        let val = self.handle_val();
+
+        nodes.push(Node::SETVARIABLE { var: var, val: val });
+    }
+
     fn handle_func(&mut self, nodes: &mut ParsingResult) {
         let mut nodes = nodes;
         self.remove_spaces();
@@ -135,6 +164,10 @@ impl Parser {
             Token::DERIVE => {
                 self.ptr_next();
                 self.handle_derive(&mut nodes);
+            }
+            Token::VAR => {
+                self.ptr_next();
+                self.handle_set_variable(&mut nodes);
             }
             _ => {
                 handle_error_parser(CompilationError::InvalidFunc, self);
@@ -591,6 +624,8 @@ impl Parser {
         options
     }
 
+    // gets here after the first "
+    // ends at the second "
     fn get_dquote_var(&mut self) -> String {
         let mut arg_str = String::new();
         let mut has_new_line = false;
@@ -619,11 +654,10 @@ impl Parser {
                     }
                 }
                 Token::DQUOTE => {
+                    self.ptr_next();
                     if has_new_line {
-                        self.ptr_next();
                         arg_str.push('"');
                     } else {
-                        self.ptr_next();
                         break;
                     }
                 }
@@ -674,7 +708,7 @@ impl Parser {
         options_2: &mut Option<Vec<VarOption>>,
         args: &mut Vec<(String, Value)>,
         from: &mut String,
-    ) -> bool {
+    ) {
         let arg_str = self.get_dquote_var();
 
         if matches!(self.peek(), Token::BSLASH) {
@@ -690,132 +724,92 @@ impl Parser {
                 options: options_2.clone(),
             },
         ));
-        // ident = "ident"
-        match self.peek() {
-            Token::DD => {
-                return true;
-            }
-            Token::COMMA => {
-                self.ptr_next();
-            }
-            _ => {
-                return true;
-            }
-        }
-        return false;
     }
 
+    fn handle_val(&mut self) -> Value {
+        let mut options = None;
+        match self.peek() {
+            // ident = ident -> variable assignement
+            Token::IDENT { str } => {
+                self.ptr_next();
+                if matches!(self.peek(), Token::BSLASH) {
+                    self.ptr_next();
+                    options = self.handle_var_options();
+                }
+                self.remove_spaces();
+                return Value {
+                    value_type: ValueType::Literal,
+                    value: str,
+                    options: options,
+                };
+            }
+            // ident = "ident" -> quotation handling for multiline values
+            Token::DQUOTE => {
+                self.ptr_next();
+                let mut args = vec![];
+                self.get_dquote_arg_var(&mut options, &mut args, &mut "".to_string());
+                return args[0].clone().1;
+            }
+            Token::VAR => {
+                self.ptr_next();
+                match self.peek() {
+                    Token::IDENT { str } => {
+                        self.ptr_next();
+                        self.remove_spaces();
+                        return Value {
+                            value_type: ValueType::Var,
+                            value: str,
+                            options: None,
+                        };
+                    }
+                    _ => handle_error(
+                        format!(
+                            "Expected Ident found {:?} at place with variable value",
+                            self.peek()
+                        ),
+                        self.line,
+                        self.file_path.clone(),
+                    ),
+                }
+            }
+            _ => {
+                handle_error_parser(CompilationError::Invalid2ndPlaceVar, self);
+            }
+        }
+    }
+
+    // here after anything that requires variable assignement
+    // ex: before this -> name = val
     fn handle_var(&mut self) -> Vec<(String, Value)> {
         let mut args: Vec<(String, Value)> = Vec::new();
         loop {
-            //let mut options_1: Option<Vec<String>> = None;
-            let mut options_2: Option<Vec<VarOption>> = None;
             self.remove_spaces();
             match self.peek() {
                 Token::IDENT { str } => {
                     self.ptr_next();
-                    let mut from = str;
-                    if matches!(self.peek(), Token::BSLASH) {
-                        self.ptr_next();
-                        //options_1 = self.handle_var_options();
-                    }
                     self.remove_spaces();
+                    let from = str;
                     match self.peek() {
                         Token::EQUALS => {
                             self.ptr_next();
                             self.remove_spaces();
+                            let arg = self.handle_val();
+                            args.push((from, arg));
                             match self.peek() {
-                                // ident = ident -> variable assignement
-                                Token::IDENT { str } => {
+                                Token::COMMA => {
                                     self.ptr_next();
-                                    if matches!(self.peek(), Token::BSLASH) {
-                                        self.ptr_next();
-                                        options_2 = self.handle_var_options();
-                                    }
-                                    self.remove_spaces();
-                                    args.push((
-                                        from,
-                                        Value {
-                                            value_type: ValueType::Literal,
-                                            value: str,
-                                            options: options_2,
-                                        },
-                                    ));
-                                    match self.peek() {
-                                        Token::COMMA => {
-                                            self.ptr_next();
-                                            continue;
-                                        }
-                                        // ident = ident
-                                        Token::DD => {
-                                            return args;
-                                        }
-                                        // second ident
-                                        _ => {
-                                            return args;
-                                        }
-                                    }
-                                }
-                                // ident = "ident" -> quotation handling for multiline values
-                                Token::DQUOTE => {
-                                    self.ptr_next();
-                                    let should_return = self.get_dquote_arg_var(
-                                        &mut options_2,
-                                        &mut args,
-                                        &mut from,
-                                    );
-                                    if should_return {
-                                        return args;
-                                    }
-                                }
-                                Token::VAR => {
-                                    self.ptr_next();
-                                    match self.peek() {
-                                        Token::IDENT { str } => {
-                                            self.ptr_next();
-                                            args.push((
-                                                from,
-                                                Value {
-                                                    value_type: ValueType::Var,
-                                                    value: str,
-                                                    options: None,
-                                                },
-                                            ));
-                                            self.remove_spaces();
-                                            match self.peek() {
-                                                Token::DD => {
-                                                    return args;
-                                                }
-                                                Token::COMMA => {
-                                                    self.ptr_next();
-                                                }
-                                                _ => {
-                                                    return args;
-                                                }
-                                            }
-                                        }
-                                        _ => handle_error(
-                                            format!(
-                                                "Expected Ident found {:?} at place with variable value",
-                                                self.peek()
-                                            ),
-                                            self.line,
-                                            self.file_path.clone(),
-                                        ),
-                                    }
-                                }
-                                _ => {
-                                    handle_error_parser(CompilationError::Invalid2ndPlaceVar, self);
-                                }
+                                    continue;
+                                },
+                                Token::DD => {
+                                    return args;
+                                },
+                                t => panic!("todo message: Unexpected token {:?}", t),
                             }
                         }
                         _ => {
                             handle_error_parser(CompilationError::InvalidPlaceAssign, self);
                         }
                     }
-                }
-                Token::DD => {
-                    return args;
                 }
                 _ => handle_error_parser(CompilationError::Invalid1stPlaceVar, self),
             }
