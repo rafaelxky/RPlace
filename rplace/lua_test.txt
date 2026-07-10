@@ -1,3 +1,5 @@
+//- $#output = "out.txt":
+
 //- def a:
     $#var_a
     $#var\lua::"return args[1]..\" world ABC\""

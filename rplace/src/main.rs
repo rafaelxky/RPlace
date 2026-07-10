@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::fs::{OpenOptions};
+use std::fs::OpenOptions;
 use std::process::exit;
 use std::sync::{Arc, RwLock};
 
@@ -7,22 +7,22 @@ use crate::config::config::CONFIG;
 use crate::data_stream::{DataSouce, get_data_stream};
 use crate::output_stream::OutputWriter;
 use crate::structs::FileConfig;
-use crate::writer::writer::{Writer};
+use crate::writer::writer::Writer;
 use crate::writer::writer_structs::WriterResult;
 use crate::{lexer::Lexer, parser::Parser, term::terminal_handler::handle_args};
 
-pub mod output_stream;
+pub mod config;
 pub mod data_stream;
 pub mod derive;
 pub mod error_handler;
 pub mod lexer;
+pub mod lua;
+pub mod options;
+pub mod output_stream;
 pub mod parser;
 pub mod structs;
 pub mod term;
 pub mod writer;
-pub mod options;
-pub mod config;
-pub mod lua;
 
 fn main() {
     let args = handle_args();
@@ -65,9 +65,12 @@ fn main() {
                 .truncate(true)
                 .open(&path)
                 .expect("Unable to open file"),
-            (None, Some(file_path_config)) => {
-                OpenOptions::new().write(true).create(true).truncate(true).open(config.path).expect("Unable to open file")
-            },
+            (None, Some(file_path_config)) => OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open(file_path_config.clone())
+                .expect("Unable to open file"),
             (None, None) => OpenOptions::new()
                 .write(true)
                 .create(false)
