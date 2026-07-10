@@ -1,3 +1,4 @@
+use std::sync::{Arc, RwLock};
 use std::{
     collections::HashMap,str
 };
@@ -20,18 +21,28 @@ use crate::{
 pub struct Writer {
     nodes: Vec<Node>,
     file_path: String,
+    imports: Arc<RwLock<HashMap<String, ParsingResult>>>,
 }
 impl Writer {
     pub fn new(nodes: ParsingResult) -> Self {
         Self {
             nodes: nodes.nodes,
             file_path: nodes.file_path,
+            imports: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
     fn handle_import(&self, data: String, path: String) -> ParsingResult {
-        
-        let mut imports: Vec<Node> = Vec::new();
+        let import_lock = self.imports.read().unwrap();
+        let maybe_import = import_lock.get(&path);
+
+        match maybe_import {
+            Some(result) => {
+                return result.clone();
+            },
+            None => (),
+        }
+
                 let lexer = Lexer::new(path.clone(), data);
                 let parser = Parser::new(lexer.parse());
                 let nodes = parser.parse();
@@ -73,6 +84,14 @@ impl Writer {
                 }
                 imp.push(self.handle_import(data,path));
             }
+            imp.iter().for_each(|result|{
+                let import_lock = self.imports.read().unwrap();
+                if import_lock.get(&result.file_path).is_some() {
+                    drop(import_lock);
+                    let mut import_lock = self.imports.write().unwrap();
+                    import_lock.insert(result.file_path.clone(), result.clone());
+                }
+            });
             imp
         }).collect();
 
