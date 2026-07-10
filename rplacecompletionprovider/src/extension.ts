@@ -11,9 +11,22 @@ export function activate(context: vscode.ExtensionContext) {
 
 			const marker = before.lastIndexOf("//-");
 			const colon = before.indexOf(":", marker);
+			const words = before.trim().split(/\s+/);
+			const currentWord = words[words.length - 1];
+			const previousWord = words[words.length - 2];
 
 			if (marker === -1 || colon !== -1) {
 				return;
+			}
+			if (previousWord == "place") {
+				return [
+					new vscode.CompletionItem("where"),
+				]
+			}
+			if (previousWord == "def") {
+				return [
+					new vscode.CompletionItem("where"),
+				]
 			}
 
 			const range = new vscode.Range(
