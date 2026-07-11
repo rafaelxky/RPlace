@@ -2,10 +2,16 @@
 
 //- def a:
     $#var_a
-    $#var\lua::"return args[1]..\" world ABC\""
+    $#var\lua::"
+        local str = "" 
+        local a = args[1]
+        local num = tonumber(a)
+        for i = 0, num do
+            str = str.."A \n"
+        end
+        return str
+    //-":
 //- end:
 
-//- place a where var="
-hello wolrf
-I am leg
-//-", var_a="hello world A":
+//- place a where var="5", var_a="hello world A":
+

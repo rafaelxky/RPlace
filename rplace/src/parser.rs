@@ -646,6 +646,7 @@ impl Parser {
                     has_new_line = true;
                     self.ptr_next();
                 }
+                // \"
                 Token::BSLASH => {
                     self.ptr_next();
                     match self.peek() {
