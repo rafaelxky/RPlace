@@ -3,11 +3,5 @@
 
 
     hello world A
-    A 
-A 
-A 
-A 
-A 
-A 
-:
+    5:
 
