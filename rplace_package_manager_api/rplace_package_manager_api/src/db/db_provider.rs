@@ -2,19 +2,39 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 use anyhow::Result;
 
-use crate::models::{package::{PackageAccessDto, PackageCreateDto, PackagePublicDto}, package_registry::{PackageRegistry, PackageRegistryPublicDto}};
+use crate::models::{link::link::Link, package_file::package_file::PackageFile, package_version_header::package_version_header::PackageVersionHeader, registry::package_registry::PackageRegistry, user::user::{HashedUser, User, UserCreateDto}};
 
 #[async_trait]
-pub trait PackageRepo: Debug + Send + Sync{
-    async fn insert_package(&self, package: PackageCreateDto) -> Result<PackagePublicDto>;
-    async fn get_package(&self, data: PackageAccessDto) -> Result<PackagePublicDto>;
-    async fn update_package(&self, package: PackageCreateDto) -> Result<PackagePublicDto>;
-    async fn get_latest_package(&self, id: i32) -> Result<PackagePublicDto>;
-    async fn delete_package(&self, package_id: i32) -> Result<()>;
-    async fn delete_package_version(&self, package: PackageAccessDto) -> Result<()>;
+pub trait Repo: 
+PackageVersionHeaderRepo + 
+PackageRegistryRepo + 
+LinkRepo + 
+PackageFileRepo + 
+UserRepo +
+Send + 
+Sync + 
+Debug {
+    
+}   
+#[async_trait]
+pub trait PackageVersionHeaderRepo: Debug + Send + Sync{
+    async fn get_package_version_header_by_package_id_and_version(&self, package_id: i32, version: String) -> Result<PackageVersionHeader>;
+    async fn get_latest_package_version_header_by_package_id(&self, package_id: i32) -> Result<PackageVersionHeader>;
 }
 #[async_trait]
 pub trait PackageRegistryRepo: Debug + Send + Sync{
-    async fn register_package(&self, name: String, creator_id: i32) -> Result<PackageRegistry>;
-    async fn get_package_registry_by_name(&self, name: String) -> Result<PackageRegistryPublicDto>;
+    async fn get_registry_by_name(&self, name: String) -> Result<PackageRegistry>;
+}
+#[async_trait]
+pub trait LinkRepo: Debug + Send + Sync{
+    async fn get_link_by_package_version_id_and_file_path(&self, package_version_id: i32, file_path: String) -> Result<Link>;
+}
+#[async_trait]
+pub trait PackageFileRepo: Debug + Send + Sync{
+    async fn get_package_file_by_hash(&self, file_hash: String) -> Result<PackageFile>;
+}
+#[async_trait]
+pub trait UserRepo: Debug + Send + Sync{
+    async fn new_user(&self, user: HashedUser) -> Result<User>;
+    async fn get_user_by_email(&self, email: String) -> Result<User>;
 }
