@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use sqlx::prelude::FromRow;
+use serde::{Serialize,Deserialize};
 
 #[derive(Debug,Clone,FromRow)]
 pub struct PackageRegistry {
@@ -9,7 +10,7 @@ pub struct PackageRegistry {
     pub creator_id: i32,
 } 
 
-#[derive(Debug,Clone,FromRow)]
+#[derive(Debug,Clone,FromRow,Serialize, Deserialize)]
 pub struct PackageRegistryCreateDto{
     pub name: String,
 }

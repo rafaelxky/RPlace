@@ -5,7 +5,6 @@ use axum::{
 };
 use serde_json::json;
 use axum::http::{HeaderMap, HeaderValue};
-use axum::debug_handler;
 
 use crate::{models::{app_state::AppState, package_file::package_file::PackageFile, registry::package_registry::{PackageRegistry, PackageRegistryCreateDto}}, service::auth_service::can_access};
 
@@ -14,24 +13,25 @@ pub fn routes() -> Router<AppState> {
         .route("/package/{name}", get(get_package_initial_file_no_version))
         .route("/package/{name}/{version}", get(get_package_initial_file))
         .route("/package/fetch_file/{version_header_id}/{path}", get(get_package_file))
-        .route("/package", post(register_new_package))
+        .route("/package", post(register_new_package_header))
 }
 
+// /package/{name}
 async fn get_package_file(
     State(state): State<AppState>,
     Path(version_header_id): Path<i32>,
     Path(path): Path<String>,
-) -> impl IntoResponse{
+) -> (StatusCode,impl IntoResponse){
     let link = state.db_provider.get_link_by_package_version_id_and_file_path(version_header_id, path).await;
     let link = match link {
         Ok(h) => h,
         Err(e) => {
-            return Json(json!(
+            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!(
                 {
                     "message": "could not get file link", 
                     "err": &e.to_string()
                 }
-            ));
+            )));
         },
     };
 
@@ -39,26 +39,26 @@ async fn get_package_file(
     let file: PackageFile = match file {
         Ok(f) => f,
         Err(e) => {
-            return Json(json!({
+            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({
                 "message": "could not fetch file",
                 "err": &e.to_string()
-            }));
+            })));
         },
     };
 
-    return Json(json!({
+    return (StatusCode::OK, Json(json!({
         "header_id": link.package_version_id,
         "path": link.file_path,
         "file_hash": file.file_hash,
         "code": file.code,
-    }));
+    })));
 }
 
 // packages/{name}
 async fn get_package_initial_file_no_version(
     State(state): State<AppState>,
     Path(name): Path<String>,
-) -> impl IntoResponse {
+) -> (StatusCode,impl IntoResponse) {
     let registry = state.db_provider.get_registry_by_name(name.clone()).await;
     let registry: PackageRegistry = match registry {
         Ok(reg) => reg,
@@ -185,11 +185,10 @@ async fn get_package_initial_file(
     )));
 }
 
-#[axum::debug_handler]
-pub async fn register_new_package(
+pub async fn register_new_package_header(
     State(state): State<AppState>, 
+    header: HeaderMap,
     Json(package): Json<PackageRegistryCreateDto>, 
-    header: &HeaderMap
 ) -> (StatusCode, impl IntoResponse) {
     let new_package = package;
     let tok: Option<&HeaderValue> = header.get("Authorization");
@@ -243,6 +242,3 @@ pub async fn register_new_package(
     })));
 }
 
-async fn new_package_version(State(state): State<AppState>, Json(package): Json<()>){
-    
-}
