@@ -1,27 +1,28 @@
 use chrono::{DateTime, Utc};
+use sqlx::prelude::FromRow;
 
+#[derive(Debug,Clone,FromRow)]
 pub struct PackageAccessDto{
-    pub name: String,
+    pub package_id: i32,
     pub version: String,
 }
+#[derive(Debug,Clone,FromRow)]
 pub struct PackagePublicDto {
-    pub id: i32,
-    pub name: String,
     pub version: String,
     pub code: String,
     pub created_at: DateTime<Utc>,
-    pub creator_id: i32,
+    pub package_id: i32,
 }
+#[derive(Debug,Clone,FromRow)]
 pub struct PackageCreateDto {
-    pub name: String,
+    pub package_id: i32,
     pub version: String,
     pub code: String,
 }
-pub struct Package {
-    pub id: i32,
-    pub name: String,
+#[derive(Debug,Clone,FromRow)]
+pub struct Package{
     pub version: String,
     pub code: String,
     pub created_at: DateTime<Utc>,
-    pub creator_id: i32,
-} 
+    pub package_id: i32,
+}

@@ -1,14 +1,15 @@
 use std::env;
 
 use anyhow::{Ok, Result};
+use async_trait::async_trait;
 use dotenvy::dotenv;
-use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
+use sqlx::{Sqlite, SqlitePool, sqlite::SqlitePoolOptions};
 
-use crate::db::db_provider::DbProvider;
+use crate::{db::db_provider::PackageRepo, models::package::{PackageAccessDto, PackageCreateDto, PackagePublicDto}};
 
 #[derive(Debug)]
 pub struct SqliteDb {
-    pool: SqlitePool,
+    pub pool: SqlitePool,
 }
 impl SqliteDb {
     pub async fn new() -> Result<Self> {
@@ -20,9 +21,10 @@ impl SqliteDb {
             .await?;
         Ok(Self { pool })
     }
-    pub async fn migrate(&self) -> Result<()>{
+    pub async fn migrate(&self) -> Result<()> {
         sqlx::migrate!("./migrations").run(&self.pool).await?;
         Ok(())
     }
 }
-impl DbProvider for SqliteDb {}
+
+

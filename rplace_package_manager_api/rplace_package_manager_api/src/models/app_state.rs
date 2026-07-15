@@ -1,19 +1,19 @@
 use std::sync::Arc;
 use anyhow::{Result, anyhow};
 
-use crate::db::db_provider::{self, DbProvider};
+use crate::db::db_provider::{self, PackageRepo};
 
 #[derive(Clone, Debug)]
 pub struct AppState {
-    pub db_provider: Arc<dyn DbProvider>
+    pub db_provider: Arc<dyn PackageRepo>
 }
 impl AppState {
-    pub fn new(db_provider: Arc<dyn DbProvider>) -> Self{
+    pub fn new(db_provider: Arc<dyn PackageRepo>) -> Self{
         Self { db_provider }
     }
 }
 pub struct AppStateBuilder{
-    db_provider: Option<Arc<dyn DbProvider>>
+    db_provider: Option<Arc<dyn PackageRepo>>
 }
 impl AppStateBuilder {
     pub fn new() -> Self{ 
@@ -25,7 +25,7 @@ impl AppStateBuilder {
         };
         Ok(AppState::new(db_provider))
     }
-    pub fn db_provider(mut self, db_provider: Arc<dyn DbProvider>) -> Self{
+    pub fn db_provider(mut self, db_provider: Arc<dyn PackageRepo>) -> Self{
         self.db_provider = Some(db_provider);
         self
     }
