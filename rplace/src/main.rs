@@ -17,6 +17,7 @@ pub mod run;
 pub mod structs;
 pub mod term;
 pub mod writer;
+pub mod package_manager;
 
 fn main() {
     let args = handle_args();
