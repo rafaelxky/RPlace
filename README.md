@@ -1,31 +1,3 @@
-# Index
-## Introduction
-## markers
-## variables
-### regular variables
-### arrow variables
-# def 
-## define templates
-## def place / inheritance
-## template overload / when
-## def defaults
-## def derive
-## file include
-## place
-## place arguments
-## parent variables
-## data sources
-## inner macros
-## create
-## variable options
-## reverse templates / derive
-## controll flow
-### match
-## lua
-### inline lua options
-## config
-## examples
-
 # Introduction
 - rplace is a preprocessing template language that allows you to write templates and place them over any text file
 - its made with programming in mind, it uses markers that use comment simbols to be embedable in code files
@@ -143,7 +115,7 @@ it will call the default def
 - ex: //- place name where a=$#var
 - in this case "a" will be replaced by the value of "var" from the parent
 
-# data sources
+# data source
 - rplace allows for file text data and http
 - for http you must provide a file whose body is pure text similar to as if it was a file 
 
@@ -219,6 +191,12 @@ this will take regular text and transform it into a template acording to rules
 - allow_lua -> allows lua code (default: off)
 - allow_import -> allows code import from other files(default: true)
 
+# file config variables
+- you can configure a file to change how the compiler interacts with it by setting variables 
+- next up is a list of what you can do:
+- //- $#output = "out.txt":
+- Sets the output path for the file
+
 # list of examples
 ```
 //- place:
@@ -267,5 +245,6 @@ $#var\lua::"return args[1]..\" world \""
     !
 //-":
 //- place b where var = "Hello World!":
+//- $#output = "out.txt":
 
 ```
