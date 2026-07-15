@@ -197,6 +197,13 @@ this will take regular text and transform it into a template acording to rules
 - //- $#output = "out.txt":
 - Sets the output path for the file
 
+# comand line arguments
+- -r or --reload-config
+- reloads the config file with the default values
+- rplace <origin> <target>
+- executes the code at origin if target is provided writes at target if not, write direcly on origin
+- target can be overriten by the file config variable $#output
+
 # list of examples
 ```
 //- place:

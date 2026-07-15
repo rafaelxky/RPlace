@@ -1,9 +1,12 @@
 use axum::{Router};
 
-pub fn routes() -> Router{
+use crate::models::app_state::AppState;
+
+pub fn routes() -> Router<AppState>{
     Router::new()
 }
 
+// packages/name/version
 async fn get_package() -> String{
     todo!()
 }
