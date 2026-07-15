@@ -1,0 +1,35 @@
+cargo:rerun-if-changed=build
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+exit status: 0
+cargo:rustc-link-search=native=/home/rafael/Code/RPlace/rplace/target/debug/build/mlua-sys-baa830faeddcfd38/out/lib
+cargo:rustc-link-lib=static:-bundle=lua5.4
