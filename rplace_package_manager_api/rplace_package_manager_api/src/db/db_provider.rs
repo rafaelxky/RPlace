@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 use anyhow::Result;
 
-use crate::models::{link::link::Link, package_file::package_file::PackageFile, package_version_header::package_version_header::PackageVersionHeader, registry::package_registry::PackageRegistry, user::user::{HashedUser, User, UserCreateDto}};
+use crate::models::{link::link::Link, package_file::package_file::PackageFile, package_version_header::package_version_header::PackageVersionHeader, registry::package_registry::{PackageRegistry, PackageRegistryCreateDto}, user::user::{HashedUser, User, UserCreateDto}};
 
 #[async_trait]
 pub trait Repo: 
@@ -24,6 +24,7 @@ pub trait PackageVersionHeaderRepo: Debug + Send + Sync{
 #[async_trait]
 pub trait PackageRegistryRepo: Debug + Send + Sync{
     async fn get_registry_by_name(&self, name: String) -> Result<PackageRegistry>;
+    async fn new_registry(&self, registry: PackageRegistryCreateDto, user_id: i32) -> Result<PackageRegistry>;
 }
 #[async_trait]
 pub trait LinkRepo: Debug + Send + Sync{
@@ -37,4 +38,5 @@ pub trait PackageFileRepo: Debug + Send + Sync{
 pub trait UserRepo: Debug + Send + Sync{
     async fn new_user(&self, user: HashedUser) -> Result<User>;
     async fn get_user_by_email(&self, email: String) -> Result<User>;
+    async fn get_user_by_id(&self, id: i32) -> Result<User>;
 }

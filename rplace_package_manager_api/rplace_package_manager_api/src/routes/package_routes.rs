@@ -1,15 +1,20 @@
+use core::option::Option::{self, None};
+
 use axum::{
-    Json, Router, body::Body, extract::{Path, State}, http::StatusCode, response::IntoResponse, routing::get,
+    Json, Router, extract::{Path, State}, http::StatusCode, response::IntoResponse, routing::{get,post,delete,put},
 };
 use serde_json::json;
+use axum::http::{HeaderMap, HeaderValue};
+use axum::debug_handler;
 
-use crate::models::{app_state::AppState, package_file::package_file::PackageFile, registry::package_registry::PackageRegistry};
+use crate::{models::{app_state::AppState, package_file::package_file::PackageFile, registry::package_registry::{PackageRegistry, PackageRegistryCreateDto}}, service::auth_service::can_access};
 
 pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/package/{name}", get(get_package_initial_file_no_version))
         .route("/package/{name}/{version}", get(get_package_initial_file))
         .route("/package/fetch_file/{version_header_id}/{path}", get(get_package_file))
+        .route("/package", post(register_new_package))
 }
 
 async fn get_package_file(
@@ -180,7 +185,64 @@ async fn get_package_initial_file(
     )));
 }
 
-pub async fn register_new_package(State(state): State<AppState>, Json(package): Json<PackageRegistry>) -> (StatusCode, impl IntoResponse) {
+#[axum::debug_handler]
+pub async fn register_new_package(
+    State(state): State<AppState>, 
+    Json(package): Json<PackageRegistryCreateDto>, 
+    header: &HeaderMap
+) -> (StatusCode, impl IntoResponse) {
     let new_package = package;
-    return (StatusCode::OK, Json(json!({})));
+    let tok: Option<&HeaderValue> = header.get("Authorization");
+    let tok: &HeaderValue = match tok {
+        Some(t) => t,
+        None => {
+            return (StatusCode::UNAUTHORIZED, Json(json!({
+                "message": "auth header not found",
+            })));
+        }
+    };
+
+    let tok = tok.to_str();
+    let tok = match tok {
+        Ok(t) => t,
+        Err(e) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
+                "message": "could not parse auth header to string",
+                "err": &e.to_string()
+            })));
+        }
+    };
+
+    let claim = can_access(tok);
+    let claim = match claim {
+        Ok(c) => c,
+        Err(e) => {
+            return (StatusCode::UNAUTHORIZED, Json(json!({
+                "message": "invalid jwt token",
+                "err": e.to_string()
+            })));
+        }
+    };
+
+    let user = state.db_provider.get_user_by_id(claim.user_id).await;
+
+    let user = match user {
+        Ok(u) => u,
+        Err(e) => {
+            return (StatusCode::UNAUTHORIZED, Json(json!({
+                "message": "invalid jwt token",
+                "err": e.to_string()
+            })));
+        }
+    };
+
+    state.db_provider.new_registry(new_package, user.id);
+
+    return (StatusCode::OK, Json(json!({
+        "message": "Package registered with success!"
+    })));
+}
+
+async fn new_package_version(State(state): State<AppState>, Json(package): Json<()>){
+    
 }
