@@ -1,4 +1,6 @@
-use std::str;
+use std::{path::Path, str};
+
+use path_clean::PathClean;
 
 use crate::{
     error_handler::{CompilationError, handle_error, handle_error_parser},
@@ -11,14 +13,18 @@ pub struct Parser {
     ptr: usize,
     line: usize,
     file_path: String,
+    project_src: String,
+    output_src: String
 }
 impl Parser {
-    pub fn new(tokens: TokenResult) -> Self {
+    pub fn new(tokens: TokenResult, project_src: String, output_src: String) -> Self {
         Self {
             tokens: tokens.tokens,
             ptr: 0,
             line: 0,
             file_path: tokens.file_path,
+            project_src,
+            output_src,
         }
     }
     pub fn get_line(&self) -> usize {
@@ -126,7 +132,7 @@ impl Parser {
                 Token::DOT => {
                     self.ptr_next();
                 }
-                tok => break,
+                _tok => break,
             }
         }
         self.remove_spaces();
@@ -137,10 +143,10 @@ impl Parser {
         self.remove_spaces();
 
         let val = self.handle_val();
-
+        self.remove_spaces();
         match self.pop() {
             Token::DD => (),
-            _ => panic!("todo message: forgot :")
+            _ => panic!("todo message: forgot :"),
         }
 
         nodes.push(Node::SETVARIABLE { var: var, val: val });
@@ -185,12 +191,12 @@ impl Parser {
     }
 
     /// //- parse file.txt:
-    fn handle_parse_instr(&mut self, nodes: &mut ParsingResult){
-        let path = self.handle_path();
+    fn handle_parse_instr(&mut self, nodes: &mut ParsingResult) {
+        let path = self.handle_path(self.project_src.clone());
         self.remove_spaces();
         match self.pop() {
             Token::DD => (),
-            _ => panic!("todo message: forgot : at PARSE")
+            _ => panic!("todo message: forgot : at PARSE"),
         };
         nodes.push(Node::PARSE { path });
     }
@@ -200,7 +206,7 @@ impl Parser {
     /// stops at space or :
     /// does not consume :
     /// ex: parent/child.txt
-    fn handle_path(&mut self) -> String {
+    fn handle_path(&mut self, base_path: String) -> String {
         let mut path: String = String::new();
         self.remove_spaces();
         loop {
@@ -223,13 +229,28 @@ impl Parser {
                 _ => handle_error_parser(CompilationError::InvalidTokenInPath, self),
             }
         }
+        if path.starts_with('.') {
+            let path_inner = path.strip_prefix("./").unwrap();
+            let mut new_path = Path::new(&base_path).parent().unwrap().to_path_buf();
+            new_path.push(path_inner);
+            path = new_path.to_string_lossy().to_string();
+        };
+
+        path = Path::new(&path).clean().to_str().unwrap().to_string();
+        let root = Path::new(&base_path).clean();
+        let root = root.parent().unwrap();
+        let root = root.to_str().unwrap();
+        if !path.starts_with(&root) {
+            panic!("todo message: path escapes project root {} is outside of {}",path,root);
+        }
+
         path
     }
 
     fn handle_derive(&mut self, nodes: &mut ParsingResult) {
         self.remove_spaces();
         let path = match self.peek() {
-            Token::IDENT { str: _ } => self.handle_path(),
+            Token::IDENT { str: _ } => self.handle_path(self.project_src.clone()),
             _ => self.file_path.to_string(),
         };
         self.remove_spaces();
@@ -258,7 +279,7 @@ impl Parser {
 
     // create filepath place defname:
     fn handle_create(&mut self, nodes: &mut ParsingResult) {
-        let path: String = self.handle_path();
+        let path: String = self.handle_path(self.output_src.clone());
         let starting_line = self.get_line();
         // filepath
         // ex: parent/child.txt
@@ -293,7 +314,7 @@ impl Parser {
         self.remove_spaces();
 
         let path = match self.peek() {
-            Token::IDENT { str: _ } => self.handle_path(),
+            Token::IDENT { str: _ } => self.handle_path(self.project_src.clone()),
             _ => {
                 handle_error_parser(CompilationError::InvalidTokenInIncludePath, self);
             }
@@ -826,10 +847,10 @@ impl Parser {
                                 Token::COMMA => {
                                     self.ptr_next();
                                     continue;
-                                },
+                                }
                                 Token::DD => {
                                     return args;
-                                },
+                                }
                                 t => panic!("todo message: Unexpected token {:?}", t),
                             }
                         }

@@ -24,22 +24,28 @@ pub struct Writer {
     file_path: String,
     imports: Arc<RwLock<HashMap<String, ParsingResult>>>,
     file_config: FileConfig,
+    project_src: String,
+    output_src: String,
 }
 impl Writer {
-    pub fn new(nodes: ParsingResult) -> Self {
+    pub fn new(nodes: ParsingResult, project_src: String, output_src: String) -> Self {
         Self {
             nodes: nodes.nodes,
             file_path: nodes.file_path,
             imports: Arc::new(RwLock::new(HashMap::new())),
             file_config: FileConfig::default(),
+            project_src,
+            output_src,
         }
     }
-    pub fn new_with_imports(nodes: ParsingResult, imports: Arc<RwLock<HashMap<String,ParsingResult>>>) -> Self{
+    pub fn new_with_imports(nodes: ParsingResult, imports: Arc<RwLock<HashMap<String,ParsingResult>>>, project_src: String, output_src: String) -> Self{
         Self {
             nodes: nodes.nodes,
             file_path: nodes.file_path,
             imports: imports,
             file_config: FileConfig::default(),
+            project_src,
+            output_src,
         }
     }
 
@@ -56,7 +62,7 @@ impl Writer {
             }
         }
                 let lexer = Lexer::new(path.clone(), data);
-                let parser = Parser::new(lexer.parse());
+                let parser = Parser::new(lexer.parse(),self.project_src.clone(), self.output_src.clone());
                 let nodes = parser.parse();
                 let mut import_lock = self.imports.write().unwrap();
                 import_lock.insert(nodes.file_path.clone(), nodes.clone());

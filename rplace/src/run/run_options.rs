@@ -13,6 +13,11 @@ use crate::{lexer::Lexer, parser::Parser};
 
 pub fn run_parse(args: ParseArgs) {
     let (mut stream, origin) = get_data_stream(&args.origin);
+    let project_src = args.origin;
+    let output_src = match &args.target {
+        Some(t) => t.clone(),
+        None => project_src.clone(),
+    };
     match origin {
         DataSouce::WEB => {
             if args.target.is_none() {
@@ -39,9 +44,9 @@ pub fn run_parse(args: ParseArgs) {
         let (data, path) = data.unwrap();
         let lexer = Lexer::new(path.clone(), data);
         let tokens = lexer.parse();
-        let parser = Parser::new(tokens);
+        let parser = Parser::new(tokens, project_src.clone(), output_src.clone());
         let nodes = parser.parse();
-        let writer = Writer::new_with_imports(nodes, imports.clone());
+        let writer = Writer::new_with_imports(nodes, imports.clone(), project_src.clone(), output_src.clone());
         let (mut replaced, config): (WriterResult, FileConfig) = writer.replace();
         stream.append(&mut replaced.to_parse);
 
