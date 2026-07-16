@@ -174,14 +174,31 @@ impl Parser {
                 self.ptr_next();
                 self.handle_set_variable(&mut nodes);
             }
+            Token::PARSE => {
+                self.ptr_next();
+                self.handle_parse_instr(&mut nodes);
+            }
             _ => {
                 handle_error_parser(CompilationError::InvalidFunc, self);
             }
         }
     }
 
+    /// //- parse file.txt:
+    fn handle_parse_instr(&mut self, nodes: &mut ParsingResult){
+        let path = self.handle_path();
+        self.remove_spaces();
+        match self.pop() {
+            Token::DD => (),
+            _ => panic!("todo message: forgot : at PARSE")
+        };
+        nodes.push(Node::PARSE { path });
+    }
+
     /// gets the file path from tokens
     /// at this point we know a path is to come but no ident has been consumed
+    /// stops at space or :
+    /// does not consume :
     /// ex: parent/child.txt
     fn handle_path(&mut self) -> String {
         let mut path: String = String::new();
@@ -198,6 +215,10 @@ impl Parser {
                 }
                 Token::DD => {
                     break;
+                }
+                Token::DOT => {
+                    self.ptr_next();
+                    path.push('.');
                 }
                 _ => handle_error_parser(CompilationError::InvalidTokenInPath, self),
             }

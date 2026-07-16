@@ -1,5 +1,0 @@
-
-    struct_name
-    structName
-    STRUCT_NAME
-    structName

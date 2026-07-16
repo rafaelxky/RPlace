@@ -25,6 +25,7 @@ pub trait PathStream {
 pub trait DataStream {
     fn next(&mut self) -> Option<(String, String)>;
     fn to_path_stream(self) -> Box<dyn PathStream>;
+    fn append(&mut self, paths: &mut Vec<String>);
 }
 pub struct FileDataStream {
     paths: Vec<String>,
@@ -66,6 +67,10 @@ impl DataStream for FileDataStream {
     fn to_path_stream(self) -> Box<dyn PathStream> {
         return Box::new(self);
     }
+    
+    fn append(&mut self, paths: &mut Vec<String>) {
+        self.paths.append(paths);
+    }
 }
 impl PathStream for FileDataStream {
     fn next(&mut self) -> Option<String> {
@@ -77,13 +82,13 @@ impl PathStream for FileDataStream {
     }
 }
 pub struct WebDataStream {
-    path: Vec<String>,
+    paths: Vec<String>,
     i: usize,
 }
 impl WebDataStream {
     pub fn new(path: String) -> Self {
         Self {
-            path: vec![path],
+            paths: vec![path],
             i: 0,
         }
     }
@@ -94,11 +99,15 @@ impl DataStream for WebDataStream {
             return None;
         }
         self.i = self.i + 1;
-        return Some((get_from_http(&self.path[0]), self.path[0].clone()));
+        return Some((get_from_http(&self.paths[0]), self.paths[0].clone()));
     }
 
     fn to_path_stream(self) -> Box<dyn PathStream> {
         return Box::new(self);
+    }
+    
+    fn append(&mut self, paths: &mut Vec<String>) {
+        self.paths.append(paths);
     }
 }
 impl PathStream for WebDataStream {
@@ -107,10 +116,11 @@ impl PathStream for WebDataStream {
             return None;
         }
         self.i += 1;
-        return Some(self.path[0].clone());
+        return Some(self.paths[0].clone());
     }
 }
 fn get_from_http(path: &str) -> String {
+    // todo: make this work
     let body = get(path);
     match body {
         Ok(response) => match response.text() {

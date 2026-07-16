@@ -20,10 +20,14 @@ pub struct Derive{
 pub struct WriterResult {
     pub file_data: Vec<FileData>,
     pub derives: Vec<Derive>,
+    pub to_parse: Vec<String>,
 }
 impl WriterResult {
     pub fn new() -> Self{
-        Self { file_data: Vec::new(), derives: Vec::new()}
+        Self { file_data: Vec::new(), derives: Vec::new(), to_parse: vec![]}
+    }
+    pub fn set_to_parse(&mut self, to_parse: Vec<String>){
+        self.to_parse = to_parse;
     }
     pub fn append(&mut self, mut data: WriterResult){
         self.file_data.append(&mut data.file_data);

@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::sync::{Arc, RwLock};
 use std::{
     collections::HashMap,str
@@ -62,7 +63,7 @@ impl Writer {
                 nodes
     }
 
-    fn initial_sweap(&mut self, def_map: &mut HashMap<String, Vec<Node>>) {
+    fn initial_sweap(&mut self, def_map: &mut HashMap<String, Vec<Node>>, to_parse: &mut Vec<String>) {
         // initial sweap
         let mut to_import: Vec<(String,usize)> = Vec::new();
 
@@ -92,6 +93,9 @@ impl Writer {
 
                 panic!("todo message: var assignement cant be empty");
             },
+            Node::PARSE { path } => {
+                to_parse.push(path.clone());
+            }
             _ => (),
         }};
 
@@ -154,7 +158,9 @@ impl Writer {
 
         let mut text = String::new();
         let mut def_map = HashMap::new();
-        self.initial_sweap(&mut def_map);
+        let mut to_parse = Vec::new();
+        self.initial_sweap(&mut def_map, &mut to_parse);
+        result.set_to_parse(to_parse);
 
         let nodes = &self.nodes;
         for node in nodes {

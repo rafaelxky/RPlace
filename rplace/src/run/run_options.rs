@@ -42,7 +42,8 @@ pub fn run_parse(args: ParseArgs) {
         let parser = Parser::new(tokens);
         let nodes = parser.parse();
         let writer = Writer::new_with_imports(nodes, imports.clone());
-        let (replaced, config): (WriterResult, FileConfig) = writer.replace();
+        let (mut replaced, config): (WriterResult, FileConfig) = writer.replace();
+        stream.append(&mut replaced.to_parse);
 
         let file = match (&args.target, &config.output) {
             (Some(path), _) => OpenOptions::new()

@@ -120,6 +120,9 @@ pub enum Node {
     SETVARIABLE {
         var: Vec<String>,
         val: Value,
+    },
+    PARSE {
+        path: String,
     }
 }
 impl Node {
