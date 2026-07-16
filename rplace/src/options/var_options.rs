@@ -44,7 +44,7 @@ pub fn exec_option(opt: &VarOption, val: String) -> String {
     let opt_name = VAR_OPTIONS.get(name);
     let func = match opt_name {
         Some(opt) => opt,
-        None => panic!("todo errro message, no option found {}", name),
+        None => panic!("todo error message, no option found {}", name),
     };
     func(val, &opt.args)
 }

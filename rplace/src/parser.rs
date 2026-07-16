@@ -325,7 +325,7 @@ impl Parser {
         match self.pop() {
             Token::DD => {}
             _ => {
-                panic!("todo error message")
+                panic!("todo error message, expected :")
             }
         }
 
@@ -1014,12 +1014,12 @@ impl Parser {
         self.remove_till_nl();
         let var_name = match self.pop() {
             Token::IDENT { str } => str,
-            _ => panic!("todo error message"),
+            _ => panic!("todo error message expected ident in match"),
         };
         self.remove_till_nl();
         match self.pop() {
             Token::DD => {}
-            _ => panic!("todo error message"),
+            _ => panic!("todo error message expected : in match"),
         };
 
         let mut matches = Vec::new();
@@ -1062,13 +1062,13 @@ impl Parser {
         self.remove_till_nl();
         let match_value = match self.pop() {
             Token::IDENT { str } => str,
-            _ => panic!("todo error message"),
+            _ => panic!("todo error message expected ident at match arm"),
         };
 
         self.remove_till_nl();
         match self.pop() {
             Token::DD => {}
-            _ => panic!("todo error message"),
+            _ => panic!("todo error message expected : at match arm"),
         };
         self.remove_till_nl();
 

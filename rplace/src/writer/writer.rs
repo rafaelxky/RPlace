@@ -271,7 +271,7 @@ impl Writer {
                 let var = args_map.get(var_name);
                 let var_value = match var {
                     Some(val) => val,
-                    None => panic!("todo error message"),
+                    None => panic!("todo error message found no arg to match"),
                 };
                 let matched = val.iter().find(|arm|{
                     arm.matches(var_value.value.to_string())
@@ -283,11 +283,11 @@ impl Writer {
                             Node::BODY { data, line:_ } => {
                                 self.handle_def_body(data, text, args_map, def_queue, def_name, match_line, def_map, result);
                             }
-                            _ => panic!("todo error message"),
+                            _ => panic!("todo error message expected body"),
                         }
                     },
                     None => {
-                        panic!("todo error message")
+                        panic!("todo error message found no match")
                     }
                 }
 

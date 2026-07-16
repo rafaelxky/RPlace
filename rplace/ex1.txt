@@ -1,1 +1,13 @@
-//- create ./a.txt:
+//- $#output = "out.txt":
+//- def dto:
+pub struct $#name\pascalcase{
+//- match id:
+//- case true:
+    pub id: i32,
+//- end:
+//- case _ :
+//- end:
+//- end:
+}
+//- end:
+//- place dto where name = "user", id = abc: 
