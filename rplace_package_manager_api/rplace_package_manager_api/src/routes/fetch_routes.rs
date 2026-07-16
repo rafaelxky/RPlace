@@ -10,6 +10,7 @@ use axum::{
 };
 use serde_json::json;
 
+use crate::constants::PROJECT_FILE_PATH;
 use crate::{
     models::{
         app_state::AppState,
@@ -57,7 +58,11 @@ async fn get_package_initial_file_no_version(
             return (
                 StatusCode::NOT_FOUND,
                 Json(
-                    json!({"msg": format!("could not find registry with name {}", name), "err": &e.to_string()}),
+                    json!({
+                        "message": format!("could not find registry with name {}", name), 
+                        "err": &e.to_string()
+                    }
+                    ),
                 ),
             );
         }
@@ -74,7 +79,7 @@ async fn get_package_initial_file_no_version(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!(
                     {
-                        "msg": "could not fetch package version header",
+                        "message": "could not fetch package version header",
                         "err": &e.to_string()
                     }
                 )),
@@ -84,7 +89,7 @@ async fn get_package_initial_file_no_version(
 
     let link = state
         .db_provider
-        .get_link_by_package_version_id_and_file_path(version_header.id, "rplace".to_string())
+        .get_link_by_package_version_id_and_file_path(version_header.id, PROJECT_FILE_PATH.to_string())
         .await;
     let link = match link {
         Ok(l) => l,
@@ -93,7 +98,7 @@ async fn get_package_initial_file_no_version(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!(
                     {
-                        "msg": "could not fetch file link",
+                        "message": "could not fetch file link",
                         "err": &e.to_string()
                     }
                 )),
@@ -161,8 +166,7 @@ async fn get_package_initial_file_no_version(
 // path will be rplace.toml because its the initial fetch
 async fn get_package_initial_file(
     State(state): State<AppState>,
-    Path(name): Path<String>,
-    Path(version): Path<String>,
+    Path((name,version)): Path<(String,String)>,
 ) -> (StatusCode, impl IntoResponse) {
     let registry = state.db_provider.get_registry_by_name(name.clone()).await;
     let registry: PackageRegistry = match registry {
@@ -171,7 +175,7 @@ async fn get_package_initial_file(
             return (
                 StatusCode::NOT_FOUND,
                 Json(
-                    json!({"msg": format!("could not find package with name {}",name), "err": &e.to_string()}),
+                    json!({"message": format!("could not find package with name {}",name), "err": &e.to_string()}),
                 ),
             );
         }
@@ -188,7 +192,7 @@ async fn get_package_initial_file(
                 StatusCode::NOT_FOUND,
                 Json(json!(
                     {
-                        "msg": format!("could not find version {} for package {}", version, name),
+                        "message": format!("could not find version {} for package {}", version, name),
                         "err": &e.to_string()
                     }
                 )),
@@ -198,7 +202,7 @@ async fn get_package_initial_file(
 
     let link = state
         .db_provider
-        .get_link_by_package_version_id_and_file_path(version_header.id, "rplace".to_string())
+        .get_link_by_package_version_id_and_file_path(version_header.id, PROJECT_FILE_PATH.to_string())
         .await;
     let link = match link {
         Ok(l) => l,
@@ -207,7 +211,7 @@ async fn get_package_initial_file(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!(
                     {
-                        "msg": "could not fetch file link",
+                        "message": "could not fetch file link",
                         "err": &e.to_string()
                     }
                 )),

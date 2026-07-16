@@ -12,7 +12,7 @@ impl PackageVersionHeaderRepo for SqliteDb {
         Ok(header)
     }
     async fn get_latest_package_version_header_by_package_id(&self, package_id: i32) -> Result<PackageVersionHeader>{
-        let sql = "SELECT * FROM package_version_header WHERE package_id = ? ORDER BY created_at DESC LIMIT = 1;";
+        let sql = "SELECT * FROM package_version_header WHERE package_id = ? ORDER BY created_at DESC LIMIT 1;";
         let header = sqlx::query_as::<_,PackageVersionHeader>(sql).bind(package_id).fetch_one(&self.pool).await?;
         Ok(header)
     }

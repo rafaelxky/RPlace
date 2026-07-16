@@ -4,4 +4,5 @@ pub mod repos;
 pub mod routes;
 pub mod service;
 pub mod app;
+pub mod constants;
 

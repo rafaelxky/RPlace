@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS links (
     package_version_id INTEGER NOT NULL,
     file_hash TEXT NOT NULL,
     file_path TEXT NOT NULL,
-    FOREIGN KEY (package_version_id) REFERENCES package_version(id),
+    FOREIGN KEY (package_version_id) REFERENCES package_version_header(id),
     FOREIGN KEY (file_hash) REFERENCES package_file(file_hash)
 );
 

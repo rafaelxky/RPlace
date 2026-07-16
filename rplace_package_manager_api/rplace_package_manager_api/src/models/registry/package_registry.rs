@@ -5,7 +5,7 @@ use serde::{Serialize,Deserialize};
 #[derive(Debug,Clone,FromRow)]
 pub struct PackageRegistry {
     pub id: i32,
-    pub name: String,
+    pub package_name: String,
     pub created_at: DateTime<Utc>,
     pub creator_id: i32,
 } 

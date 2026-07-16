@@ -122,7 +122,7 @@ pub async fn register_new_package_header(
         StatusCode::OK,
         Json(json!({
             "id": &res.id,
-            "name": &res.name,
+            "name": &res.package_name,
             "created_at": &res.created_at,
             "creator_id": &res.creator_id
         })),

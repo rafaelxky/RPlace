@@ -23,6 +23,8 @@ use std::result::Result::Ok;
     const EMAIL: &str = "example@gmail.com";
     const WRONG_EMAIL: &str = "not_example@gmail.com";
     const NAME: &str = "usr";
+    
+    const INSERT_USER: &str = "INSERT INTO users (name,email,password_hash) VALUES (?,?,?);";
 
 #[tokio::test]
 async fn test_new_user() -> Result<()> {
@@ -81,8 +83,7 @@ async fn test_loggin_success() -> Result<()> {
     let salt = SaltString::generate(&mut OsRng);
 
     let password_hash = Argon2::default().hash_password(PASSWORD.as_bytes(), &salt).expect("could not hash password").to_string();
-    let sql = "INSERT INTO users (name,email,password_hash) VALUES (?,?,?);";
-    sqlx::query(sql).bind(NAME).bind(EMAIL).bind(password_hash).execute(&db.pool).await?;
+    sqlx::query(INSERT_USER).bind(NAME).bind(EMAIL).bind(password_hash).execute(&db.pool).await?;
 
       let request = Request::builder()
         .uri("/loggin")
