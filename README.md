@@ -204,6 +204,10 @@ this will take regular text and transform it into a template acording to rules
 - executes the code at origin if target is provided writes at target if not, write direcly on origin
 - target can be overriten by the file config variable $#output
 
+# parse instruction
+- //- parse file.txt:
+- runs the template on the designated file
+
 # list of examples
 ```
 //- place:
@@ -251,7 +255,9 @@ $#var\lua::"return args[1]..\" world \""
     World
     !
 //-":
+
 //- place b where var = "Hello World!":
 //- $#output = "out.txt":
+//- parse file.txt:
 
 ```
