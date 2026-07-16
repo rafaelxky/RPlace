@@ -86,6 +86,7 @@ it will call the default def
 - //- include file_path:
 - this will get the definitions from this other file
 - ~ in the path is a shortcut for the default ~/.rplace folder
+- works with .
 - supports http includes, the url must provide raw text only
 
 # place
