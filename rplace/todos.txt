@@ -118,5 +118,7 @@ imports must allow for ./ and not break with the import map so I'd need to store
 - $#var?default
 - 
 //- if var? = val:
-       
+
 //- end
+
+- if is semi implented, please remember to implement the rest
