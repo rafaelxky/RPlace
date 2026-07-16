@@ -97,13 +97,13 @@ async fn get_package_initial_file_no_version_success() -> Result<()> {
     let status = response.status().clone();
 
     let bytes = response.into_body().collect().await?.to_bytes();
-    let body: HashMap<String, serde_json::Value> = serde_json::from_slice(&bytes.clone())?;
     if status != StatusCode::OK {
         println!("status: {}", status);
         println!("body: {:?}", String::from_utf8_lossy(&bytes));
         panic!("wrong status code");
     }
     assert_eq!(status, StatusCode::OK);
+    let body: HashMap<String, serde_json::Value> = serde_json::from_slice(&bytes.clone())?;
     let repo_id = body.get("repo_id").unwrap();
     let version = body.get("version").unwrap();
     let file_hash = body.get("file_hash").unwrap();
@@ -131,7 +131,6 @@ async fn get_package_initial_file_no_version_fail() -> Result<()> {
 
     let response = app.oneshot(request).await?;
     let status = response.status().clone();
-    let bytes = response.into_body().collect().await?.to_bytes();
 
     assert_eq!(status, StatusCode::NOT_FOUND);
 
@@ -173,4 +172,40 @@ async fn get_package_initial_file_success() -> Result<()> {
 
     Ok(())
 }
+
+
+#[tokio::test]
+async fn get_package_file_success() -> Result<()> {
+    dotenv().ok();
+    const DB_NAME: &str = "db/test_get_package_file_success.db";
+    let (_db,app) = setup(DB_NAME).await?;
+
+    let request = Request::builder()
+        .uri(format!("/package/fetch_file/{}/{}", VERSION_ID, FILE_PATH))
+        .method("GET")
+        .body(Body::empty())?;
+
+    let response = app.oneshot(request).await?;
+    let status = response.status().clone();
+
+    let bytes = response.into_body().collect().await?.to_bytes();
+    if status != StatusCode::OK {
+        println!("status: {}", status);
+        println!("body: {:?}", String::from_utf8_lossy(&bytes));
+        panic!("Wrong status code");
+    }
+    let body: HashMap<String, serde_json::Value> = serde_json::from_slice(&bytes.clone())?;
+    assert_eq!(status, StatusCode::OK);
+    let header_id = body.get("header_id").unwrap();
+    let file_path = body.get("file_path").unwrap();
+    let file_hash = body.get("file_hash").unwrap();
+    let code = body.get("code").unwrap();
+    assert_eq!(header_id, VERSION_ID);
+    assert_eq!(file_path, FILE_PATH);
+    assert_eq!(file_hash, FILE_HASH);
+    assert_eq!(code, CODE);
+
+    Ok(())
+}
+
 

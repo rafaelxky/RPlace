@@ -270,18 +270,15 @@ async fn get_package_initial_file(
 // /package/fetch_file/{version_header_id}/{path} GET
 /* returns:
 {
-    "repo_id": i32,
-    "version": string,
     "header_id": i32,
-    "file_hash": string,
     "file_path": string,
+    "file_hash": string,
     "code": string
 }
 */
 async fn get_package_file(
     State(state): State<AppState>,
-    Path(version_header_id): Path<i32>,
-    Path(path): Path<String>,
+    Path((version_header_id,path)): Path<(i32,String)>,
 ) -> (StatusCode, impl IntoResponse) {
     let link = state
         .db_provider
@@ -331,7 +328,7 @@ async fn get_package_file(
         StatusCode::OK,
         Json(json!({
             "header_id": link.package_version_id,
-            "path": link.file_path,
+            "file_path": link.file_path,
             "file_hash": file.file_hash,
             "code": file.code,
         })),
