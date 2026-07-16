@@ -145,6 +145,9 @@ impl MatchArm {
         Self { match_value, body: body }
     }
     pub fn matches(&self, val: String) -> bool {
+        if val == "_" {
+            return true;
+        }
         self.match_value == *val
     }
 }
