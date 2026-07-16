@@ -16,7 +16,17 @@ pub fn routes() -> Router<AppState> {
         .route("/package", post(register_new_package_header))
 }
 
-// /package/{name}
+// /package/fetch_file/{version_header_id}/{path}
+/* returns:
+{
+    "repo_id": i32,
+    "version": string,
+    "header_id": i32,
+    "file_hash": string,
+    "file_path": string,
+    "code": string
+}
+*/
 async fn get_package_file(
     State(state): State<AppState>,
     Path(version_header_id): Path<i32>,
@@ -55,6 +65,18 @@ async fn get_package_file(
 }
 
 // packages/{name}
+/* returns: 
+{
+    "repo_id": i32,
+    "version": string,
+    "header_id": i32,
+    "file_hash": string,
+    "file_path": string,
+    "code": string
+}
+*/
+// path will be rplace.toml because its the initial fetch
+// version will be the latest because none was specified
 async fn get_package_initial_file_no_version(
     State(state): State<AppState>,
     Path(name): Path<String>,
@@ -120,6 +142,17 @@ async fn get_package_initial_file_no_version(
     )));
 }
 // packages/{name}/{version}
+/* returns;
+{
+    "repo_id": i32,
+    "version": strign,
+    "header_id": i32,
+    "file_hash": string,
+    "file_path": string,
+    "code": string
+}
+*/
+// path will be rplace.toml because its the initial fetch
 async fn get_package_initial_file(
     State(state): State<AppState>,
     Path(name): Path<String>,
@@ -185,6 +218,22 @@ async fn get_package_initial_file(
     )));
 }
 
+// must be logged in 
+// jwt token in header
+// body:
+/*
+{
+    "name": string
+}
+
+returns:
+{
+    "id": i32,
+    "name": string,
+    "created_at": timedate,
+    "creator_id": i32
+}
+*/
 pub async fn register_new_package_header(
     State(state): State<AppState>, 
     header: HeaderMap,
@@ -235,10 +284,25 @@ pub async fn register_new_package_header(
         }
     };
 
-    state.db_provider.new_registry(new_package, user.id);
+    let res = state.db_provider.new_registry(new_package, user.id).await;
+
+    let res = match res {
+        Ok(res) => {
+            res
+        },
+        Err(err) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
+                "message": "could not create new registry",
+                "err": &err.to_string()
+            })));
+        },
+    };
 
     return (StatusCode::OK, Json(json!({
-        "message": "Package registered with success!"
+        "id": &res.id,
+        "name": &res.name,
+        "created_at": &res.created_at,
+        "creator_id": &res.creator_id
     })));
 }
 

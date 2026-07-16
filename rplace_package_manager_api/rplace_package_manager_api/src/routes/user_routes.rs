@@ -9,6 +9,21 @@ pub fn routes() -> Router<AppState> {
     Router::new().route("/user", post(new_user))
 }
 
+// creates a new user
+/*
+input:
+{
+    "name": string,
+    "email": string,
+    "password": string
+} 
+
+returns:
+{
+    "id": i32,
+    "name": string
+}
+*/
 async fn new_user(
     State(state): State<AppState>,
     Json(body): Json<UserCreateDto>,
@@ -18,7 +33,7 @@ async fn new_user(
     let salt = SaltString::generate(&mut OsRng);
 
     let password_hash = Argon2::default()
-        .hash_password(new_user.password_hash.as_bytes(), &salt);
+        .hash_password(new_user.password.as_bytes(), &salt);
 
     let password_hash = match password_hash {
         Ok(h) => h.to_string(),

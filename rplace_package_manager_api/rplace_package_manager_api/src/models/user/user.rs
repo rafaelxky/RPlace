@@ -5,7 +5,7 @@ use sqlx::prelude::FromRow;
 pub struct UserCreateDto{
     pub name: String,
     pub email: String,
-    pub password_hash: String,
+    pub password: String,
 }
 #[derive(Debug,Clone,FromRow, Serialize, Deserialize)]
 pub struct HashedUser{

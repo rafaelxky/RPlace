@@ -13,7 +13,20 @@ pub fn routes() -> Router<AppState> {
     Router::new()
 }
 
-// checks if user with email has that hash and if yes create and return a jwt claim
+// checks email and pasword hash
+// if ok, create and return a jwt claim
+/*  
+input: 
+{
+    "username": string,
+    "password": string
+}
+
+returns:
+{
+    "token": string
+}
+*/
 pub async fn loggin(
     State(state): State<AppState>,
     Json(loggin): Json<LogginRequest>,
