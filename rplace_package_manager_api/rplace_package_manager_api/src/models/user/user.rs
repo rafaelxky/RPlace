@@ -18,7 +18,7 @@ impl HashedUser {
         Self { name: user.name, email: user.email, password_hash: hash}
     }
 }
-#[derive(Debug,Clone,FromRow)]
+#[derive(Debug,Clone,FromRow,Serialize,Deserialize)]
 pub struct UserPublicDto{
     pub name: String,
     pub id: i32,
@@ -29,5 +29,4 @@ pub struct User{
     pub name: String,
     pub email: String,
     pub password_hash: String,
-    pub salt: String,
 }

@@ -1,14 +1,17 @@
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::SaltString};
-use axum::{Json, Router, extract::State, response::IntoResponse, routing::post};
+use axum::{Json, Router, extract::State, http::StatusCode, response::IntoResponse, routing::post};
 use rand_core::OsRng;
 use serde_json::json;
+use serde_json::Value;
+use axum::response::Response;
 
-use crate::models::{app_state::AppState, user::user::{HashedUser, UserCreateDto}};
+use crate::models::{app_state::AppState, user::user::{HashedUser, UserCreateDto, UserPublicDto}};
 
 pub fn routes() -> Router<AppState> {
     Router::new().route("/user", post(new_user))
 }
 
+// /user POST
 // creates a new user
 /*
 input:
@@ -27,7 +30,7 @@ returns:
 async fn new_user(
     State(state): State<AppState>,
     Json(body): Json<UserCreateDto>,
-) -> impl IntoResponse {
+) -> Response {
     let new_user = body;
 
     let salt = SaltString::generate(&mut OsRng);
@@ -38,10 +41,10 @@ async fn new_user(
     let password_hash = match password_hash {
         Ok(h) => h.to_string(),
         Err(e) => {
-            return Json(json!({
+            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({
                 "message": "could not hash password",
                 "e": &e.to_string(),
-            }));
+            }))).into_response();
         }
     };
 
@@ -51,16 +54,15 @@ async fn new_user(
     let user = match user {
         Ok(u) => u,
         Err(e) => {
-            return Json(json!({
+            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({
                 "message": "could not create new user",
                 "err": &e.to_string()
-            }));
+            }))).into_response();
         }
     };
-    return Json(json!(
-        {
-            "id": &user.id,
-            "name": &user.name
-        }
-    ));
+    let user = UserPublicDto{
+        id: user.id,
+        name: user.name,
+    };
+    return (StatusCode::OK,Json(user)).into_response();
 }

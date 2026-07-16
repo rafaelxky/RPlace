@@ -5,7 +5,7 @@ use async_trait::async_trait;
 #[async_trait]
 impl UserRepo for SqliteDb {
     async fn new_user(&self, user: HashedUser) -> Result<User> {
-        let sql = "INSERT INTO users (name,email,password_hash) VALUES (?,?,?);";
+        let sql = "INSERT INTO users (name,email,password_hash) VALUES (?,?,?) RETURNING *;";
         let user = sqlx::query_as::<_,User>(sql).bind(user.name).bind(user.email).bind(user.password_hash).fetch_one(&self.pool).await?;
         Ok(user)
     }

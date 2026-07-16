@@ -1,5 +1,5 @@
 use argon2::{Argon2, PasswordHash,PasswordVerifier};
-use axum::{Json, Router, extract::State, http::StatusCode, response::IntoResponse};
+use axum::{Json, Router, extract::State, http::StatusCode, response::IntoResponse, routing::{get, post}};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{EncodingKey, Header, jws::encode};
 use serde_json::json;
@@ -11,10 +11,12 @@ use crate::models::{
 
 pub fn routes() -> Router<AppState> {
     Router::new()
+    .route("/loggin", post(loggin))
 }
 
+// /loggin GET
 // checks email and pasword hash
-// if ok, create and return a jwt claim
+// if ok (user exists and password and name match), create and return a jwt claim
 /*  
 input: 
 {
@@ -32,10 +34,11 @@ pub async fn loggin(
     Json(loggin): Json<LogginRequest>,
 ) -> (StatusCode, impl IntoResponse) {
     let request = loggin;
-    let user = state.db_provider.get_user_by_email(request.username).await;
+    let user = state.db_provider.get_user_by_email(request.email).await;
     let user = match user {
         Ok(u) => u,
         Err(_e) => {
+            println!("didn't find user");
             return (
                 StatusCode::UNAUTHORIZED,
                 Json(json!(
@@ -60,15 +63,18 @@ pub async fn loggin(
             );
         }
     };
-    let result = Argon2::default().verify_password(user.password_hash.as_bytes(), &parsed_hash);
+
+    let result = Argon2::default().verify_password(request.password.as_bytes(), &parsed_hash);
 
     match result {
         Ok(()) => (),
         Err(e) => {
+            println!("hash: {}", user.password_hash);
+            println!("parsed: {}", parsed_hash);
             return (
-                StatusCode::INTERNAL_SERVER_ERROR,
+                StatusCode::UNAUTHORIZED,
                 Json(json!({
-                    "message": "could not compare hashes",
+                    "message": "wrong password or email",
                     "err": &e.to_string()
                 })),
             );

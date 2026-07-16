@@ -11,14 +11,16 @@ axum = { version = "0.8.9", features = ["macros"] }
 chrono = { version = "0.4.45", features = ["serde"] }
 dotenvy = "0.15.7"
 hex = "0.4.3"
-jsonwebtoken = "10.4.0"
+http-body-util = "0.1.4"
+jsonwebtoken = { version = "10.4.0", features = ["rust_crypto"] }
 rand_core = { version = "0.6", features = ["getrandom"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
 sha2 = "0.11.0"
-sqlx = { version = "0.9.0", features = ["chrono", "sqlite"] }
+sqlx = { version = "0.9.0", features = ["chrono", "sqlite", "macros", "runtime-tokio"] }
 thiserror = "2.0.18"
 tokio = { version = "1.52.3", features = ["full"] }
+tower = { version = "0.5.3", features = ["util"] }
 tracing = "0.1.44"
 tracing-subscriber = "0.3.23"
 uuid = { version = "1.23.5", features = ["v4", "serde"] }

@@ -4,6 +4,7 @@ use anyhow::Ok;
 use anyhow::Result;
 use axum::Router;
 
+use crate::app::app;
 use crate::db::db_provider::Repo;
 use crate::{
     db::sqlite_db::SqliteDb,
@@ -15,6 +16,7 @@ pub mod models;
 pub mod repos;
 pub mod routes;
 pub mod service;
+pub mod app;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -23,8 +25,8 @@ async fn main() -> Result<()> {
     let db= SqliteDb::new().await?;
     db.migrate().await?;
     let db: Arc<dyn Repo> = Arc::new(db);
-    let state = AppStateBuilder::new().db_provider(db).build()?;
-    let app = Router::new().merge(routes::router()).with_state(state);
+    
+    let app = app(db).await?;
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
 
     println!("Listening on http://localhost:3000");
