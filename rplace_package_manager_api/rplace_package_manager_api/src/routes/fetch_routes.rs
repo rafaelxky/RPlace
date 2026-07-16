@@ -1,6 +1,5 @@
-use core::option::Option::{self, None};
+use core::option::Option::{None};
 
-use axum::http::{HeaderMap, HeaderValue};
 use axum::{
     Json, Router,
     extract::{Path, State},

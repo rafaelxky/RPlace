@@ -1,19 +1,15 @@
 use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Result;
-use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
 use axum::{
     Router, body::Body, http::{Request, StatusCode},
 };
 use dotenvy::dotenv;
 use http_body_util::BodyExt;
-use rand_core::OsRng;
 use rplace_package_manager_api::{
     app::app,
     db::sqlite_db::SqliteDb,
-    models::user::user::{User, UserPublicDto},
 };
-use sha2::{Digest, Sha256};
 use std::result::Result::Ok;
 use tower::ServiceExt;
 

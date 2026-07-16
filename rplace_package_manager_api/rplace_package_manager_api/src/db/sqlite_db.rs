@@ -3,7 +3,6 @@ use std::{env, str::FromStr};
 use anyhow::{Ok, Result};
 use dotenvy::dotenv;
 use sqlx::{SqlitePool, sqlite::{SqliteConnectOptions, SqlitePoolOptions}};
-use std::fs;
 
 use crate::db::db_provider::Repo;
 

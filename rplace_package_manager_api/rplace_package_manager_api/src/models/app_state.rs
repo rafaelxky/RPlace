@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use anyhow::{Result, anyhow};
 
-use crate::db::db_provider::{self, PackageVersionHeaderRepo, Repo};
+use crate::db::db_provider::{Repo};
 
 #[derive(Clone, Debug)]
 pub struct AppState {

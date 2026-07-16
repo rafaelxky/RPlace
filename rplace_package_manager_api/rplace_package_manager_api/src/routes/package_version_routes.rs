@@ -62,7 +62,7 @@ async fn new_package_version(
     let package = state.db_provider.get_registry_by_name(new_version.package_name.clone()).await;
     let package = match package {
         Ok(p) => p,
-        Err(e) => {
+        Err(_e) => {
             return (StatusCode::NOT_FOUND, Json(json!(
                 {
                     "message": format!{"package with name {} not found", new_version.package_name}

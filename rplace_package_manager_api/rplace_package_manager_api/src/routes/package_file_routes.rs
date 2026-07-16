@@ -3,7 +3,7 @@ use axum::{
     extract::State,
     http::{HeaderMap, HeaderValue, StatusCode},
     response::IntoResponse,
-    routing::{get, post},
+    routing::{post},
 };
 use serde_json::json;
 use sha2::{Digest, Sha256};
@@ -74,7 +74,7 @@ pub async fn new_file(
     let res = can_access(tok);
     let tok = match res {
         Ok(r) => r,
-        Err(e) => {
+        Err(_e) => {
             return (
                 StatusCode::UNAUTHORIZED,
                 Json(json!({

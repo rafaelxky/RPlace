@@ -3,18 +3,17 @@ use core::option::Option::{self, None};
 use axum::http::{HeaderMap, HeaderValue};
 use axum::{
     Json, Router,
-    extract::{Path, State},
+    extract::{State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{delete, get, post, put},
+    routing::{post},
 };
 use serde_json::json;
 
 use crate::{
     models::{
         app_state::AppState,
-        package_file::package_file::PackageFile,
-        registry::package_registry::{PackageRegistry, PackageRegistryCreateDto},
+        registry::package_registry::{PackageRegistryCreateDto},
     },
     service::auth_service::can_access,
 };

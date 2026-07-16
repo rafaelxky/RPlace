@@ -2,13 +2,11 @@ use std::sync::Arc;
 
 use anyhow::Ok;
 use anyhow::Result;
-use axum::Router;
 
 use crate::app::app;
 use crate::db::db_provider::Repo;
 use crate::{
     db::sqlite_db::SqliteDb,
-    models::app_state::{AppState, AppStateBuilder},
 };
 
 pub mod db;

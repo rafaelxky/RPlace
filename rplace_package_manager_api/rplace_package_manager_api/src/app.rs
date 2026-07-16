@@ -7,7 +7,6 @@ use axum::Router;
 use crate::db::db_provider::Repo;
 use crate::routes;
 use crate::{
-    db::sqlite_db::SqliteDb,
     models::app_state::{AppStateBuilder},
 };
 

@@ -1,5 +1,5 @@
 use argon2::{Argon2, PasswordHash,PasswordVerifier};
-use axum::{Json, Router, extract::State, http::StatusCode, response::IntoResponse, routing::{get, post}};
+use axum::{Json, Router, extract::State, http::StatusCode, response::IntoResponse, routing::{post}};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{EncodingKey, Header, jws::encode};
 use serde_json::json;

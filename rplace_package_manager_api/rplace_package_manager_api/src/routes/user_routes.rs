@@ -1,8 +1,7 @@
-use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier, password_hash::SaltString};
+use argon2::{Argon2,PasswordHasher, password_hash::SaltString};
 use axum::{Json, Router, extract::State, http::StatusCode, response::IntoResponse, routing::post};
 use rand_core::OsRng;
 use serde_json::json;
-use serde_json::Value;
 use axum::response::Response;
 
 use crate::models::{app_state::AppState, user::user::{HashedUser, UserCreateDto, UserPublicDto}};

@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 use anyhow::Result;
 
-use crate::models::{link::link::{Link, LinkCreateDto}, package_file::package_file::{PackageFile, PackageFileCreateDto}, package_version_header::package_version_header::PackageVersionHeader, registry::package_registry::{PackageRegistry, PackageRegistryCreateDto}, user::user::{HashedUser, User, UserCreateDto}};
+use crate::models::{link::link::{Link, LinkCreateDto}, package_file::package_file::{PackageFile}, package_version_header::package_version_header::PackageVersionHeader, registry::package_registry::{PackageRegistry, PackageRegistryCreateDto}, user::user::{HashedUser, User}};
 
 #[async_trait]
 pub trait Repo: 
