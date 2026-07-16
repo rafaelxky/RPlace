@@ -1,22 +1,36 @@
 use core::option::Option::{self, None};
 
+use axum::http::{HeaderMap, HeaderValue};
 use axum::{
-    Json, Router, extract::{Path, State}, http::StatusCode, response::IntoResponse, routing::{get,post,delete,put},
+    Json, Router,
+    extract::{Path, State},
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{delete, get, post, put},
 };
 use serde_json::json;
-use axum::http::{HeaderMap, HeaderValue};
 
-use crate::{models::{app_state::AppState, package_file::package_file::PackageFile, registry::package_registry::{PackageRegistry, PackageRegistryCreateDto}}, service::auth_service::can_access};
+use crate::{
+    models::{
+        app_state::AppState,
+        package_file::package_file::PackageFile,
+        registry::package_registry::{PackageRegistry, PackageRegistryCreateDto},
+    },
+    service::auth_service::can_access,
+};
 
 pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/package/{name}", get(get_package_initial_file_no_version))
         .route("/package/{name}/{version}", get(get_package_initial_file))
-        .route("/package/fetch_file/{version_header_id}/{path}", get(get_package_file))
+        .route(
+            "/package/fetch_file/{version_header_id}/{path}",
+            get(get_package_file),
+        )
         .route("/package", post(register_new_package_header))
 }
 
-// /package/fetch_file/{version_header_id}/{path} GET 
+// /package/fetch_file/{version_header_id}/{path} GET
 /* returns:
 {
     "repo_id": i32,
@@ -31,41 +45,65 @@ async fn get_package_file(
     State(state): State<AppState>,
     Path(version_header_id): Path<i32>,
     Path(path): Path<String>,
-) -> (StatusCode,impl IntoResponse){
-    let link = state.db_provider.get_link_by_package_version_id_and_file_path(version_header_id, path).await;
+) -> (StatusCode, impl IntoResponse) {
+    let link = state
+        .db_provider
+        .get_link_by_package_version_id_and_file_path(version_header_id, path)
+        .await;
     let link = match link {
         Ok(h) => h,
         Err(e) => {
-            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!(
-                {
-                    "message": "could not get file link", 
-                    "err": &e.to_string()
-                }
-            )));
-        },
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!(
+                    {
+                        "message": "could not get file link",
+                        "err": &e.to_string()
+                    }
+                )),
+            );
+        }
     };
 
-    let file = state.db_provider.get_package_file_by_hash(link.file_hash).await;
+    let file = state
+        .db_provider
+        .get_package_file_by_hash(link.file_hash)
+        .await;
     let file: PackageFile = match file {
-        Ok(f) => f,
+        Ok(Some(f)) => f,
+        Ok(None) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "message": "could not find file",
+                })),
+            );
+        }
         Err(e) => {
-            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!({
-                "message": "could not fetch file",
-                "err": &e.to_string()
-            })));
-        },
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "message": "could not fetch file",
+                    "err": &e.to_string()
+                })),
+            );
+        }
     };
 
-    return (StatusCode::OK, Json(json!({
-        "header_id": link.package_version_id,
-        "path": link.file_path,
-        "file_hash": file.file_hash,
-        "code": file.code,
-    })));
+    return (
+        StatusCode::OK,
+        Json(json!({
+            "header_id": link.package_version_id,
+            "path": link.file_path,
+            "file_hash": file.file_hash,
+            "code": file.code,
+        })),
+    );
 }
 
 // packages/{name} GET
-/* returns: 
+// returns the rplace.toml file content and other relevant content to get the files
+/* returns:
 {
     "repo_id": i32,
     "version": string,
@@ -80,68 +118,103 @@ async fn get_package_file(
 async fn get_package_initial_file_no_version(
     State(state): State<AppState>,
     Path(name): Path<String>,
-) -> (StatusCode,impl IntoResponse) {
+) -> (StatusCode, impl IntoResponse) {
     let registry = state.db_provider.get_registry_by_name(name.clone()).await;
     let registry: PackageRegistry = match registry {
         Ok(reg) => reg,
         Err(e) => {
-            return (StatusCode::NOT_FOUND,Json(json!({"msg": format!("could not find registry with name {}", name), "err": &e.to_string()})));
+            return (
+                StatusCode::NOT_FOUND,
+                Json(
+                    json!({"msg": format!("could not find registry with name {}", name), "err": &e.to_string()}),
+                ),
+            );
         }
     };
     let version_header = state
         .db_provider
-        .get_latest_package_version_header_by_package_id(registry.id).await;
+        .get_latest_package_version_header_by_package_id(registry.id)
+        .await;
 
     let version_header = match version_header {
         Ok(h) => h,
         Err(e) => {
-            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!(
-                {
-                    "msg": "could not fetch package version header", 
-                    "err": &e.to_string()
-                }
-            )));
-        },
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!(
+                    {
+                        "msg": "could not fetch package version header",
+                        "err": &e.to_string()
+                    }
+                )),
+            );
+        }
     };
 
-    let link = state.db_provider.get_link_by_package_version_id_and_file_path(version_header.id, "rplace".to_string()).await;
+    let link = state
+        .db_provider
+        .get_link_by_package_version_id_and_file_path(version_header.id, "rplace".to_string())
+        .await;
     let link = match link {
         Ok(l) => l,
         Err(e) => {
-            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!(
-                {
-                    "msg": "could not fetch file link", 
-                    "err": &e.to_string()
-                }
-            )));
-        },
-    };
-
-    let file = state.db_provider.get_package_file_by_hash(link.file_hash).await;
-    let file = match file {
-        Ok(f) => f,
-        Err(e) => {
-            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!(
-                {
-                    "message": "could not fetch file",
-                    "err": &&e.to_string(),
-                }
-            )));
-        },
-    };
-
-    return (StatusCode::OK,Json(json!(
-        {
-            "repo_id": registry.id,
-            "version": version_header.version,
-            "header_id": version_header.id,
-            "file_hash": file.file_hash,
-            "file_path": "rplace.toml",
-            "code": file.code
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!(
+                    {
+                        "msg": "could not fetch file link",
+                        "err": &e.to_string()
+                    }
+                )),
+            );
         }
-    )));
+    };
+
+    let file = state
+        .db_provider
+        .get_package_file_by_hash(link.file_hash)
+        .await;
+    let file = match file {
+        Ok(Some(f)) => f,
+        Ok(None) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!(
+                    {
+                        "message": "could not find file",
+                    }
+                )),
+            );
+        }
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!(
+                    {
+                        "message": "could not fetch file",
+                        "err": &&e.to_string(),
+                    }
+                )),
+            );
+        }
+    };
+
+    return (
+        StatusCode::OK,
+        Json(json!(
+            {
+                "repo_id": registry.id,
+                "version": version_header.version,
+                "header_id": version_header.id,
+                "file_hash": file.file_hash,
+                "file_path": "rplace.toml",
+                "code": file.code
+            }
+        )),
+    );
 }
 // packages/{name}/{version} GET
+// returns the rplace.toml file content and other relevant content to get the files
 /* returns;
 {
     "repo_id": i32,
@@ -157,69 +230,104 @@ async fn get_package_initial_file(
     State(state): State<AppState>,
     Path(name): Path<String>,
     Path(version): Path<String>,
-) -> (StatusCode,impl IntoResponse) {
+) -> (StatusCode, impl IntoResponse) {
     let registry = state.db_provider.get_registry_by_name(name.clone()).await;
     let registry: PackageRegistry = match registry {
         Ok(reg) => reg,
         Err(e) => {
-            return (StatusCode::NOT_FOUND,Json(json!({"msg": format!("could not find package with name {}",name), "err": &e.to_string()})));
+            return (
+                StatusCode::NOT_FOUND,
+                Json(
+                    json!({"msg": format!("could not find package with name {}",name), "err": &e.to_string()}),
+                ),
+            );
         }
     };
     let version_header = state
         .db_provider
-        .get_package_version_header_by_package_id_and_version(registry.id, version.clone()).await;
+        .get_package_version_header_by_package_id_and_version(registry.id, version.clone())
+        .await;
 
     let version_header = match version_header {
         Ok(h) => h,
         Err(e) => {
-            return (StatusCode::NOT_FOUND,Json(json!(
-                {
-                    "msg": format!("could not find version {} for package {}", version, name), 
-                    "err": &e.to_string()
-                }
-            )));
-        },
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!(
+                    {
+                        "msg": format!("could not find version {} for package {}", version, name),
+                        "err": &e.to_string()
+                    }
+                )),
+            );
+        }
     };
 
-    let link = state.db_provider.get_link_by_package_version_id_and_file_path(version_header.id, "rplace".to_string()).await;
+    let link = state
+        .db_provider
+        .get_link_by_package_version_id_and_file_path(version_header.id, "rplace".to_string())
+        .await;
     let link = match link {
         Ok(l) => l,
         Err(e) => {
-            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!(
-                {
-                    "msg": "could not fetch file link", 
-                    "err": &e.to_string()
-                }
-            )));},
-    };
-
-    let file = state.db_provider.get_package_file_by_hash(link.file_hash).await;
-    let file = match file {
-        Ok(f) => f,
-        Err(e) => {
-            return (StatusCode::INTERNAL_SERVER_ERROR,Json(json!(
-                {
-                    "message": "could not fetch file",
-                    "err": &&e.to_string(),
-                }
-            )));
-        },
-    };
-
-    return (StatusCode::OK,Json(json!(
-        {
-            "repo_id": registry.id,
-            "version": version_header.version,
-            "header_id": version_header.id,
-            "file_hash": file.file_hash,
-            "file_path": "rplace.toml",
-            "code": file.code
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!(
+                    {
+                        "msg": "could not fetch file link",
+                        "err": &e.to_string()
+                    }
+                )),
+            );
         }
-    )));
+    };
+
+    let file = state
+        .db_provider
+        .get_package_file_by_hash(link.file_hash)
+        .await;
+    let file = match file {
+        Ok(Some(f)) => f,
+        Ok(None) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!(
+                    {
+                        "message": "file not found",
+                    }
+                )),
+            );
+        }
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!(
+                    {
+                        "message": "could not fetch file",
+                        "err": &e.to_string(),
+                    }
+                )),
+            );
+        }
+    };
+
+    return (
+        StatusCode::OK,
+        Json(json!(
+            {
+                "repo_id": registry.id,
+                "version": version_header.version,
+                "header_id": version_header.id,
+                "file_hash": file.file_hash,
+                "file_path": "rplace.toml",
+                "code": file.code
+            }
+        )),
+    );
 }
 
 //  /package POST
-// must be logged in 
+// must be logged in
 // jwt token in header
 // body:
 /*
@@ -236,18 +344,21 @@ returns:
 }
 */
 pub async fn register_new_package_header(
-    State(state): State<AppState>, 
+    State(state): State<AppState>,
     header: HeaderMap,
-    Json(package): Json<PackageRegistryCreateDto>, 
+    Json(package): Json<PackageRegistryCreateDto>,
 ) -> (StatusCode, impl IntoResponse) {
     let new_package = package;
     let tok: Option<&HeaderValue> = header.get("Authorization");
     let tok: &HeaderValue = match tok {
         Some(t) => t,
         None => {
-            return (StatusCode::UNAUTHORIZED, Json(json!({
-                "message": "auth header not found",
-            })));
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({
+                    "message": "auth header not found",
+                })),
+            );
         }
     };
 
@@ -255,10 +366,13 @@ pub async fn register_new_package_header(
     let tok = match tok {
         Ok(t) => t,
         Err(e) => {
-            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
-                "message": "could not parse auth header to string",
-                "err": &e.to_string()
-            })));
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "message": "could not parse auth header to string",
+                    "err": &e.to_string()
+                })),
+            );
         }
     };
 
@@ -266,10 +380,13 @@ pub async fn register_new_package_header(
     let claim = match claim {
         Ok(c) => c,
         Err(e) => {
-            return (StatusCode::UNAUTHORIZED, Json(json!({
-                "message": "invalid jwt token",
-                "err": e.to_string()
-            })));
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({
+                    "message": "invalid jwt token",
+                    "err": e.to_string()
+                })),
+            );
         }
     };
 
@@ -278,32 +395,38 @@ pub async fn register_new_package_header(
     let user = match user {
         Ok(u) => u,
         Err(e) => {
-            return (StatusCode::UNAUTHORIZED, Json(json!({
-                "message": "invalid jwt token",
-                "err": e.to_string()
-            })));
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({
+                    "message": "invalid jwt token",
+                    "err": e.to_string()
+                })),
+            );
         }
     };
 
     let res = state.db_provider.new_registry(new_package, user.id).await;
 
     let res = match res {
-        Ok(res) => {
-            res
-        },
+        Ok(res) => res,
         Err(err) => {
-            return (StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
-                "message": "could not create new registry",
-                "err": &err.to_string()
-            })));
-        },
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "message": "could not create new registry",
+                    "err": &err.to_string()
+                })),
+            );
+        }
     };
 
-    return (StatusCode::OK, Json(json!({
-        "id": &res.id,
-        "name": &res.name,
-        "created_at": &res.created_at,
-        "creator_id": &res.creator_id
-    })));
+    return (
+        StatusCode::OK,
+        Json(json!({
+            "id": &res.id,
+            "name": &res.name,
+            "created_at": &res.created_at,
+            "creator_id": &res.creator_id
+        })),
+    );
 }
-

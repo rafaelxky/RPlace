@@ -31,7 +31,6 @@ CREATE TABLE IF NOT EXISTS links (
 CREATE TABLE IF NOT EXISTS package_file (
     file_hash TEXT PRIMARY KEY,
     code TEXT NOT NULL
-    FOREIGN KEY (package_id) REFERENCES package_registry(id)
 );
 
 -- users for auth
