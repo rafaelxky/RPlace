@@ -46,9 +46,9 @@ impl Deriver {
                     let matched = &text[mat.range()];
 
                     let mut replacement = if default_place {
-                        arrow_var(var, matched, &mat.range(), &vec![])
+                        arrow_var(&var.name, matched, &mat.range(), &vec![])
                     } else {
-                        apply_options(var, matched, &mat.range(), features_vec.unwrap())
+                        apply_options(&var.name, matched, &mat.range(), features_vec.unwrap())
                     };
 
                     if replacement.is_some() {
@@ -65,9 +65,9 @@ impl Deriver {
                     let matched = &text[range.clone()];
 
                     let mut replacement = if default_place {
-                        arrow_var(var, matched, &range, &vec![])
+                        arrow_var(&var.name, matched, &range, &vec![])
                     } else {
-                        apply_options(var, matched, &range, features_vec.unwrap())
+                        apply_options(&var.name, matched, &range, features_vec.unwrap())
                     };
 
                     if replacement.is_some() {

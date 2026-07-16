@@ -1,4 +1,4 @@
-use crate::structs::{FileConfig, Value};
+use crate::structs::{FileConfig, Value, Var};
 
 #[derive(Debug, Clone)]
 pub struct ResValue{
@@ -15,7 +15,7 @@ pub struct FileData{
 }
 pub struct Derive{
     pub path: String,
-    pub vals: Vec<(String,Value)>,
+    pub vals: Vec<(Var,Value)>,
 }
 pub struct WriterResult {
     pub file_data: Vec<FileData>,

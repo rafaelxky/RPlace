@@ -113,3 +113,10 @@ imports must allow for ./ and not break with the import map so I'd need to store
 //- parse file.txt: X
 
 - make so that you can parse an entire folder and allow it to handle custom output
+
+- $#var? -> none if not set
+- $#var?default
+- 
+//- if var? = val:
+       
+//- end

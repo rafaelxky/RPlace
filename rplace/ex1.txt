@@ -1,6 +1,7 @@
 //- $#output = "out.txt":
 //- def dto:
 pub struct $#name\pascalcase{
+
 //- match id:
 //- case true:
     pub id: i32,
@@ -8,6 +9,52 @@ pub struct $#name\pascalcase{
 //- case _ :
 //- end:
 //- end:
+
+//- match username:
+//- case true :
+    pub name: String,
+//- end:
+//- case _ :
+//- end:
+//- end:
+
+}
+impl $#name\pascalcase {
+    pub fn new(
+//- match id:
+//- case true:
+        id: i32,
+//- end:
+//- case _ :
+//- end:
+//- end:
+//- match username:
+//- case true:
+        name: String,
+//- end:
+//- case _ :
+//- end:
+//- end:
+    ){
+        Self {
+//- match id:
+//- case true:
+            id,
+//- end:
+//- case _ :
+//- end:
+//- end:
+//- match username:
+//- case true:
+            name,
+//- end:
+//- case _ :
+//- end:
+//- end:
+        }
+    }
+
+    $#body?
 }
 //- end:
-//- place dto where name = "user", id = abc: 
+//- place dto where name = "user", id = true, username = true, body="pub fn print(){}": 

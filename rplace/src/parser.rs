@@ -14,7 +14,7 @@ pub struct Parser {
     line: usize,
     file_path: String,
     project_src: String,
-    output_src: String
+    output_src: String,
 }
 impl Parser {
     pub fn new(tokens: TokenResult, project_src: String, output_src: String) -> Self {
@@ -241,7 +241,10 @@ impl Parser {
         let root = root.parent().unwrap();
         let root = root.to_str().unwrap();
         if !path.starts_with(&root) {
-            panic!("todo message: path escapes project root {} is outside of {}",path,root);
+            panic!(
+                "todo message: path escapes project root {} is outside of {}",
+                path, root
+            );
         }
 
         path
@@ -256,11 +259,11 @@ impl Parser {
         self.remove_spaces();
 
         // derive options
-        let args = match self.peek() {
+        let args: Vec<(Var, Value)> = match self.peek() {
             Token::WHERE => {
                 self.ptr_next();
                 self.remove_spaces();
-                let args = self.handle_var();
+                let args = self.handle_vars();
                 match self.peek() {
                     Token::DD => {
                         self.ptr_next();
@@ -776,6 +779,11 @@ impl Parser {
         ));
     }
 
+    /// handles values
+    /// reaches here after =
+    /// single word values
+    /// fouble quote values
+    /// multiline quote values
     fn handle_val(&mut self) -> Value {
         let mut options = None;
         match self.peek() {
@@ -800,6 +808,7 @@ impl Parser {
                 self.get_dquote_arg_var(&mut options, &mut args, &mut "".to_string());
                 return args[0].clone().1;
             }
+            // $#var
             Token::VAR => {
                 self.ptr_next();
                 match self.peek() {
@@ -828,11 +837,17 @@ impl Parser {
         }
     }
 
+    // the oneshot version of handle_vars
+    fn handle_var(&mut self) -> (String, Value) {
+        todo!()
+    }
+
     // here after anything that requires variable assignement
     // ex: before this -> name = val
+    // handles the whole var = val, var = val
     // doesn't consume :
-    fn handle_var(&mut self) -> Vec<(String, Value)> {
-        let mut args: Vec<(String, Value)> = Vec::new();
+    fn handle_vars(&mut self) -> Vec<(Var, Value)> {
+        let mut args: Vec<(Var, Value)> = Vec::new();
         loop {
             self.remove_spaces();
             match self.peek() {
@@ -840,6 +855,10 @@ impl Parser {
                     self.ptr_next();
                     self.remove_spaces();
                     let from = str;
+                    let from = Var {
+                        name: from,
+                        optional: false,
+                    };
                     match self.peek() {
                         Token::EQUALS => {
                             self.ptr_next();
@@ -854,7 +873,7 @@ impl Parser {
                                 Token::DD => {
                                     return args;
                                 }
-                                t => panic!("todo message: Unexpected token {:?}", t),
+                                t => panic!("todo message: Unexpected token {:?} in handle vars", t),
                             }
                         }
                         _ => {
@@ -867,6 +886,30 @@ impl Parser {
         }
     }
 
+    // todo: make a new check for the if arguments
+    // ^ needed
+    fn handle_if(&mut self) -> Node {
+        self.remove_spaces();
+        let val: Vec<(Var, Value)> = self.handle_vars();
+        self.remove_spaces();
+        match self.peek() {
+            Token::DD => {
+                self.ptr_next();
+            }
+            _ => panic!("todo message forgot : in if"),
+        }
+        let body = self.build_body();
+        let mut eqt = vec![];
+        for _ in &val {
+            eqt.push(EqType::EQUALS);
+        }
+
+        return Node::IF {
+            conditions: val,
+            eq: eqt,
+        };
+    }
+
     /// handles any mark found inside a body
     /// this is ONLY called coming from a body
     /// already consumed the mark
@@ -874,6 +917,12 @@ impl Parser {
     fn handle_mark_at_body(&mut self, body_str: &mut String, body: &mut Vec<Node>) -> bool {
         self.remove_spaces();
         match self.peek() {
+            //- if
+            Token::IF => {
+                self.ptr_next();
+                let node = self.handle_if();
+                todo!()
+            }
             //- end:
             Token::END => {
                 self.ptr_next();
@@ -1087,6 +1136,7 @@ impl Parser {
         loop {
             match self.peek() {
                 // regular var declaration
+                // $#var
                 Token::VAR => {
                     self.ptr_next();
                     body.push(Node::DATA {
@@ -1100,23 +1150,28 @@ impl Parser {
                         Token::IDENT { str } => {
                             self.ptr_next();
                             let mut option = None;
+                            let mut optional = false;
+                            match self.peek() {
+                                Token::QUESTION => {
+                                    self.ptr_next();
+                                    optional = true;
+                                }
+                                _ => (),
+                            }
+                            match self.peek() {
+                                Token::BSLASH => {
+                                    self.ptr_next();
+                                    option = self.handle_var_options();
+                                }
+                                _ => (),
+                            }
                             match self.peek() {
                                 Token::PLUS => {
                                     self.ptr_next();
                                 }
-                                Token::BSLASH => {
-                                    self.ptr_next();
-                                    option = self.handle_var_options();
-                                    match self.peek() {
-                                        Token::PLUS => {
-                                            self.ptr_next();
-                                        }
-                                        _ => (),
-                                    }
-                                }
                                 _ => (),
                             }
-                            body.push(Node::var_template(str, option));
+                            body.push(Node::var_template(str, option, optional));
                             continue;
                         }
                         // $#name
@@ -1181,7 +1236,7 @@ impl Parser {
                 // place ident were
                 Token::WHERE => {
                     self.ptr_next();
-                    args.append(&mut self.handle_var());
+                    args.append(&mut self.handle_vars());
                     self.remove_till_nl();
                 }
                 _ => handle_error_parser(CompilationError::InvalidPlaceOption, self),

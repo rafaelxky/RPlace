@@ -294,11 +294,17 @@ impl Writer {
             }
             Node::VARTEMPLATE { val } => {
                 let name = &val.value;
-                // $#
+                // $#var 
                 let replacement = match args_map.get(name) {
                     Some(val) => val,
                     None => {
-                        handle_error(format!("No value specified for \"{}\" in template {}!", name,def_name), line.clone(), self.file_path.clone())
+                        if val.optional {
+                            &ResValue {
+                                value: "".to_string()
+                            }
+                        } else {
+                            handle_error(format!("No value specified for \"{}\" in template {}!", name,def_name), line.clone(), self.file_path.clone())
+                        }
                     }
                 };
                 let opts = &val.options;
@@ -323,7 +329,9 @@ impl Writer {
                     None => {
                         match default {
                             Some(default) => &ResValue { value: default.to_string()},
-                            None => handle_error(format!("No value specified for \"{}\" in right arrow variable declaration!", name), line.clone(), self.file_path.clone())
+                            None => {
+                                handle_error(format!("No value specified for \"{}\" in right arrow variable declaration!", name), line.clone(), self.file_path.clone())
+                            }
                         }
                     }
                 };
@@ -360,14 +368,12 @@ impl Writer {
         });
     }
 
-    // todo: inner create
-    // todo: supported inner commands: def, derive
     fn handle_place(
         &self,
         text: &mut String,
         def_map: &HashMap<String, Vec<Node>>,
         name: &String,
-        args: &Vec<(String, Value)>,
+        args: &Vec<(Var, Value)>,
         line: &usize,
         args_map: &mut HashMap<String, ResValue>,
     ) 
@@ -376,14 +382,14 @@ impl Writer {
         // maps variables to values
         args.iter().for_each(|arg| {
             // this is to avoid children overriding parent values
-            if !args_map.contains_key(&arg.0.clone()) {
+            if !args_map.contains_key(&arg.0.name.clone()) {
                 match &arg.1.value_type {
-                    &ValueType::Literal => { args_map.insert(arg.0.clone(), ResValue { value: arg.1.value.to_string() }); }
+                    &ValueType::Literal => { args_map.insert(arg.0.name.clone(), ResValue { value: arg.1.value.to_string() }); }
                     &ValueType::Var => {
                         let val = args_map.get(name);
                         match val {
                             Some(val) => {
-                                 args_map.insert(arg.0.clone(), val.clone()); 
+                                 args_map.insert(arg.0.name.clone(), val.clone()); 
                             },
                             None => {
                                 panic!("No value found for var type {:?} line ", name);

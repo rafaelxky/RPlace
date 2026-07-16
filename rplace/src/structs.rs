@@ -1,31 +1,31 @@
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct FileConfig {
     pub output: Option<String>,
 }
 impl FileConfig {
-    pub fn set_val(&mut self, var: &str, val: String){
+    pub fn set_val(&mut self, var: &str, val: String) {
         match var {
             "output" => {
                 self.output = Some(val);
-            },
+            }
             _ => panic!("todo message: no such file option {}", var),
         }
     }
-    pub fn default() -> Self{ 
+    pub fn default() -> Self {
         Self { output: None }
     }
 }
 
-#[derive(Debug,Clone)]
-pub struct VarOption{
+#[derive(Debug, Clone)]
+pub struct VarOption {
     pub option: String,
     pub args: Vec<String>,
 }
 impl VarOption {
-    pub fn new(option: String, args: Vec<String>) -> Self { 
+    pub fn new(option: String, args: Vec<String>) -> Self {
         Self { option, args }
     }
-    pub fn push_arg(&mut self, arg: String){ 
+    pub fn push_arg(&mut self, arg: String) {
         self.args.push(arg);
     }
 }
@@ -57,7 +57,13 @@ pub struct Value {
     pub options: Option<Vec<VarOption>>,
 }
 #[derive(Debug, Clone)]
+pub struct Var {
+    pub name: String,
+    pub optional: bool,
+}
+#[derive(Debug, Clone)]
 pub struct TemplateValue {
+    pub optional: bool,
     pub value: String,
     pub options: Option<Vec<VarOption>>,
 }
@@ -66,7 +72,10 @@ impl ToString for Value {
         self.value.to_string()
     }
 }
-
+#[derive(Debug, Clone)]
+pub enum EqType {
+    EQUALS
+}
 #[derive(Debug, Clone)]
 pub enum Node {
     // - def template_1
@@ -97,7 +106,7 @@ pub enum Node {
     },
     PLACE {
         name: String,
-        args: Vec<(String, Value)>,
+        args: Vec<(Var, Value)>,
         line: usize,
     },
     INCLUDE {
@@ -110,12 +119,16 @@ pub enum Node {
     },
     DERIVE {
         path: String,
-        val: Vec<(String, Value)>,
+        val: Vec<(Var, Value)>,
     },
-    MATCH  {
+    MATCH {
         line: usize,
         var_name: String,
         val: Vec<MatchArm>,
+    },
+    IF {
+        conditions: Vec<(Var,Value)>,
+        eq: Vec<EqType>,
     },
     SETVARIABLE {
         var: Vec<String>,
@@ -123,26 +136,45 @@ pub enum Node {
     },
     PARSE {
         path: String,
-    }
+    },
 }
 impl Node {
     pub fn new_create(path: String, content: Vec<Node>, starting_line: usize) -> Node {
-        let body = Node::BODY { data: content, line: starting_line };
+        let body = Node::BODY {
+            data: content,
+            line: starting_line,
+        };
         let body = Some(Box::new(body));
-        Node::CREATE { content: body, path }
+        Node::CREATE {
+            content: body,
+            path,
+        }
     }
-    pub fn var_template<T:ToString>(name: T, options: Option<Vec<VarOption>>) -> Self{
-        Self::VARTEMPLATE { val: TemplateValue { value: name.to_string(), options: options } }
+    pub fn var_template<T: ToString>(
+        name: T,
+        options: Option<Vec<VarOption>>,
+        optional: bool,
+    ) -> Self {
+        Self::VARTEMPLATE {
+            val: TemplateValue {
+                value: name.to_string(),
+                options: options,
+                optional,
+            },
+        }
     }
 }
 #[derive(Debug, Clone)]
-pub struct MatchArm{
+pub struct MatchArm {
     pub match_value: String,
     pub body: Node,
 }
 impl MatchArm {
-    pub fn new(match_value: String, body: Node)-> Self{
-        Self { match_value, body: body }
+    pub fn new(match_value: String, body: Node) -> Self {
+        Self {
+            match_value,
+            body: body,
+        }
     }
     pub fn matches(&self, val: String) -> bool {
         if self.match_value == "_" {
@@ -157,11 +189,11 @@ pub struct ParsingError {
     error_msg: String,
 }
 impl ParsingError {
-    pub fn new(error_msg: String) -> Self{
+    pub fn new(error_msg: String) -> Self {
         Self { error_msg }
     }
-    pub fn print_err(&self){
-        println!("{}",self.error_msg);
+    pub fn print_err(&self) {
+        println!("{}", self.error_msg);
     }
 }
 #[derive(Debug, Clone)]
@@ -171,15 +203,19 @@ pub struct ParsingResult {
     pub errors: Vec<ParsingError>,
 }
 impl ParsingResult {
-    pub fn new<T:ToString>(file_path: T) -> Self {
+    pub fn new<T: ToString>(file_path: T) -> Self {
         Self {
             nodes: vec![],
             file_path: file_path.to_string(),
             errors: vec![],
         }
     }
-    pub fn new_full(file_path: String, nodes: Vec<Node>, errors: Vec<ParsingError>) -> Self{
-        Self { nodes, file_path, errors }
+    pub fn new_full(file_path: String, nodes: Vec<Node>, errors: Vec<ParsingError>) -> Self {
+        Self {
+            nodes,
+            file_path,
+            errors,
+        }
     }
     pub fn push_error(&mut self) {}
     pub fn push(&mut self, node: Node) {
@@ -188,16 +224,16 @@ impl ParsingResult {
     pub fn set_nodes(&mut self, nodes: Vec<Node>) {
         self.nodes = nodes;
     }
-    pub fn remove(&mut self, i: usize) -> Node{
+    pub fn remove(&mut self, i: usize) -> Node {
         self.nodes.remove(i)
     }
-    pub fn len(&self) -> usize{
+    pub fn len(&self) -> usize {
         self.nodes.len()
     }
-    pub fn extend_errors(&mut self, res: &ParsingResult){
+    pub fn extend_errors(&mut self, res: &ParsingResult) {
         self.errors.extend(res.errors.clone());
     }
-    pub fn new_error(&mut self, err: String){
+    pub fn new_error(&mut self, err: String) {
         self.errors.push(ParsingError::new(err));
     }
 }

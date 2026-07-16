@@ -31,6 +31,8 @@ pub enum Token {
     RPAREN,
     DOT,
     PARSE,
+    IF,
+    QUESTION,
 }
 impl Token {
     pub fn val(&self) -> String {
@@ -65,6 +67,8 @@ impl Token {
             Token::RPAREN => ")",
             Token::DOT => ".",
             Token::PARSE => "parse",
+            Token::IF => "if",
+            Token::QUESTION => "?",
         }
         .to_string();
     }
@@ -81,6 +85,8 @@ impl Token {
             Token::CASE => "case",
             Token::MATCH => "match",
             Token::PARSE => "parse",
+            Token::IF => "if",
+
             _ => ""
         };
         if res.is_empty() {
@@ -137,6 +143,10 @@ impl Lexer {
             let curr = self.pop();
 
             match curr {
+                '?' => {
+                    tokens.push(Token::QUESTION);
+                    continue;
+                }
                 '.' => {
                     tokens.push(Token::DOT);
                     continue;
@@ -342,18 +352,27 @@ impl Lexer {
                 },
                 "create" => {
                     tokens.push(Token::CREATE);
+                    continue;
                 },
                 "derive" => {
                     tokens.push(Token::DERIVE);
+                    continue;
                 },
                 "case" => {
                     tokens.push(Token::CASE);
+                    continue;
                 },
                 "match" => {
                     tokens.push(Token::MATCH);
+                    continue;
                 },
                 "parse" => {
                  tokens.push(Token::PARSE);   
+                    continue;
+                }
+                "if" => {
+                    tokens.push(Token::IF);
+                    continue;
                 }
                 _ => {
                     tokens.push(Token::IDENT { str });
