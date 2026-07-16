@@ -241,7 +241,16 @@ impl Writer {
         }
     }
 
-    fn handle_def_body(&self, data: &Vec<Node>, text: &mut String, args_map: &mut HashMap<String, ResValue>,def_queue: &mut Option<Vec<Node>>,  def_name: &String, line: &usize, def_map: &HashMap<String, Vec<Node>>, result: &mut WriterResult){
+    fn handle_def_body(
+        &self, data: &Vec<Node>, 
+        text: &mut String, 
+        args_map: &mut HashMap<String, ResValue>,
+        def_queue: &mut Option<Vec<Node>>,  
+        def_name: &String, 
+        line: &usize, 
+        def_map: &HashMap<String, Vec<Node>>, 
+        result: &mut WriterResult)
+        {
         // for each body node
         // go trough the body and handle the cases
         data.iter().for_each(|n| match n {
@@ -336,6 +345,9 @@ impl Writer {
                 let result_inner = self.handle_create(path, content, def_map);
                 result.append(result_inner);
             },
+            Node::PARSE { path } => {
+                result.push_to_parse(path.to_string());
+            }
             _ => {
                 handle_error(format!("Body should only have data or var def, instead found {:?}", n), line.clone(), self.file_path.clone())
             },

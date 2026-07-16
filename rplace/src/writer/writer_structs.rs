@@ -29,9 +29,13 @@ impl WriterResult {
     pub fn set_to_parse(&mut self, to_parse: Vec<String>){
         self.to_parse = to_parse;
     }
+    pub fn push_to_parse(&mut self, path: String){
+        self.to_parse.push(path);
+    }
     pub fn append(&mut self, mut data: WriterResult){
         self.file_data.append(&mut data.file_data);
         self.derives.append(&mut data.derives);
+        self.to_parse.append(&mut data.to_parse);
     }
     pub fn push_elements(&mut self, data: String, path: String){
         self.file_data.push(FileData { data, path, options: None });
