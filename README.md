@@ -85,7 +85,6 @@ it will call the default def
 # file include
 - //- include file_path:
 - this will get the definitions from this other file
-- ~ in the path is a shortcut for the default ~/.rplace folder
 - works with .
 - supports http includes, the url must provide raw text only
 
@@ -127,9 +126,9 @@ it will call the default def
 
 # create
 - create allows you to create files and folders and place data inside it
-
 - ex: //- create folder/file.txt place name:
 - this will create "folder/file.txt" and place the "name" template inside
+- if it starts with . then it will be in relation to the file
 
 # variable options
 - variable options allow you to modify variables
@@ -208,6 +207,15 @@ this will take regular text and transform it into a template acording to rules
 # parse instruction
 - //- parse file.txt:
 - runs the template on the designated file
+- if it starts with . then the path will be in relation to the file
+- paths cannot escape the project root
+
+# paths
+- paths cannot escape the project root or output root depending on the instruction
+- if it starts with . then the path will be in relation to the file
+
+# project wide compilation
+- currently rplace allows you to parse whole projects if no target is specified in the CLI arguments
 
 # list of examples
 ```
@@ -260,5 +268,6 @@ $#var\lua::"return args[1]..\" world \""
 //- place b where var = "Hello World!":
 //- $#output = "out.txt":
 //- parse file.txt:
+//- parse ./file.txt:
 
 ```
