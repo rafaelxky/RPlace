@@ -16,7 +16,7 @@ pub fn routes() -> Router<AppState> {
         .route("/package", post(register_new_package_header))
 }
 
-// /package/fetch_file/{version_header_id}/{path}
+// /package/fetch_file/{version_header_id}/{path} GET 
 /* returns:
 {
     "repo_id": i32,
@@ -64,7 +64,7 @@ async fn get_package_file(
     })));
 }
 
-// packages/{name}
+// packages/{name} GET
 /* returns: 
 {
     "repo_id": i32,
@@ -141,7 +141,7 @@ async fn get_package_initial_file_no_version(
         }
     )));
 }
-// packages/{name}/{version}
+// packages/{name}/{version} GET
 /* returns;
 {
     "repo_id": i32,
@@ -218,6 +218,7 @@ async fn get_package_initial_file(
     )));
 }
 
+//  /package POST
 // must be logged in 
 // jwt token in header
 // body:

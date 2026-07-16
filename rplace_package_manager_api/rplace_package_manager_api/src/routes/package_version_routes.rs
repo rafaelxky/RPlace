@@ -9,8 +9,10 @@ use serde_json::json;
 
 pub fn routes() -> Router<AppState> {
     Router::new()
+    .route("/package/version", post(new_package_version))
 }
 
+// /package/version POST
 // creates new package version for package
 // must be logged in 
 // jwt token in header
