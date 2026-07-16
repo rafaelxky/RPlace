@@ -20,6 +20,7 @@ Debug {
 pub trait PackageVersionHeaderRepo: Debug + Send + Sync{
     async fn get_package_version_header_by_package_id_and_version(&self, package_id: i32, version: String) -> Result<PackageVersionHeader>;
     async fn get_latest_package_version_header_by_package_id(&self, package_id: i32) -> Result<PackageVersionHeader>;
+    async fn new_package_version(&self, version: String, package_id: i32) -> Result<PackageVersionHeader>;
 }
 #[async_trait]
 pub trait PackageRegistryRepo: Debug + Send + Sync{
