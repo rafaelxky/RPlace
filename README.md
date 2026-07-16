@@ -20,6 +20,7 @@
 - variable declaration $#var_name
 - variables must be inside templates
 - you can do $#var_name+suffix, here + is used to append something to the var name, + will be removed so the value and sufix will have no space in between 
+- also support optional with $#var? or $#var?+ if no value is provided, it will be empty
 
 ## arrow variables
 - right arrow var dec /*- $#var_name -> -*/ default,
@@ -29,6 +30,25 @@ pub struct /*- $#struct_name -> -*/ Vec2
 - here struct_name is a variable that has Vec2 as a default 
 - value, given a value, Vec2 will be replaced by it
 - you can do /*- $#struct_name -> -*/ default+suffix to append to the variable
+
+## variable options
+- variable options allow you to modify variables
+- they are marked with "\"
+- ex: var=val\regex:
+- can also be chained
+- :: can be used for args
+- ex: $#var\lua::"return args[1]..\" world\""
+- supported:
+- derive:
+    - \regex -> allows regex
+    - \def -> places def around match
+    - \var -> places arrow variable around match
+- template variables
+    - \snakecase -> turns to snake case
+    - \camelcase -> turns to camel case
+    - \screaming -> turns to screaming case
+    - \pascalcase -> turns to pascal case
+    - \lua -> executes inline code, places the returned string
 
 # def
 ## define templates
@@ -129,26 +149,6 @@ it will call the default def
 - ex: //- create folder/file.txt place name:
 - this will create "folder/file.txt" and place the "name" template inside
 - if it starts with . then it will be in relation to the file
-
-# variable options
-- variable options allow you to modify variables
-- they are marked with "\"
-- ex: var=val\regex:
-- can also be chained
-- :: can be used for args
-- ex: $#var\lua::"return args[1]..\" world\""
-- supported:
-- derive:
-    - \regex -> allows regex
-    - \def -> places def around match
-    - \var -> places arrow variable around match
-- template variables
-    - \snakecase -> turns to snake case
-    - \camelcase -> turns to camel case
-    - \screaming -> turns to screaming case
-    - \pascalcase -> turns to pascal case
-    - \lua -> executes inline code, places the returned string
-
 
 # reverse templates / derive
 - rplace supports reverse templates
