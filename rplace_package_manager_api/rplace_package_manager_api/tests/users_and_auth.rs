@@ -11,7 +11,7 @@ use http_body_util::BodyExt;
 use rand_core::OsRng;
 use rplace_package_manager_api::{
     app::app,
-    db::{db_provider::Repo, sqlite_db::SqliteDb},
+    db::{sqlite_db::SqliteDb},
     models::user::user::{User, UserPublicDto},
 };
 use tower::ServiceExt;
