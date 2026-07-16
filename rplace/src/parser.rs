@@ -428,6 +428,7 @@ impl Parser {
                                                 match self.peek() {
                                                     // def name when name = val:
                                                     Token::DD => {
+                                                        self.ptr_next();
                                                         self.remove_till_nl();
                                                         break;
                                                     }
@@ -500,6 +501,7 @@ impl Parser {
                                                 defaults.as_mut().unwrap().push((var, val));
                                                 match self.peek() {
                                                     Token::DD => {
+                                                        self.ptr_next();
                                                         self.remove_till_nl();
                                                         break;
                                                     }
@@ -828,6 +830,7 @@ impl Parser {
 
     // here after anything that requires variable assignement
     // ex: before this -> name = val
+    // doesn't consume :
     fn handle_var(&mut self) -> Vec<(String, Value)> {
         let mut args: Vec<(String, Value)> = Vec::new();
         loop {

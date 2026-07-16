@@ -110,4 +110,6 @@ imports must allow for ./ and not break with the import map so I'd need to store
 
 - make so it can execute other files
 
-//- parse file.txt:
+//- parse file.txt: X
+
+- make so that you can parse an entire folder and allow it to handle custom output
