@@ -886,30 +886,6 @@ impl Parser {
         }
     }
 
-    // todo: make a new check for the if arguments
-    // ^ needed
-    fn handle_if(&mut self) -> Node {
-        self.remove_spaces();
-        let val: Vec<(Var, Value)> = self.handle_vars();
-        self.remove_spaces();
-        match self.peek() {
-            Token::DD => {
-                self.ptr_next();
-            }
-            _ => panic!("todo message forgot : in if"),
-        }
-        let body = self.build_body();
-        let mut eqt = vec![];
-        for _ in &val {
-            eqt.push(EqType::EQUALS);
-        }
-
-        return Node::IF {
-            conditions: val,
-            eq: eqt,
-        };
-    }
-
     /// handles any mark found inside a body
     /// this is ONLY called coming from a body
     /// already consumed the mark
@@ -917,12 +893,6 @@ impl Parser {
     fn handle_mark_at_body(&mut self, body_str: &mut String, body: &mut Vec<Node>) -> bool {
         self.remove_spaces();
         match self.peek() {
-            //- if
-            Token::IF => {
-                self.ptr_next();
-                let node = self.handle_if();
-                todo!()
-            }
             //- end:
             Token::END => {
                 self.ptr_next();

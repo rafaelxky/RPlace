@@ -31,7 +31,6 @@ pub enum Token {
     RPAREN,
     DOT,
     PARSE,
-    IF,
     QUESTION,
 }
 impl Token {
@@ -67,7 +66,6 @@ impl Token {
             Token::RPAREN => ")",
             Token::DOT => ".",
             Token::PARSE => "parse",
-            Token::IF => "if",
             Token::QUESTION => "?",
         }
         .to_string();
@@ -85,8 +83,6 @@ impl Token {
             Token::CASE => "case",
             Token::MATCH => "match",
             Token::PARSE => "parse",
-            Token::IF => "if",
-
             _ => ""
         };
         if res.is_empty() {
@@ -368,10 +364,6 @@ impl Lexer {
                 },
                 "parse" => {
                  tokens.push(Token::PARSE);   
-                    continue;
-                }
-                "if" => {
-                    tokens.push(Token::IF);
                     continue;
                 }
                 _ => {
