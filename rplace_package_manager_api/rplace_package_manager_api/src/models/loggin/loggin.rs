@@ -9,5 +9,6 @@ pub struct LogginRequest{
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct JwtClaims {
     pub user_id: i32,
+    #[serde(rename = "exp")]
     pub expiration_date: usize,
 }

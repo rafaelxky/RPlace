@@ -78,6 +78,7 @@ async fn setup(db_name: &str) -> Result<(Arc<SqliteDb>, Router)>{
 
 }
 
+// fetches the initial package header from the server with the latest version
 #[tokio::test]
 async fn get_package_initial_file_no_version_success() -> Result<()> {
     dotenv().ok();
@@ -114,6 +115,8 @@ async fn get_package_initial_file_no_version_success() -> Result<()> {
     Ok(())
 }
 
+// fetches the initial package header from the server with the latest version
+// fails because of wrong package name
 #[tokio::test]
 async fn get_package_initial_file_no_version_fail() -> Result<()> {
     dotenv().ok();
@@ -133,6 +136,7 @@ async fn get_package_initial_file_no_version_fail() -> Result<()> {
     Ok(())
 }
 
+// fetches the initial package header from the server with version
 #[tokio::test]
 async fn get_package_initial_file_success() -> Result<()> {
     dotenv().ok();
@@ -169,7 +173,7 @@ async fn get_package_initial_file_success() -> Result<()> {
     Ok(())
 }
 
-
+// gets a package file from version_ID and file_path
 #[tokio::test]
 async fn get_package_file_success() -> Result<()> {
     dotenv().ok();

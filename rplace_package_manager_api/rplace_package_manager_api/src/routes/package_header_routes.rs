@@ -80,7 +80,7 @@ pub async fn register_new_package_header(
             return (
                 StatusCode::UNAUTHORIZED,
                 Json(json!({
-                    "message": "invalid jwt token",
+                    "message": "invalid jwt token, cannot access",
                     "err": e.to_string()
                 })),
             );
@@ -95,7 +95,7 @@ pub async fn register_new_package_header(
             return (
                 StatusCode::UNAUTHORIZED,
                 Json(json!({
-                    "message": "invalid jwt token",
+                    "message": "invalid jwt token no such user",
                     "err": e.to_string()
                 })),
             );

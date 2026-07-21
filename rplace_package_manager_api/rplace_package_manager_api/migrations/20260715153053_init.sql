@@ -10,7 +10,7 @@ DROP TABLE IF EXISTS users;
 -- id is package_version's foreign key 
 CREATE TABLE IF NOT EXISTS package_registry (
     id INTEGER PRIMARY KEY,
-    package_name TEXT NOT NULL,
+    package_name TEXT NOT NULL UNIQUE,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     creator_id INTEGER NOT NULL,
     FOREIGN KEY (creator_id) REFERENCES users(id)

@@ -16,7 +16,7 @@ impl PackageRegistryRepo for SqliteDb {
         Ok(registry)
     }
     async fn new_registry(&self, registry: PackageRegistryCreateDto, user_id: i32) -> Result<PackageRegistry>{
-        let sql = "INSERT INTO package_registry (package_name, cretor_id) VALUES (?,?);";
+        let sql = "INSERT INTO package_registry (package_name, creator_id) VALUES (?,?) RETURNING *;";
         let registry = sqlx::query_as::<_, PackageRegistry>(sql).bind(registry.name).bind(user_id).fetch_one(&self.pool).await?;
         Ok(registry)
     }

@@ -17,7 +17,7 @@ impl PackageVersionHeaderRepo for SqliteDb {
         Ok(header)
     }
     async fn new_package_version(&self, version: String, package_id: i32) -> Result<PackageVersionHeader>{
-        let sql = "INSERT INTO package_version_header (version, package_id) VALUES (?,?);";
+        let sql = "INSERT INTO package_version_header (version, package_id) VALUES (?,?) RETURNING *;";
         let header = sqlx::query_as::<_,PackageVersionHeader>(sql).bind(version).bind(package_id).fetch_one(&self.pool).await?;
         Ok(header)
     }

@@ -13,7 +13,7 @@ impl LinkRepo for SqliteDb {
         Ok(row)
     }
     async fn new_link(&self, link: LinkCreateDto) -> Result<Link>{
-        let sql = "INSERT INTO links (package_version_id, file_hash,file_path) VALUES (?,?,?);";
+        let sql = "INSERT INTO links (package_version_id, file_hash,file_path) VALUES (?,?,?) RETURNING *;";
         let row = sqlx::query_as::<_,Link>(sql).bind(link.package_version_id).bind(link.file_hash).bind(link.file_path).fetch_one(&self.pool).await?;
         Ok(row)
     }

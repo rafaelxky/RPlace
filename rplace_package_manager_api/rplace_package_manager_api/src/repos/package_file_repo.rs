@@ -12,7 +12,7 @@ impl PackageFileRepo for SqliteDb {
         Ok(file)
     }
     async fn new_file(&self, file: PackageFile) -> Result<PackageFile>{
-        let sql = "INSERT INTO pcakage_file (file_hash, code) VALUES (?,?);";
+        let sql = "INSERT INTO pcakage_file (file_hash, code) VALUES (?,?) RETURNING *;";
         let file = sqlx::query_as::<_,PackageFile>(sql).bind(file.file_hash).bind(file.code).fetch_one(&self.pool).await?;
         Ok(file)
     }
