@@ -45,6 +45,7 @@ pub async fn new_file(
     header: HeaderMap,
     Json(file_request): Json<PackageFileCreateDto>,
 ) -> (StatusCode, impl IntoResponse) {
+    // check if theres jwt token in header
     let file_request: PackageFileCreateDto = file_request;
     let tok: Option<&HeaderValue> = header.get("Authorization");
     let tok = match tok {
@@ -71,6 +72,7 @@ pub async fn new_file(
         }
     };
 
+    // converts token to jwt claims
     let res = can_access(tok);
     let tok = match res {
         Ok(r) => r,
@@ -84,6 +86,7 @@ pub async fn new_file(
         }
     };
 
+    // gets registry and checks if user owns it
     let registry = state
         .db_provider
         .get_registry_by_id(file_request.registry_id)
@@ -112,6 +115,7 @@ pub async fn new_file(
         );
     }
 
+    // checks if version exists
     let header = state
         .db_provider
         .get_package_version_header_by_id(file_request.version_header_id)

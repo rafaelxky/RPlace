@@ -92,6 +92,18 @@ async fn new_package_version(
         )));
     }
 
+    // cannot create the same version for the same package
+    let ver = state.db_provider.get_package_version_header_by_package_id_and_version(package.id, new_version.version.clone()).await;
+    match ver {
+        Ok(_ver) => {
+            return (StatusCode::CONFLICT, Json(json!(
+                {
+                    "message": "could not create new version, already exists",
+                }
+            )));
+        },
+        _ => (),
+    }
     let res = state.db_provider.new_package_version(new_version.version, package.id).await;
     let res = match res {
         Ok(r) => r,
