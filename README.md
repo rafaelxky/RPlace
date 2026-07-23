@@ -203,6 +203,8 @@ this will take regular text and transform it into a template acording to rules
 - rplace <origin> <target>
 - executes the code at origin if target is provided writes at target if not, write direcly on origin
 - target can be overriten by the file config variable $#output
+- replace -n <project_name> 
+- creates a new project config "rplace.toml" file
 
 # parse instruction
 - //- parse file.txt:
@@ -216,6 +218,11 @@ this will take regular text and transform it into a template acording to rules
 
 # project wide compilation
 - currently rplace allows you to parse whole projects if no target is specified in the CLI arguments
+
+# project config
+- project config config is defined in the rplace.toml file
+- here is defined the root file to be executed
+- this allows you to simply run "rplace" to run the program 
 
 # list of examples
 ```
