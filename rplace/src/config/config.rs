@@ -1,9 +1,21 @@
 use std::{
-    fs::{self, File}, io::{BufReader, BufWriter}, path::{Path, PathBuf}, sync::{Arc, LazyLock, Mutex, RwLock},
+    fs::{self, File}, io::{BufReader, BufWriter}, path::{Path, PathBuf}, sync::{Arc, LazyLock, RwLock},
 };
 
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PackageManagerCompilerConfig{
+    pub allow_lua: Option<bool>,
+    pub allow_import: Option<bool>,
+    pub package_source: Option<String>,
+}
+impl PackageManagerCompilerConfig {
+    pub fn new() -> Self{
+        Self { allow_lua: None, allow_import: None, package_source: None }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompilerConfig {

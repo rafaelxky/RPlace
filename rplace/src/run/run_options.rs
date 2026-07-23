@@ -3,17 +3,21 @@ use std::fs::OpenOptions;
 use std::process::exit;
 use std::sync::{Arc, RwLock};
 
+use crate::config::config::CompilerConfig;
 use crate::data_stream::{DataSouce, get_data_stream};
+use crate::lexer::Lexer;
+use crate::lua::lua_call_map::LuaCallMap;
+use crate::options::var_options::VarOptionsMap;
 use crate::output_stream::OutputWriter;
+use crate::parser::Parser;
 use crate::structs::FileConfig;
 use crate::term::terminal_handler::ParseArgs;
 use crate::writer::writer::Writer;
 use crate::writer::writer_structs::WriterResult;
-use crate::{lexer::Lexer, parser::Parser};
 
-pub fn run_parse(args: ParseArgs) {
-    let (mut stream, origin) = get_data_stream(&args.origin);
-    let project_src = args.origin;
+pub fn run_parse(args: ParseArgs, config: CompilerConfig) {
+    let (mut stream, origin) = get_data_stream(args.origin.as_ref().unwrap());
+    let project_src = args.origin.unwrap();
     let output_src = match &args.target {
         Some(t) => t.clone(),
         None => project_src.clone(),
@@ -36,6 +40,9 @@ pub fn run_parse(args: ParseArgs) {
     // fix import space between : and ident not working
     // tests
     let imports = Arc::new(RwLock::new(HashMap::new()));
+    let config = Arc::new(config);
+    let lua_map = LuaCallMap::load(config.clone());
+    let var_options_map = Arc::new(VarOptionsMap::new(config.clone(), lua_map));
     loop {
         let data = stream.next();
         if data.is_none() {
@@ -46,7 +53,7 @@ pub fn run_parse(args: ParseArgs) {
         let tokens = lexer.parse();
         let parser = Parser::new(tokens, project_src.clone(), output_src.clone());
         let nodes = parser.parse();
-        let writer = Writer::new_with_imports(nodes, imports.clone(), project_src.clone(), output_src.clone());
+        let writer = Writer::new_with_imports(nodes, imports.clone(), project_src.clone(), output_src.clone(), config.clone(), var_options_map.clone());
         let (mut replaced, config): (WriterResult, FileConfig) = writer.replace();
         stream.append(&mut replaced.to_parse);
 

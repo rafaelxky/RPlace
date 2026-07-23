@@ -1,4 +1,3 @@
-use std::path::Path;
 use std::sync::{Arc, RwLock};
 use std::{
     collections::HashMap,str
@@ -6,9 +5,9 @@ use std::{
 use rayon::{ prelude::*};
 use rayon::iter::IntoParallelRefIterator;
 
-use crate::config::config::CONFIG;
+use crate::config::config::{CompilerConfig};
 use crate::derive::deriver::Deriver;
-use crate::options::var_options::exec_option;
+use crate::options::var_options::{VarOptionsMap};
 use crate::structs::*;
 use crate::writer::writer_structs::{Derive, ResValue, WriterResult};
 use crate::{data_stream::get_data_stream};
@@ -26,9 +25,17 @@ pub struct Writer {
     file_config: FileConfig,
     project_src: String,
     output_src: String,
+    compiler_config: Arc<CompilerConfig>,
+    var_options: Arc<VarOptionsMap>,
 }
 impl Writer {
-    pub fn new(nodes: ParsingResult, project_src: String, output_src: String) -> Self {
+    pub fn new(
+        nodes: ParsingResult, 
+        project_src: String, 
+        output_src: String, 
+        compiler_config: Arc<CompilerConfig>, 
+        var_options: Arc<VarOptionsMap>
+    ) -> Self {
         Self {
             nodes: nodes.nodes,
             file_path: nodes.file_path,
@@ -36,9 +43,18 @@ impl Writer {
             file_config: FileConfig::default(),
             project_src,
             output_src,
+            compiler_config,
+            var_options,
         }
     }
-    pub fn new_with_imports(nodes: ParsingResult, imports: Arc<RwLock<HashMap<String,ParsingResult>>>, project_src: String, output_src: String) -> Self{
+    pub fn new_with_imports(
+        nodes: ParsingResult, 
+        imports: Arc<RwLock<HashMap<String,ParsingResult>>>, 
+        project_src: String, 
+        output_src: String, 
+        compiler_config: Arc<CompilerConfig>,
+        var_options: Arc<VarOptionsMap>,
+    ) -> Self{
         Self {
             nodes: nodes.nodes,
             file_path: nodes.file_path,
@@ -46,6 +62,8 @@ impl Writer {
             file_config: FileConfig::default(),
             project_src,
             output_src,
+            compiler_config,
+            var_options,
         }
     }
 
@@ -114,7 +132,7 @@ impl Writer {
                     break;
                 }
                 let (data, path) = data.unwrap();
-                if !CONFIG.read().unwrap().allow_import {
+                if !self.compiler_config.allow_import {
                     continue;
                 }
                 imp.push(self.handle_import(data,path));
@@ -123,7 +141,7 @@ impl Writer {
         }).collect();
 
         for imports_inner in imports{
-        for (import) in imports_inner {
+        for import in imports_inner {
             for node in import.nodes {
                 match &node {
                     Node::DEF { conditions:_, defaults:_, name, body:_, line:_ } => {
@@ -312,7 +330,7 @@ impl Writer {
                     Some(opts) => {
                         let mut curr = replacement.value.to_string();
                         for opt in opts {
-                            curr = exec_option(opt, curr);
+                            curr = self.var_options.exec_option(opt, curr);
                         }
                         curr
                     }

@@ -45,7 +45,7 @@ pub enum DeriveScope {
 }
 
 // var and caught pattern
-pub fn def(var: &str, _: &str, range: &Range<usize>, args: &Vec<String>) -> FnReturn {
+pub fn def(var: &str, _: &str, range: &Range<usize>, _args: &Vec<String>) -> FnReturn {
     let start = range.start..range.start;
     let end = range.end..range.end;
     return Some(vec![
@@ -53,15 +53,15 @@ pub fn def(var: &str, _: &str, range: &Range<usize>, args: &Vec<String>) -> FnRe
         (end, DeriveScope::After(format!("\n //- endef: \n")))
     ]);
 }
-pub fn arrow_var(var: &str, _:&str, range: &Range<usize>, args: &Vec<ArgType>) -> FnReturn{
+pub fn arrow_var(var: &str, _:&str, range: &Range<usize>, _args: &Vec<ArgType>) -> FnReturn{
     return Some(vec![(range.clone(),DeriveScope::Before(format!("/*- $#{} -> -*/ ", var)))]);
 }
-pub fn regex(_: &str, _:&str, _ : &Range<usize>, args: &Vec<ArgType>) -> FnReturn{
+pub fn regex(_: &str, _:&str, _ : &Range<usize>, _args: &Vec<ArgType>) -> FnReturn{
     None
 }
-pub fn placea(var: &str, _:&str, range: &Range<usize>, args: &Vec<ArgType>) -> FnReturn{
+pub fn placea(var: &str, _:&str, range: &Range<usize>, _args: &Vec<ArgType>) -> FnReturn{
     return Some(vec![(range.clone(), DeriveScope::After(format!("\n//- place {var}:\n")))]);
 }
-pub fn placeb(var: &str, _:&str, range: &Range<usize>, args: &Vec<ArgType>) -> FnReturn{
+pub fn placeb(var: &str, _:&str, range: &Range<usize>, _args: &Vec<ArgType>) -> FnReturn{
     return Some(vec![(range.clone(), DeriveScope::Before(format!("\n//- place {var}:\n")))]);
 }

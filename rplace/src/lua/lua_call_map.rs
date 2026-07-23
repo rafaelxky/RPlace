@@ -1,20 +1,21 @@
-use std::{collections::HashMap, fs, path::Path};
-
+use std::{collections::HashMap, fs, sync::Arc};
 use directories::ProjectDirs;
-use mlua::{Function, Lua, LuaNativeFn, Value};
+use mlua::{Function, Lua, Value};
 
-use crate::config::config::CONFIG;
+use crate::config::config::{CompilerConfig};
 
 pub struct LuaCallMap {
     map: HashMap<String, Function>,
     lua: Lua,
+    compiler_config: Arc<CompilerConfig>,
 }
 impl LuaCallMap {
-    pub fn load() -> Self {
-        if !CONFIG.read().unwrap().allow_lua {
+    pub fn load(compiler_config: Arc<CompilerConfig>) -> Self {
+        if !compiler_config.allow_lua {
             return Self {
                 map: HashMap::new(),
                 lua: Lua::new(),
+                compiler_config,
             };
         }
 
@@ -25,6 +26,7 @@ impl LuaCallMap {
             Self {
                 map: HashMap::new(),
                 lua: Lua::new(),
+                compiler_config,
             }
         } else {
             let lua = Lua::new();
@@ -51,10 +53,13 @@ impl LuaCallMap {
                 }
             }
 
-            Self { map, lua }
+            Self { map, lua, compiler_config }
         }
     }
     pub fn run<T: ToString>(&self, name: T) -> String {
+        if self.compiler_config.allow_lua {
+            return "".to_string();
+        }
         let fun = self.map.get(&name.to_string());
         let fun: Result<String, mlua::Error> = match fun {
             Some(fun) => fun.call(()),
@@ -64,12 +69,15 @@ impl LuaCallMap {
             Ok(res) => {
                 return res;
             }
-            Err(e) => {
+            Err(_e) => {
                 panic!("Error calling function {}", &name.to_string())
             }
         }
     }
     pub fn execute(&self, code: &str, args: Vec<String>) -> String {
+        if self.compiler_config.allow_lua {
+            return code.to_string();
+        }
         self.lua.globals().set("args", args).unwrap();
         self.lua.load(code).eval::<String>().unwrap()
     }

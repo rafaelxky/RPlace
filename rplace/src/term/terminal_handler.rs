@@ -1,14 +1,19 @@
-use std::sync::{Arc, LazyLock, RwLock};
+use std::path::Path;
 
-use clap::{Arg, CommandFactory, Parser, error::ErrorKind};
+use clap::{CommandFactory, Parser, error::ErrorKind};
+
+use crate::constants::PROJECT_FILE;
 
 pub enum ArgOptions {
     Parse (ParseArgs),
     ReloadConfig,
+    New{
+        project_name: String
+    },
 }
 #[derive(Debug)]
 pub struct ParseArgs{
-    pub origin: String,
+    pub origin: Option<String>,
     pub target: Option<String>,
 }
 
@@ -19,15 +24,23 @@ pub struct Args {
 
     #[arg(long = "reload-config", short = 'r')]
     pub reload_config: bool,
+
+    #[arg(long = "new", short = 'n', value_name = "PROJECT")]
+    pub new_project: Option<String>,
 }
 pub fn handle_args() -> ArgOptions {
     let args = Args::parse();
 
     if args.reload_config {
         return ArgOptions::ReloadConfig;
+    } else if args.new_project.is_some(){
+        return ArgOptions::New {
+            project_name: args.new_project.unwrap()
+        }
     }
 
-    if args.origin.is_none() {
+    let path = Path::new(PROJECT_FILE);
+    if args.origin.is_none() && !path.is_file() {
         Args::command()
             .error(
                 ErrorKind::MissingRequiredArgument,
@@ -35,5 +48,5 @@ pub fn handle_args() -> ArgOptions {
             )
             .exit();
     }
-    return ArgOptions::Parse (ParseArgs { origin: args.origin.unwrap(), target: args.target });
+    return ArgOptions::Parse (ParseArgs { origin: args.origin, target: args.target });
 }

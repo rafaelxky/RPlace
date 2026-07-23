@@ -1,0 +1,1 @@
+pub const PROJECT_FILE: &str = "rplace.toml";

@@ -1,4 +1,4 @@
-use crate::structs::{FileConfig, Value, Var};
+use crate::structs::{Value, Var};
 
 #[derive(Debug, Clone)]
 pub struct ResValue{
