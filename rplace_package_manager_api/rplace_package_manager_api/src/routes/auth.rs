@@ -1,7 +1,7 @@
 use argon2::{Argon2, PasswordHash,PasswordVerifier};
 use axum::{Json, Router, extract::State, http::StatusCode, response::IntoResponse, routing::{post}};
 use chrono::{Duration, Utc};
-use jsonwebtoken::{EncodingKey, Header, jws::encode};
+use jsonwebtoken::{EncodingKey, Header, encode};
 use serde_json::json;
 
 use crate::models::{
@@ -14,13 +14,13 @@ pub fn routes() -> Router<AppState> {
     .route("/loggin", post(loggin))
 }
 
-// /loggin GET
+// /loggin POST
 // checks email and pasword hash
 // if ok (user exists and password and name match), create and return a jwt claim
 /*  
 input: 
 {
-    "username": string,
+    "email": string,
     "password": string
 }
 
@@ -99,11 +99,11 @@ pub async fn loggin(
 
     let token = encode(
         &Header::default(),
-        Some(&claims),
+        &claims,
         &EncodingKey::from_secret(jwt_secret),
     );
 
-    let token = match token {
+    let token:String  = match token {
         Ok(t) => t,
         Err(e) => {
             return(StatusCode::INTERNAL_SERVER_ERROR, Json(json!({
@@ -114,6 +114,6 @@ pub async fn loggin(
     };
 
     return (StatusCode::OK,Json(json!({
-        "token": token
+        "token": token,
     })));
 }

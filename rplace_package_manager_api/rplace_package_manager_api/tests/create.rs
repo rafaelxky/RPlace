@@ -41,6 +41,10 @@ const GET_FILE: &str = "SELECT * FROM package_file WHERE code = ?;";
 const GET_LINK: &str = "SELECT * FROM links WHERE package_version_id = 1;";
 const INSERT_FILE: &str = "INSERT INTO package_file (file_hash, code) VALUES (?,?);";
 
+const PACKAGE_CREATE_URI: &str = "/package";
+const PACKAGE_VERSION_CREATE_URI: &str = "/package/version";
+const CREATE_FILE_URI: &str = "/file";
+
 // file same hash
 async fn setup(db_name: &str) -> Result<(Arc<SqliteDb>, Router)> {
     dotenv().ok();
@@ -137,7 +141,7 @@ async fn package_create_success() -> Result<()> {
     let tok = setup_user().await?;
 
     let request = Request::builder()
-        .uri("/package")
+        .uri(PACKAGE_CREATE_URI)
         .header(JSON_HEADER_KEY, JSON_HEADER_VALUES)
         .header(AUTH_HEADER_KEY, format!("Bearer {}", tok))
         .method("POST")
@@ -177,7 +181,7 @@ async fn package_create_same_name_fail() -> Result<()> {
     );
 
     let request = Request::builder()
-        .uri("/package")
+        .uri(PACKAGE_CREATE_URI)
         .header(JSON_HEADER_KEY, JSON_HEADER_VALUES)
         .header(AUTH_HEADER_KEY, format!("Bearer {}", tok))
         .method("POST")
@@ -210,7 +214,7 @@ async fn package_create_unauthorized() -> Result<()> {
     let tok = "ab123";
 
     let request = Request::builder()
-        .uri("/package")
+        .uri(PACKAGE_CREATE_URI)
         .header(JSON_HEADER_KEY, JSON_HEADER_VALUES)
         .header(AUTH_HEADER_KEY, format!("Bearer {}", tok))
         .method("POST")
@@ -241,7 +245,7 @@ async fn package_version_create_success() -> Result<()> {
     );
 
     let request = Request::builder()
-        .uri("/package/version")
+        .uri(PACKAGE_VERSION_CREATE_URI)
         .header(JSON_HEADER_KEY, JSON_HEADER_VALUES)
         .header(AUTH_HEADER_KEY, format!("Bearer {tok}"))
         .method("POST")
@@ -283,7 +287,7 @@ async fn package_version_create_repeated_version() -> Result<()> {
     );
 
     let request = Request::builder()
-        .uri("/package/version")
+        .uri(PACKAGE_VERSION_CREATE_URI)
         .header(JSON_HEADER_KEY, JSON_HEADER_VALUES)
         .header(AUTH_HEADER_KEY, format!("Bearer {tok}"))
         .method("POST")
@@ -318,7 +322,7 @@ async fn package_version_create_unauthorized() -> Result<()> {
     let tok = "tok123";
 
     let request = Request::builder()
-        .uri("/package/version")
+        .uri(PACKAGE_VERSION_CREATE_URI)
         .header(JSON_HEADER_KEY, JSON_HEADER_VALUES)
         .header(AUTH_HEADER_KEY, format!("Bearer {tok}"))
         .method("POST")
@@ -350,7 +354,7 @@ async fn file_create_success() -> Result<()> {
     .to_string();
 
     let request = Request::builder()
-        .uri("/file")
+        .uri(CREATE_FILE_URI)
         .header(JSON_HEADER_KEY, JSON_HEADER_VALUES)
         .header(AUTH_HEADER_KEY, format!("Bearer {tok}"))
         .method("POST")
@@ -406,7 +410,7 @@ async fn file_create_repeated_hash_success() -> Result<()> {
     .to_string();
 
     let request = Request::builder()
-        .uri("/file")
+        .uri(CREATE_FILE_URI)
         .header(JSON_HEADER_KEY, JSON_HEADER_VALUES)
         .header(AUTH_HEADER_KEY, format!("Bearer {tok}"))
         .method("POST")
@@ -466,7 +470,7 @@ async fn file_create_wrong_registry_id() -> Result<()> {
         .await?;
 
     let request = Request::builder()
-        .uri("/file")
+        .uri(CREATE_FILE_URI)
         .header(JSON_HEADER_KEY, JSON_HEADER_VALUES)
         .header(AUTH_HEADER_KEY, format!("Bearer {tok}"))
         .method("POST")
@@ -498,7 +502,7 @@ async fn file_create_unauthorized() -> Result<()> {
     .to_string();
 
     let request = Request::builder()
-        .uri("/file")
+        .uri(CREATE_FILE_URI)
         .header(JSON_HEADER_KEY, JSON_HEADER_VALUES)
         .header(AUTH_HEADER_KEY, format!("Bearer {tok}"))
         .method("POST")
@@ -516,4 +520,3 @@ async fn file_create_unauthorized() -> Result<()> {
 
     Ok(())
 }
-
