@@ -197,13 +197,13 @@ this will take regular text and transform it into a template acording to rules
 - //- $#output = "out.txt":
 - Sets the output path for the file
 
-# comand line arguments
-- -r or --reload-config
+# comand line arguments / CLI
+- replace reload
 - reloads the config file with the default values
-- rplace <origin> <target>
+- rplace run <origin> <target>
 - executes the code at origin if target is provided writes at target if not, write direcly on origin
 - target can be overriten by the file config variable $#output
-- replace -n <project_name> 
+- replace new <project_name> 
 - creates a new project config "rplace.toml" file
 
 # parse instruction
@@ -215,9 +215,6 @@ this will take regular text and transform it into a template acording to rules
 # paths
 - paths cannot escape the project root or output root depending on the instruction
 - if it starts with . then the path will be in relation to the file
-
-# project wide compilation
-- currently rplace allows you to parse whole projects if no target is specified in the CLI arguments
 
 # project config
 - project config config is defined in the rplace.toml file
