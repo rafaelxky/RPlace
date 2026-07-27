@@ -1,5 +1,4 @@
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     IDENT { str: String },
     DEF,
@@ -83,7 +82,7 @@ impl Token {
             Token::CASE => "case",
             Token::MATCH => "match",
             Token::PARSE => "parse",
-            _ => ""
+            _ => "",
         };
         if res.is_empty() {
             return None;
@@ -101,7 +100,6 @@ pub struct Lexer {
     data: Vec<char>,
     file_path: String,
 }
-// this is all wrong, correctness is in parser not lexer
 impl Lexer {
     pub fn new<T: ToString>(path: T, data: String) -> Self {
         let data = data.chars().collect();
@@ -146,7 +144,7 @@ impl Lexer {
                 '.' => {
                     tokens.push(Token::DOT);
                     continue;
-                },
+                }
                 ':' => {
                     if !self.can_pop() {
                         tokens.push(Token::DD);
@@ -157,7 +155,7 @@ impl Lexer {
                             self.pop();
                             tokens.push(Token::QD);
                             continue;
-                        },
+                        }
                         _ => (),
                     }
                     tokens.push(Token::DD);
@@ -186,11 +184,19 @@ impl Lexer {
                 '"' => {
                     tokens.push(Token::DQUOTE);
                     continue;
-                },
+                }
+                '(' => {
+                    tokens.push(Token::LPAREN);
+                    continue;
+                }
+                ')' => {
+                    tokens.push(Token::RPAREN);
+                    continue;
+                }
                 '\\' => {
                     tokens.push(Token::BSLASH);
                     continue;
-                },
+                }
                 '/' => {
                     // //-
                     if self.peek() == '/' {
@@ -306,7 +312,7 @@ impl Lexer {
 
             let mut str = String::new();
 
-            if self.is_char_terminator(curr) {
+            if is_char_terminator(curr) {
                 tokens.push(Token::IDENT {
                     str: curr.to_string(),
                 });
@@ -315,7 +321,7 @@ impl Lexer {
 
             self.unpop();
             while self.can_pop() {
-                if self.is_char_terminator(self.peek()) {
+                if is_char_terminator(self.peek()) {
                     break;
                 }
                 str.push(self.pop());
@@ -345,25 +351,25 @@ impl Lexer {
                 "when" => {
                     tokens.push(Token::WHEN);
                     continue;
-                },
+                }
                 "create" => {
                     tokens.push(Token::CREATE);
                     continue;
-                },
+                }
                 "derive" => {
                     tokens.push(Token::DERIVE);
                     continue;
-                },
+                }
                 "case" => {
                     tokens.push(Token::CASE);
                     continue;
-                },
+                }
                 "match" => {
                     tokens.push(Token::MATCH);
                     continue;
-                },
+                }
                 "parse" => {
-                 tokens.push(Token::PARSE);   
+                    tokens.push(Token::PARSE);
                     continue;
                 }
                 _ => {
@@ -376,15 +382,14 @@ impl Lexer {
         //self.handle_interruption_tokens(&mut tokens);
         //return tokens;
     }
-
-    fn is_char_terminator(&self, char: char) -> bool {
-        match char {
-            '_' => return false,
-            _ => (),
-        }
-        if !char.is_alphanumeric() {
-            return true;
-        }
-        false
+}
+fn is_char_terminator(char: char) -> bool {
+    match char {
+        '_' => return false,
+        _ => (),
     }
+    if !char.is_alphanumeric() {
+        return true;
+    }
+    false
 }
