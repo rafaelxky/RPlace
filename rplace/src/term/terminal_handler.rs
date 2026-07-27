@@ -1,52 +1,61 @@
 use std::path::Path;
 
-use clap::{CommandFactory, Parser, error::ErrorKind};
+use clap::{CommandFactory, Parser, Subcommand, error::ErrorKind};
 
 use crate::constants::PROJECT_FILE;
 
-pub enum ArgOptions {
-    Parse (ParseArgs),
-    ReloadConfig,
-    New{
-        project_name: String
+#[derive(Subcommand, Debug)]
+pub enum SubCommand {
+    New {
+        project_name: String,
     },
+    Run {
+        origin: Option<String>,
+        target: Option<String>,
+    },
+    Reload,
 }
 #[derive(Debug)]
-pub struct ParseArgs{
+pub enum CliArgs {
+    Parse(ParseArgs),
+    ReloadConfig,
+    New { project_name: String },
+}
+#[derive(Debug)]
+pub struct ParseArgs {
     pub origin: Option<String>,
     pub target: Option<String>,
 }
 
 #[derive(Parser, Debug)]
 pub struct Args {
-    pub origin: Option<String>,
-    pub target: Option<String>,
-
-    #[arg(long = "reload-config", short = 'r')]
-    pub reload_config: bool,
-
-    #[arg(long = "new", short = 'n', value_name = "PROJECT")]
-    pub new_project: Option<String>,
+    #[command(subcommand)]
+    pub command: Option<SubCommand>,
 }
-pub fn handle_args() -> ArgOptions {
+pub fn handle_args() -> CliArgs {
     let args = Args::parse();
 
-    if args.reload_config {
-        return ArgOptions::ReloadConfig;
-    } else if args.new_project.is_some(){
-        return ArgOptions::New {
-            project_name: args.new_project.unwrap()
+    match args.command {
+        Some(SubCommand::New { project_name }) => {
+            return CliArgs::New { project_name };
         }
+        Some(SubCommand::Run { origin, target }) => {
+            let path = Path::new(PROJECT_FILE);
+            if args.origin.is_none() && !path.is_file() {
+                Args::command()
+                    .error(
+                        ErrorKind::MissingRequiredArgument,
+                        "the following required arguments were not provided:\n  <ORIGIN>",
+                    )
+                    .exit();
+            }
+            return CliArgs::Parse(ParseArgs { origin, target });
+        }
+        Some(SubCommand::Reload) => {
+            return CliArgs::ReloadConfig
+        }
+        None => {
+            panic!("Invalid subcommand!")
+        },
     }
-
-    let path = Path::new(PROJECT_FILE);
-    if args.origin.is_none() && !path.is_file() {
-        Args::command()
-            .error(
-                ErrorKind::MissingRequiredArgument,
-                "the following required arguments were not provided:\n  <ORIGIN>",
-            )
-            .exit();
-    }
-    return ArgOptions::Parse (ParseArgs { origin: args.origin, target: args.target });
 }

@@ -4,7 +4,7 @@ use crate::config::config::{CONFIG, CompilerConfig, reload_config};
 use crate::package_manager::package_load::{get_package_manager_data, join_args_and_config};
 use crate::package_manager::project_create::create_project;
 use crate::run::run_options::run_parse;
-use crate::term::terminal_handler::ParseArgs;
+use crate::term::terminal_handler::{CliArgs, ParseArgs};
 use crate::{term::terminal_handler::handle_args};
 use anyhow::{Result};
 
@@ -28,11 +28,11 @@ pub mod constants;
 async fn main() -> Result<()>{
     let args = handle_args();
     match args {
-        term::terminal_handler::ArgOptions::New { project_name } => {
+        CliArgs::New { project_name } => {
             create_project(project_name)?;
             Ok(())
         }
-        term::terminal_handler::ArgOptions::Parse(args) => {
+        CliArgs::Parse(args) => {
             let data = get_package_manager_data();
             let config = CONFIG.clone().read().unwrap().clone();
             let (args,config): (ParseArgs, CompilerConfig) = match data {
@@ -46,7 +46,7 @@ async fn main() -> Result<()>{
             run_parse(args, config);
             Ok(())
         }
-        term::terminal_handler::ArgOptions::ReloadConfig => {
+        CliArgs::ReloadConfig => {
             let dir = ProjectDirs::from("io", "rplace", "rplace");
             let dir = match dir {
                 Some(dir) => dir,
