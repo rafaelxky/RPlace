@@ -32,7 +32,7 @@ pub fn routes() -> Router<AppState> {
 }
 
 // 1st step for fetching
-// packages/{name} GET
+// package/{name} GET
 // returns the rplace.toml file content and other relevant content to get the files
 /* returns:
 {
@@ -150,7 +150,7 @@ async fn get_package_initial_file_no_version(
 }
 
 // 1st step for fetching
-// packages/{name}/{version} GET
+// package/{name}/{version} GET
 // returns the rplace.toml file content and other relevant content to get the files
 /* returns;
 {

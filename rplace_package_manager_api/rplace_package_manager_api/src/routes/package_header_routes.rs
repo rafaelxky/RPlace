@@ -24,6 +24,7 @@ pub fn routes() -> Router<AppState> {
 }
 
 //  /package POST
+// creates new package
 // must be logged in
 // jwt token in header
 // body:

@@ -24,3 +24,25 @@ pub struct UploadedFileResponse{
 pub struct LogginResponse{
     token: String,
 }
+#[derive(Debug,Clone,Deserialize)]
+pub struct CreatedUserResponse{
+    id: i32,
+    name: String,
+}
+#[derive(Debug,Clone,Deserialize)]
+pub struct ResponsePackageData{
+    repo_id: i32,
+    version: String,
+    header_id: i32,
+    file_hash: String,
+    file_path: String,
+    code: String,
+}
+
+#[derive(Debug,Clone,Deserialize)]
+pub struct ResponseGetPackageFile{
+    header_id: i32,
+    file_path: String,
+    file_hash: String,
+    code: String,
+}
