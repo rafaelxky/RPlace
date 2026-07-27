@@ -41,7 +41,7 @@ pub fn handle_args() -> CliArgs {
         }
         Some(SubCommand::Run { origin, target }) => {
             let path = Path::new(PROJECT_FILE);
-            if args.origin.is_none() && !path.is_file() {
+            if origin.is_none() && !path.is_file() {
                 Args::command()
                     .error(
                         ErrorKind::MissingRequiredArgument,
