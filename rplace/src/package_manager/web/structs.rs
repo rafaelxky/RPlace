@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 
 #[derive(Debug,Clone,Deserialize)]
@@ -20,7 +20,7 @@ pub struct UploadedFileResponse{
     path: String,
     file_hash: String,
 }
-#[derive(Debug,Clone,Deserialize)]
+#[derive(Debug,Clone,Deserialize,Serialize)]
 pub struct LogginResponse{
     token: String,
 }

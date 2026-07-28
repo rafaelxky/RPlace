@@ -14,12 +14,25 @@ pub enum SubCommand {
         target: Option<String>,
     },
     Reload,
+    Loggin {
+        email: String,
+        password: String,
+    },
+    CreateUser {
+        username: String,
+        email: String,
+        password: String,
+    }
 }
 #[derive(Debug)]
 pub enum CliArgs {
     Parse(ParseArgs),
     ReloadConfig,
     New { project_name: String },
+    Loggin{
+        email: String,
+        password: String,
+    }
 }
 #[derive(Debug)]
 pub struct ParseArgs {
@@ -53,6 +66,12 @@ pub fn handle_args() -> CliArgs {
         }
         Some(SubCommand::Reload) => {
             return CliArgs::ReloadConfig
+        }
+        Some(SubCommand::Loggin { email, password }) => {
+            return CliArgs::Loggin { email, password };
+        },
+        Some(SubCommand::CreateUser { username, email, password }) => {
+            todo!()   
         }
         None => {
             panic!("Invalid subcommand!")
