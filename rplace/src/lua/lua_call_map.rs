@@ -10,6 +10,9 @@ pub struct LuaCallMap {
     compiler_config: Arc<CompilerConfig>,
 }
 impl LuaCallMap {
+    pub fn empty(compiler_config: Arc<CompilerConfig>) -> Self{
+        Self { map: HashMap::new(), lua: Lua::new(), compiler_config: compiler_config }
+    }
     pub fn load(compiler_config: Arc<CompilerConfig>) -> Self {
         if !compiler_config.allow_lua {
             return Self {

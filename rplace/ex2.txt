@@ -1,10 +1,13 @@
+first
 //- $#output = "out.txt":
-
+after_var
 //- def b:
+after_def
 //- for vala,valb in b:
-    $#vala
-    $#valb?
+in_for
+$#vala
 //- end:
+after_for
 //- end:
-
+after_def
 //- place b where b = [(a,c),(b),(c)]:

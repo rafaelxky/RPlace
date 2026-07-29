@@ -1,0 +1,103 @@
+ParsingResult {
+    nodes: [
+        DATA {
+            data: "first",
+            line: 0,
+        },
+        SETVARIABLE {
+            var: [
+                "output",
+            ],
+            val: Literal {
+                value: "out.txt",
+                options: None,
+            },
+        },
+        DATA {
+            data: "after_var",
+            line: 0,
+        },
+        DEF {
+            conditions: None,
+            defaults: None,
+            name: "b",
+            body: BODY {
+                data: [
+                    DATA {
+                        data: "after_def",
+                        line: 0,
+                    },
+                    FOR {
+                        vars: [
+                            "vala",
+                            "valb",
+                        ],
+                        in_var: "b",
+                        body: BODY {
+                            data: [
+                                DATA {
+                                    data: "in_for",
+                                    line: 0,
+                                },
+                                VARTEMPLATE {
+                                    val: TemplateValue {
+                                        optional: false,
+                                        value: "vala",
+                                        options: None,
+                                    },
+                                },
+                                DATA {
+                                    data: "",
+                                    line: 0,
+                                },
+                            ],
+                            line: 0,
+                        },
+                    },
+                    DATA {
+                        data: "after_for",
+                        line: 0,
+                    },
+                ],
+                line: 0,
+            },
+            line: 0,
+        },
+        DATA {
+            data: ":after_def",
+            line: 0,
+        },
+        PLACE {
+            name: "b",
+            args: [
+                (
+                    Var {
+                        name: "b",
+                        optional: false,
+                    },
+                    Array {
+                        values: [
+                            [
+                                "a",
+                                "c",
+                            ],
+                            [
+                                "b",
+                            ],
+                            [
+                                "c",
+                            ],
+                        ],
+                    },
+                ),
+            ],
+            line: 0,
+        },
+        DATA {
+            data: "",
+            line: 0,
+        },
+    ],
+    file_path: "ex2.txt",
+    errors: [],
+}

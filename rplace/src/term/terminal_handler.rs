@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use clap::{CommandFactory, Parser, Subcommand, error::ErrorKind};
+use clap::{Arg, CommandFactory, Parser, Subcommand, error::ErrorKind};
 
 use crate::constants::PROJECT_FILE;
 
@@ -12,6 +12,8 @@ pub enum SubCommand {
     Run {
         origin: Option<String>,
         target: Option<String>,
+        #[arg(short = 'p')]
+        stops_at_parser: bool,
     },
     Reload,
     Loggin {
@@ -23,23 +25,23 @@ pub enum SubCommand {
         email: String,
         password: String,
     },
-    Push{},
+    Push {},
 }
 #[derive(Debug)]
 pub enum CliArgs {
-    Parse(ParseArgs),
+    Parse(
+        ParseArgs,
+    ),
     ReloadConfig,
     New { project_name: String },
-    Loggin{
-        email: String,
-        password: String,
-    },
-    Push{},
+    Loggin { email: String, password: String },
+    Push {},
 }
 #[derive(Debug)]
 pub struct ParseArgs {
     pub origin: Option<String>,
     pub target: Option<String>,
+    pub stops_at_parser: bool,
 }
 
 #[derive(Parser, Debug)]
@@ -54,7 +56,7 @@ pub fn handle_args() -> CliArgs {
         Some(SubCommand::New { project_name }) => {
             return CliArgs::New { project_name };
         }
-        Some(SubCommand::Run { origin, target }) => {
+        Some(SubCommand::Run { origin, target, stops_at_parser }) => {
             let path = Path::new(PROJECT_FILE);
             if origin.is_none() && !path.is_file() {
                 Args::command()
@@ -64,22 +66,22 @@ pub fn handle_args() -> CliArgs {
                     )
                     .exit();
             }
-            return CliArgs::Parse(ParseArgs { origin, target });
+            return CliArgs::Parse(ParseArgs { origin, target,stops_at_parser });
         }
-        Some(SubCommand::Reload) => {
-            return CliArgs::ReloadConfig
-        }
+        Some(SubCommand::Reload) => return CliArgs::ReloadConfig,
         Some(SubCommand::Loggin { email, password }) => {
             return CliArgs::Loggin { email, password };
-        },
-        Some(SubCommand::CreateUser { username, email, password }) => {
-            todo!()   
         }
-        Some(SubCommand::Push {  }) => {
-            return CliArgs::Push {  }
+        Some(SubCommand::CreateUser {
+            username,
+            email,
+            password,
+        }) => {
+            todo!()
         }
+        Some(SubCommand::Push {}) => return CliArgs::Push {},
         None => {
             panic!("Invalid subcommand!")
-        },
+        }
     }
 }

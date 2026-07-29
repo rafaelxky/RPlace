@@ -44,6 +44,7 @@ pub fn run_parse(args: ParseArgs, config: CompilerConfig) {
     let config = Arc::new(config);
     let lua_map = LuaCallMap::load(config.clone());
     let var_options_map = Arc::new(VarOptionsMap::new(config.clone(), lua_map));
+    let mut to_write = vec![];
     loop {
         let data = stream.next();
         if data.is_none() {
@@ -54,10 +55,16 @@ pub fn run_parse(args: ParseArgs, config: CompilerConfig) {
         let tokens = lexer.parse();
         let parser = Parser::new(tokens, project_src.clone(), output_src.clone());
         let nodes = parser.parse();
+        if args.stops_at_parser {
+            println!("{:#?}", nodes);
+        }
         let writer = Writer::new_with_imports(nodes, imports.clone(), project_src.clone(), output_src.clone(), config.clone(), var_options_map.clone());
         let (mut replaced, config): (WriterResult, FileConfig) = writer.replace();
         stream.append(&mut replaced.to_parse);
 
+        if args.stops_at_parser {
+            continue;
+        }
         let file = match (&args.target, &config.output) {
             (Some(path), _) => OpenOptions::new()
                 .write(true)
@@ -79,7 +86,15 @@ pub fn run_parse(args: ParseArgs, config: CompilerConfig) {
                 .expect("Unable to open file"),
         };
 
+
         let output = OutputWriter::new(replaced, file, config);
-        output.write();
+        to_write.push(output);
     }
+
+    if args.stops_at_parser {
+        return;
+    }
+    to_write.into_iter().for_each(|output|{
+        output.write();
+    });
 }

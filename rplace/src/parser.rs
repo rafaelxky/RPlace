@@ -1283,7 +1283,8 @@ impl Parser {
                     self.line = self.line + 1;
                 }
                 tok => {
-                    body_str.push_str(&tok.val());
+                    let val = &tok.val();
+                    body_str.push_str(val);
                 }
             }
             self.ptr_next();
