@@ -30,6 +30,7 @@ pub fn run_parse(args: ParseArgs, config: CompilerConfig) {
             }
         }
         DataSouce::FILE => (),
+        DataSouce::Package => (),
     }
 
     // todo fix target path to create subfolders
