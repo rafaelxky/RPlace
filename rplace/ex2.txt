@@ -1,16 +1,10 @@
 //- $#output = "out.txt":
 
-//- def a:
-//- for val in a:
-$#val
-//- match val:
-//- case a:
-A case
-//- end:
-//- case _:
-//- end:
-//- end:
+//- def b:
+//- for vala,valb in b:
+    $#vala
+    $#valb?
 //- end:
 //- end:
 
-//- place a where a = [(a),(b),(c)]:
+//- place b where b = [(a,c),(b),(c)]:

@@ -447,9 +447,7 @@ impl Writer {
         for val in var_values {
             let mut args_map = args_map.clone();
             let mut def_queue = def_queue.clone();
-            if val.len() != var_names.len() {
-                panic!("todo message, wrong len");
-            }
+            
             for (name,val) in var_names.iter().zip(val) {
                 args_map.insert(name.to_string(), ResValue::new_val(val));
             }

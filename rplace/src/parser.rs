@@ -1109,7 +1109,7 @@ impl Parser {
                             vars.push(w);
                         }
                         None => {
-                            panic!("todo err message, invalid token in for loop")
+                            panic!("todo err message, invalid token in for loop {:?}", tok)
                         }
                     }
                 }
