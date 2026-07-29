@@ -155,7 +155,7 @@ impl DataStream for PackageDataStream {
             .iter()
             .map(|path| {
                 let mut path = path.clone();
-                if path.starts_with("package") {
+                if path.starts_with("package/") {
                     path = path.strip_prefix("package/").unwrap().to_string();
                 }
                 let path = dir.join(path);
