@@ -52,7 +52,7 @@ impl CompilerConfig {
         }
     }
     pub fn default() -> Self {
-        let package_source = "".to_string();
+        let package_source = "127.0.0.1:8080".to_string();
         Self {
             allow_lua: false,
             allow_import: true,

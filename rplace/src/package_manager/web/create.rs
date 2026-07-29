@@ -2,14 +2,14 @@ use anyhow::{Ok, Result};
 use reqwest::{Client, header};
 use serde_json::json;
 
-use crate::package_manager::web::{URI_BASE, structs::{CreatedPackageResponse, CreatedVersionResponse, UploadedFileResponse}};
+use crate::package_manager::web::{structs::{CreatedPackageResponse, CreatedVersionResponse, UploadedFileResponse}};
 
 pub const CREATE_PACKAGE_URI: &str = "/package";
 pub const CREATE_VERSION_URI: &str = "/package/version";
 pub const UPLOAD_FILE_URI: &str = "/file";
 
-pub async fn create_new_package(name: &str, token: &str) -> Result<CreatedPackageResponse>{
-    let uri = format!("{}{}", URI_BASE,CREATE_PACKAGE_URI);
+pub async fn create_new_package(package_source: &str, name: &str, token: &str) -> Result<CreatedPackageResponse>{
+    let uri = format!("{}{}", package_source,CREATE_PACKAGE_URI);
     let client = Client::new();
 
     let response = client
@@ -27,8 +27,8 @@ pub async fn create_new_package(name: &str, token: &str) -> Result<CreatedPackag
 
 } 
 
-pub async fn create_new_version(package_name: &str, version: &str, token: &str) -> Result<CreatedVersionResponse>{
-     let uri = format!("{}{}", URI_BASE,CREATE_VERSION_URI);
+pub async fn create_new_version(package_source: &str,package_name: &str, version: &str, token: &str) -> Result<CreatedVersionResponse>{
+     let uri = format!("{}{}", package_source,CREATE_VERSION_URI);
     let client = Client::new();
 
     let response = client
@@ -47,13 +47,14 @@ pub async fn create_new_version(package_name: &str, version: &str, token: &str) 
 }
 
 pub async fn upload_file(
+    package_source: &str,
     registry_id: i32, 
     version_header_id: i32, 
     code: &str, 
     path: &str,
     token: &str
 ) -> Result<UploadedFileResponse>{
-     let uri = format!("{}{}", URI_BASE,UPLOAD_FILE_URI);
+     let uri = format!("{}{}", package_source,UPLOAD_FILE_URI);
     let client = Client::new();
 
     let response = client

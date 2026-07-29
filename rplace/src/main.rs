@@ -59,7 +59,8 @@ async fn main() -> Result<()> {
             Ok(())
         }
         CliArgs::Loggin { email, password } => {
-            let res = loggin(&email, &password).await?;
+            let config = CONFIG.clone().read().unwrap().clone();
+            let res = loggin(&config.package_source,&email, &password).await?;
             save_tok(res)?;
             println!("User created");
             Ok(())
