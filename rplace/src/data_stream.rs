@@ -8,6 +8,8 @@ use directories::ProjectDirs;
 use reqwest::blocking::get;
 use walkdir::WalkDir;
 
+use crate::package_manager::file::parse_package_path;
+
 pub enum DataSouce {
     WEB,
     FILE,
@@ -108,13 +110,9 @@ impl PackageDataStream {
             }
         };
         let dir = binding.data_dir();
+        let dir = dir.join("packages");
         let dir = dir.to_path_buf();
-        let mut path = path;
-        if path.starts_with("package") {
-            path = path.strip_prefix("package/").unwrap().to_string();
-        }
-        let path = dir.join(path);
-        let path = path.to_str().unwrap().to_string();
+        let path = parse_package_path(path, &dir);
         let mut paths: Vec<String> = Vec::new();
         for entry in WalkDir::new(path.clone()) {
             if entry.is_err() {
