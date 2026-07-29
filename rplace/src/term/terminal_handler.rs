@@ -22,7 +22,8 @@ pub enum SubCommand {
         username: String,
         email: String,
         password: String,
-    }
+    },
+    Push{},
 }
 #[derive(Debug)]
 pub enum CliArgs {
@@ -32,7 +33,8 @@ pub enum CliArgs {
     Loggin{
         email: String,
         password: String,
-    }
+    },
+    Push{},
 }
 #[derive(Debug)]
 pub struct ParseArgs {
@@ -72,6 +74,9 @@ pub fn handle_args() -> CliArgs {
         },
         Some(SubCommand::CreateUser { username, email, password }) => {
             todo!()   
+        }
+        Some(SubCommand::Push {  }) => {
+            return CliArgs::Push {  }
         }
         None => {
             panic!("Invalid subcommand!")

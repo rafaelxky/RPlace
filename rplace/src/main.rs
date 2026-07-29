@@ -6,7 +6,7 @@ use crate::package_manager::web::auth::loggin;
 use crate::run::run_options::run_parse;
 use crate::term::terminal_handler::handle_args;
 use crate::term::terminal_handler::{CliArgs, ParseArgs};
-use anyhow::Result;
+use anyhow::{Result};
 use directories::ProjectDirs;
 use std::process::exit;
 
@@ -63,6 +63,12 @@ async fn main() -> Result<()> {
             let res = loggin(&config.package_source,&email, &password).await?;
             save_tok(res)?;
             println!("User created");
+            Ok(())
+        }
+        CliArgs::Push {  } => {
+            let config = CONFIG.clone().read().unwrap().clone();
+            
+            todo!();
             Ok(())
         }
     }
