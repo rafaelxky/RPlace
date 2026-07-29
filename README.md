@@ -181,6 +181,16 @@ this will take regular text and transform it into a template acording to rules
 - the first matched case will be placed
 - can have inner instructions wich will be executed
 
+## for loops
+- for loops allow you to iterate over an array
+- ex:
+//- for varA,varB in val:
+    $#varA
+    $#varB?
+//- end:
+- then called as such:
+//- place template where val = [(a,b),(c,d),(e)]
+
 # lua
 ## inline lua options
 - you can use inline lua to manipulate variables
