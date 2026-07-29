@@ -1,22 +1,11 @@
 
 
-pub struct User{
 
-    pub id: i32,
 
-    pub name: String,
 
-}
-impl User {
-    pub fn new(
-        id: i32,
-        name: String,
-    ){
-        Self {
-            id,
-            name,
-        }
-    }
+a
+    A case
 
-    pub fn print(){}
-}
+b
+
+c

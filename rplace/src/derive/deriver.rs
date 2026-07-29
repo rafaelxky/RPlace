@@ -21,7 +21,12 @@ impl Deriver {
         let mut all_changes: Vec<(Range<usize>, DeriveScope)> = Vec::new();
 
         derive.vals.iter().for_each(|(var, pattern)| {
-            let opts = pattern.options.as_ref();
+            let (value,options) = match pattern {
+                crate::structs::Value::Literal { value, options } => (value,options),
+                crate::structs::Value::Var { value, options } => todo!(),
+                crate::structs::Value::Array { values } => todo!(),
+            };
+            let opts = options.as_ref();
 
             let features = opts.map(|o| Deriver::get_features(o));
             let features_vec = opts;
@@ -36,7 +41,7 @@ impl Deriver {
                 .unwrap_or(true);
 
             if is_regex {
-                let re = Regex::new(&pattern.value).unwrap();
+                let re = Regex::new(&value).unwrap();
                 
                 for mat in re.find_iter(&text) {
                     if mat.start() == mat.end() {
@@ -58,9 +63,9 @@ impl Deriver {
             } else {
                 let mut start = 0;
 
-                while let Some(pos) = text[start..].find(&pattern.value) {
+                while let Some(pos) = text[start..].find(value) {
                     let abs = start + pos;
-                    let range = abs..abs + pattern.value.len();
+                    let range = abs..abs + value.len();
 
                     let matched = &text[range.clone()];
 
@@ -74,7 +79,7 @@ impl Deriver {
                         all_changes.append(replacement.as_mut().unwrap());
                     }
 
-                    start = abs + pattern.value.len();
+                    start = abs + value.len();
                 }
             }
         });

@@ -1,10 +1,14 @@
+use core::panic;
 use std::{path::Path, str};
 
 use path_clean::PathClean;
 
 use crate::{
     error_handler::{CompilationError, handle_error, handle_error_parser},
-    lexer::{Token, TokenResult},
+    lexer::{
+        Token::{self, IDENT},
+        TokenResult,
+    },
     structs::*,
 };
 
@@ -771,11 +775,7 @@ impl Parser {
         self.remove_spaces();
         args.push((
             from.to_string(),
-            Value {
-                value_type: ValueType::Literal,
-                value: arg_str,
-                options: options_2.clone(),
-            },
+            Value::new_literal_type(arg_str, options_2.clone()),
         ));
     }
 
@@ -795,11 +795,7 @@ impl Parser {
                     options = self.handle_var_options();
                 }
                 self.remove_spaces();
-                return Value {
-                    value_type: ValueType::Literal,
-                    value: str,
-                    options: options,
-                };
+                return Value::new_literal_type(str, options);
             }
             // ident = "ident" -> quotation handling for multiline values
             Token::DQUOTE => {
@@ -814,12 +810,12 @@ impl Parser {
                 match self.peek() {
                     Token::IDENT { str } => {
                         self.ptr_next();
+                        if matches!(self.peek(), Token::BSLASH) {
+                            self.ptr_next();
+                            options = self.handle_var_options();
+                        }
                         self.remove_spaces();
-                        return Value {
-                            value_type: ValueType::Var,
-                            value: str,
-                            options: None,
-                        };
+                        return Value::new_var_type(str, options);
                     }
                     _ => handle_error(
                         format!(
@@ -830,6 +826,10 @@ impl Parser {
                         self.file_path.clone(),
                     ),
                 }
+            }
+            Token::LSRQBRACK => {
+                self.ptr_next();
+                return self.handle_array_value();
             }
             _ => {
                 handle_error_parser(CompilationError::Invalid2ndPlaceVar, self);
@@ -845,7 +845,7 @@ impl Parser {
     // here after anything that requires variable assignement
     // ex: before this -> name = val
     // handles the whole var = val, var = val
-    // doesn't consume :
+    // doesn't consume the final :
     fn handle_vars(&mut self) -> Vec<(Var, Value)> {
         let mut args: Vec<(Var, Value)> = Vec::new();
         loop {
@@ -873,7 +873,9 @@ impl Parser {
                                 Token::DD => {
                                     return args;
                                 }
-                                t => panic!("todo message: Unexpected token {:?} in handle vars", t),
+                                t => {
+                                    panic!("todo message: Unexpected token {:?} in handle vars", t)
+                                }
                             }
                         }
                         _ => {
@@ -884,6 +886,54 @@ impl Parser {
                 _ => handle_error_parser(CompilationError::Invalid1stPlaceVar, self),
             }
         }
+    }
+
+    // reaches here after [
+    // ends at ] (consumes it)
+    // ex: [(a,b),(c,d)]
+    fn handle_array_value(&mut self) -> Value {
+        let mut vals: Vec<Vec<String>> = vec![];
+        loop {
+            self.remove_spaces();
+            match self.pop() {
+                Token::LPAREN => {
+                    vals.push(vec![]);
+                    loop {
+                        self.remove_spaces();
+                        match self.pop() {
+                            Token::IDENT { str } => {
+                                let len = vals.len() - 1;
+                                vals[len].push(str);
+                            }
+                            tok => {
+                                let w = tok.try_get_soft_keyword();
+                                let w = match w {
+                                    Some(w) => w,
+                                    _ => panic!(),
+                                };
+                                let len = vals.len() - 1;
+                                vals[len].push(w);
+                            }
+                        }
+                        self.remove_spaces();
+                        match self.pop() {
+                            Token::COMMA => continue,
+                            Token::RPAREN => break,
+                            _ => panic!(),
+                        }
+                    }
+                }
+                tok => panic!("todo error message, expected lparen, found {:?}",tok),
+            }
+            self.remove_spaces();
+            match self.pop() {
+                Token::COMMA => continue,
+                Token::RSRQBRACK => break,
+                _ => panic!("todo"),
+            }
+        }
+
+        return Value::new_array_type(vals);
     }
 
     /// handles any mark found inside a body
@@ -1022,11 +1072,81 @@ impl Parser {
                 let node = self.handle_match();
                 body.push(node);
             }
+            Token::FOR => {
+                //- place a where var  = [(a,b),(b,c),(c,d)]
+                //- for a,b in var:
+                //- end:
+                self.ptr_next();
+                body.push(Node::DATA {
+                    data: body_str.to_string(),
+                    line: self.line,
+                });
+                *body_str = String::new();
+                let node = self.handle_for();
+                body.push(node);
+            }
             _ => {
                 handle_error_parser(CompilationError::InvalidBodyCommand, self);
             }
         }
         return false;
+    }
+
+    // handles for loop
+    // reaches here after for
+    fn handle_for(&mut self) -> Node {
+        let mut vars = vec![];
+        loop {
+            self.remove_spaces();
+            match self.pop() {
+                Token::IDENT { str } => {
+                    vars.push(str);
+                }
+                tok => {
+                    let kw = tok.try_get_soft_keyword();
+                    match kw {
+                        Some(w) => {
+                            vars.push(w);
+                        }
+                        None => {
+                            panic!("todo err message, invalid token in for loop")
+                        }
+                    }
+                }
+            }
+            self.remove_spaces();
+            match self.pop() {
+                Token::COMMA => {
+                    continue;
+                }
+                Token::IN => {
+                    break;
+                }
+                _ => panic!("todo err message, invalid token in for loop"),
+            }
+        }
+        self.remove_spaces();
+        let in_var = match self.pop() {
+            Token::IDENT { str } => str,
+            tok => {
+                let w = tok.try_get_soft_keyword();
+                match w {
+                    Some(w) => w,
+                    None => panic!("todo msg invalid tok in for look"),
+                }
+            }
+        };
+        self.remove_spaces();
+        match self.pop() {
+            Token::DD => (),
+            _ => panic!("forgot : at for loop"),
+        };
+        let body = self.build_body();
+        return Node::FOR {
+            vars,
+            in_var,
+            body: Box::new(body),
+        };
     }
 
     fn handle_match(&mut self) -> Node {
@@ -1183,12 +1303,13 @@ impl Parser {
                 self.ptr_next();
                 str
             }
-            Token::PLACE => {
+            tok => {
                 self.ptr_next();
-                "place".to_string()
-            }
-            _ => {
-                handle_error_parser(CompilationError::InvalidPlaceName, self);
+                let w = tok.try_get_soft_keyword();
+                match w {
+                    Some(w) => w,
+                    None => handle_error_parser(CompilationError::InvalidPlaceName, self),
+                }
             }
         };
 
@@ -1207,7 +1328,7 @@ impl Parser {
                 Token::WHERE => {
                     self.ptr_next();
                     args.append(&mut self.handle_vars());
-                    self.remove_till_nl();
+                    self.remove_spaces();
                 }
                 _ => handle_error_parser(CompilationError::InvalidPlaceOption, self),
             }

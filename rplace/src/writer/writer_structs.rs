@@ -1,8 +1,17 @@
 use crate::structs::{Value, Var};
 
 #[derive(Debug, Clone)]
-pub struct ResValue{
-    pub value:String,
+pub enum ResValue{
+    Val{value:String},
+    Array{array: Vec<Vec<String>>}
+}
+impl ResValue {
+    pub fn new_val(value: String) -> ResValue{
+        ResValue::Val { value }
+    }
+    pub fn new_array(array: Vec<Vec<String>>) -> ResValue{
+        ResValue::Array { array }
+    }
 }
 pub enum FileWriteOptions{
     Override,

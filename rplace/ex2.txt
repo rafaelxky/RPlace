@@ -1,0 +1,16 @@
+//- $#output = "out.txt":
+
+//- def a:
+//- for val in a:
+$#val
+//- match val:
+//- case a:
+A case
+//- end:
+//- case _:
+//- end:
+//- end:
+//- end:
+//- end:
+
+//- place a where a = [(a),(b),(c)]:

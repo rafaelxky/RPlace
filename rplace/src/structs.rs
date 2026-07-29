@@ -1,3 +1,5 @@
+use crate::options;
+
 #[derive(Debug, Clone)]
 pub struct FileConfig {
     pub output: Option<String>,
@@ -42,19 +44,39 @@ impl Condition {
         }
     }
 }
-
 #[derive(Debug, Clone)]
-pub enum ValueType {
-    // $#var
-    Literal,
+pub enum Value {
     // "var"
-    Var,
+    Literal {
+        value: String,
+        options: Option<Vec<VarOption>>,
+    },
+    // $#var
+    Var {
+        value: String,
+        options: Option<Vec<VarOption>>,
+    },
+    // [(a,b), (c,d)]
+    Array {
+        values: Vec<Vec<String>>,
+    }
 }
-#[derive(Debug, Clone)]
-pub struct Value {
-    pub value_type: ValueType,
-    pub value: String,
-    pub options: Option<Vec<VarOption>>,
+impl Value {
+    pub fn new_literal_type(value: String, options: Option<Vec<VarOption>>) -> Value {
+        return Value::Literal  {
+            value,
+            options,
+        };
+    }
+    pub fn new_var_type(value: String, options: Option<Vec<VarOption>>) -> Value {
+        return Value::Var {
+            value,
+            options,
+        };
+    }
+    pub fn new_array_type(values: Vec<Vec<String>>) -> Value {
+        return Value::Array { values};
+    }
 }
 #[derive(Debug, Clone)]
 pub struct Var {
@@ -67,14 +89,9 @@ pub struct TemplateValue {
     pub value: String,
     pub options: Option<Vec<VarOption>>,
 }
-impl ToString for Value {
-    fn to_string(&self) -> String {
-        self.value.to_string()
-    }
-}
 #[derive(Debug, Clone)]
 pub enum EqType {
-    EQUALS
+    EQUALS,
 }
 #[derive(Debug, Clone)]
 pub enum Node {
@@ -127,7 +144,7 @@ pub enum Node {
         val: Vec<MatchArm>,
     },
     IF {
-        conditions: Vec<(Var,Value)>,
+        conditions: Vec<(Var, Value)>,
         eq: Vec<EqType>,
     },
     SETVARIABLE {
@@ -136,6 +153,11 @@ pub enum Node {
     },
     PARSE {
         path: String,
+    },
+    FOR {
+        vars: Vec<String>,
+        in_var: String,
+        body: Box<Node>,
     },
 }
 impl Node {

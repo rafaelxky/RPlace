@@ -31,6 +31,8 @@ pub enum Token {
     DOT,
     PARSE,
     QUESTION,
+    FOR,
+    IN,
 }
 impl Token {
     pub fn val(&self) -> String {
@@ -66,6 +68,8 @@ impl Token {
             Token::DOT => ".",
             Token::PARSE => "parse",
             Token::QUESTION => "?",
+            Token::FOR => "for",
+            Token::IN => "in",
         }
         .to_string();
     }
@@ -82,6 +86,8 @@ impl Token {
             Token::CASE => "case",
             Token::MATCH => "match",
             Token::PARSE => "parse",
+            Token::FOR => "for",
+            Token::IN => "in",
             _ => "",
         };
         if res.is_empty() {
@@ -370,6 +376,14 @@ impl Lexer {
                 }
                 "parse" => {
                     tokens.push(Token::PARSE);
+                    continue;
+                }
+                "for" => {
+                    tokens.push(Token::FOR);
+                    continue;
+                }
+                "in" => {
+                    tokens.push(Token::IN);
                     continue;
                 }
                 _ => {
