@@ -6,6 +6,7 @@ use anyhow::{Ok, Result};
 
 #[async_trait]
 impl PackageVersionHeaderRepo for SqliteDb {
+    // returns package version data by package id and version name
     async fn get_package_version_header_by_package_id_and_version(&self, package_id: i32, version: String) -> Result<PackageVersionHeader>{
         let sql = "SELECT * FROM package_version_header WHERE package_id = ? AND version = ?;";
         let header = sqlx::query_as::<_,PackageVersionHeader>(sql).bind(package_id).bind(version).fetch_one(&self.pool).await?;

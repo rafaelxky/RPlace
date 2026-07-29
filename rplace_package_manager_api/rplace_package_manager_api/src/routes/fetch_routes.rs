@@ -1,4 +1,5 @@
 use core::option::Option::{None};
+use anyhow::Result;
 
 use axum::{
     Json, Router,
@@ -29,6 +30,8 @@ pub fn routes() -> Router<AppState> {
         )
         .route("/package/{name}", get(get_package_initial_file_no_version))
         .route("/package/{name}/{version}", get(get_package_initial_file))
+        .route("/package/data/{name}", get(get_package_id_by_name))
+        .route("/package/data/{name}/{version}", get(get_package_id_and_version_by_name))
 }
 
 // 1st step for fetching
@@ -331,5 +334,85 @@ async fn get_package_file(
             "file_hash": file.file_hash,
             "code": file.code,
         })),
+    );
+}
+
+// takes package name
+// returns package id
+// /package/data/{name} GET
+/*  
+returns: {
+    "id": i32
+}
+*/ 
+pub async fn get_package_id_by_name(
+    State(state): State<AppState>,
+    Path(name): Path<String>
+) -> (StatusCode, impl IntoResponse){
+    let package_name = name;
+    let res = state.db_provider.get_registry_by_name(package_name.clone()).await;
+    let res = match res {
+        Ok(r) => r,
+        Err(e) => {
+            let msg = format!("Could not find registry with name {} !", package_name);
+            return (
+                StatusCode::NOT_FOUND, 
+                Json(json!({
+                    "message": msg,
+                    "err": &e.to_string()
+                }))
+            );
+        },
+    };
+    let id = res.id;
+    return (
+        StatusCode::OK, 
+        Json(json!({
+            "id": id
+        }))
+    );
+}
+pub async fn get_package_id_and_version_by_name(
+    State(state): State<AppState>,
+    Path((name, version)): Path<(String,String)>
+) -> (StatusCode, impl IntoResponse){
+    let package_name = name;
+    let version_name = version;
+    let res = state.db_provider.get_registry_by_name(package_name.clone()).await;
+    let res = match res {
+        Ok(r) => r,
+        Err(e) => {
+            let msg = format!("Could not find registry with name {} !", package_name);
+            return (
+                StatusCode::NOT_FOUND, 
+                Json(json!({
+                    "message": msg,
+                    "err": &e.to_string()
+                }))
+            );
+        },
+    };
+    let package_id = res.id;
+    let version = state.db_provider.get_package_version_header_by_package_id_and_version(package_id, version_name.clone()).await;
+    let ver = match version {
+        Ok(v) => v,
+        Err(e) => {
+              let msg = format!("Could not find version with name {} !", version_name);
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({
+                    "message": msg,
+                    "err": &e.to_string()
+                }))
+            );
+        },
+    };
+    let version_id = ver.id;
+    return (
+        StatusCode::OK, 
+        Json(json!({
+            "package_id": package_id,
+            "version_id": version_id
+        }))
     );
 }

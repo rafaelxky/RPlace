@@ -5,6 +5,7 @@ use crate::{db::{db_provider::PackageRegistryRepo, sqlite_db::SqliteDb}, models:
 
 #[async_trait]
 impl PackageRegistryRepo for SqliteDb {
+    // returns registry header data by name
     async fn get_registry_by_name(&self, name: String) -> Result<PackageRegistry>{
         let sql = "SELECT * FROM package_registry WHERE package_name = ?;";
         let registry = sqlx::query_as::<_,PackageRegistry>(sql).bind(name).fetch_one(&self.pool).await?;
