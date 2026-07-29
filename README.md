@@ -283,5 +283,11 @@ $#var\lua::"return args[1]..\" world \""
 //- $#output = "out.txt":
 //- parse file.txt:
 //- parse ./file.txt:
+//- for varA,varB in val:
+    $#varA
+    $#varB?
+//- end:
+- then called as such:
+//- place template where val = [(a,b),(c,d),(e)]
 
 ```
