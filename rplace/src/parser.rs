@@ -782,7 +782,7 @@ impl Parser {
     /// handles values
     /// reaches here after =
     /// single word values
-    /// fouble quote values
+    /// double quote values
     /// multiline quote values
     fn handle_val(&mut self) -> Value {
         let mut options = None;
@@ -829,7 +829,7 @@ impl Parser {
             }
             Token::LSRQBRACK => {
                 self.ptr_next();
-                return self.handle_array_value();
+                return self.handle_array_values();
             }
             _ => {
                 handle_error_parser(CompilationError::Invalid2ndPlaceVar, self);
@@ -887,33 +887,38 @@ impl Parser {
         }
     }
 
+    fn get_ident_or_soft(&mut self) -> String {
+        self.remove_spaces();
+        match self.pop() {
+            Token::IDENT { str } => {
+                return str;
+            }
+            tok => {
+                let w = tok.try_get_soft_keyword();
+                let w = match w {
+                    Some(w) => w,
+                    _ => panic!(),
+                };
+                return w;
+            }
+        }
+    }
+
     // reaches here after [
     // ends at ] (consumes it)
     // ex: [(a,b),(c,d)]
-    fn handle_array_value(&mut self) -> Value {
-        let mut vals: Vec<Vec<String>> = vec![];
+    fn handle_array_values(&mut self) -> Value {
+        let mut vals: Vec<Vec<Value>> = vec![];
+        let mut names: Vec<Vec<Option<String>>> = vec![];
         loop {
             self.remove_spaces();
             match self.pop() {
                 Token::LPAREN => {
                     vals.push(vec![]);
                     loop {
-                        self.remove_spaces();
-                        match self.pop() {
-                            Token::IDENT { str } => {
-                                let len = vals.len() - 1;
-                                vals[len].push(str);
-                            }
-                            tok => {
-                                let w = tok.try_get_soft_keyword();
-                                let w = match w {
-                                    Some(w) => w,
-                                    _ => panic!(),
-                                };
-                                let len = vals.len() - 1;
-                                vals[len].push(w);
-                            }
-                        }
+                        let val = self.handle_val();
+                        let len = vals.len() - 1;
+                        vals[len].push(val);
                         self.remove_spaces();
                         match self.pop() {
                             Token::COMMA => continue,
@@ -932,7 +937,9 @@ impl Parser {
             }
         }
 
-        return Value::new_array_type(vals);
+        // todo: names
+        // [(name=val, name2=val2)]
+        return Value::new_array_type(vals, names);
     }
 
     /// handles any mark found inside a body

@@ -56,7 +56,8 @@ pub enum Value {
     },
     // [(a,b), (c,d)]
     Array {
-        values: Vec<Vec<String>>,
+        values: Vec<Vec<Value>>,
+        names: Vec<Vec<Option<String>>>,
     }
 }
 impl Value {
@@ -72,8 +73,8 @@ impl Value {
             options,
         };
     }
-    pub fn new_array_type(values: Vec<Vec<String>>) -> Value {
-        return Value::Array { values};
+    pub fn new_array_type(values: Vec<Vec<Value>>, names: Vec<Vec<Option<String>>>) -> Value {
+        return Value::Array { values, names};
     }
 }
 #[derive(Debug, Clone)]

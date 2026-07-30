@@ -3,13 +3,13 @@ use crate::structs::{Value, Var};
 #[derive(Debug, Clone)]
 pub enum ResValue{
     Val{value:String},
-    Array{array: Vec<Vec<String>>}
+    Array{array: Vec<Vec<ResValue>>}
 }
 impl ResValue {
     pub fn new_val(value: String) -> ResValue{
         ResValue::Val { value }
     }
-    pub fn new_array(array: Vec<Vec<String>>) -> ResValue{
+    pub fn new_array(array: Vec<Vec<ResValue>>) -> ResValue{
         ResValue::Array { array }
     }
 }
