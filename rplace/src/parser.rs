@@ -838,8 +838,28 @@ impl Parser {
     }
 
     // the oneshot version of handle_vars
-    fn handle_var(&mut self) -> (String, Value) {
-        todo!()
+    // expects ident = ident
+    // ends after that
+    fn handle_var(&mut self) -> (Var, Value) {
+        self.remove_spaces();
+        // name
+        let var_name = match self.peek() {
+            Token::IDENT { str } => {
+                self.ptr_next();
+                str
+            }
+            _ => handle_error_parser(CompilationError::Invalid1stPlaceVar, self),
+        };
+        self.remove_spaces();
+        // =
+        match self.peek() {
+            Token::EQUALS => self.ptr_next(),
+            _ => panic!("todo message"),
+        };
+        self.remove_spaces();
+        // value
+        let arg = self.handle_val();
+        (Var::new(var_name), arg)
     }
 
     // here after anything that requires variable assignement
@@ -849,41 +869,20 @@ impl Parser {
     fn handle_vars(&mut self) -> Vec<(Var, Value)> {
         let mut args: Vec<(Var, Value)> = Vec::new();
         loop {
+            let arg = self.handle_var();
+            args.push(arg);
             self.remove_spaces();
             match self.peek() {
-                Token::IDENT { str } => {
+                Token::COMMA => {
                     self.ptr_next();
-                    self.remove_spaces();
-                    let from = str;
-                    let from = Var {
-                        name: from,
-                        optional: false,
-                    };
-                    match self.peek() {
-                        Token::EQUALS => {
-                            self.ptr_next();
-                            self.remove_spaces();
-                            let arg = self.handle_val();
-                            args.push((from, arg));
-                            match self.peek() {
-                                Token::COMMA => {
-                                    self.ptr_next();
-                                    continue;
-                                }
-                                Token::DD => {
-                                    return args;
-                                }
-                                t => {
-                                    panic!("todo message: Unexpected token {:?} in handle vars", t)
-                                }
-                            }
-                        }
-                        _ => {
-                            handle_error_parser(CompilationError::InvalidPlaceAssign, self);
-                        }
-                    }
+                    continue;
                 }
-                _ => handle_error_parser(CompilationError::Invalid1stPlaceVar, self),
+                Token::DD => {
+                    return args;
+                }
+                t => {
+                    panic!("todo message: Unexpected token {:?} in handle vars", t)
+                }
             }
         }
     }
@@ -923,7 +922,7 @@ impl Parser {
                         }
                     }
                 }
-                tok => panic!("todo error message, expected lparen, found {:?}",tok),
+                tok => panic!("todo error message, expected lparen, found {:?}", tok),
             }
             self.remove_spaces();
             match self.pop() {

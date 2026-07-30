@@ -1,5 +1,3 @@
-use crate::options;
-
 #[derive(Debug, Clone)]
 pub struct FileConfig {
     pub output: Option<String>,
@@ -82,6 +80,11 @@ impl Value {
 pub struct Var {
     pub name: String,
     pub optional: bool,
+}
+impl Var {
+    pub fn new(name: String) -> Self{
+        Self { name, optional: false }
+    }
 }
 #[derive(Debug, Clone)]
 pub struct TemplateValue {
