@@ -576,7 +576,25 @@ impl Parser {
             defaults: defaults.clone(),
         });
     }
-
+    fn remove_and_return_spaces(&mut self) -> String {
+        let mut spaces = String::new();
+        loop {
+            match self.peek() {
+                Token::SPACE => {
+                    spaces.push(' ');
+                    self.ptr_next();
+                }
+                Token::NL => {
+                    spaces.push('\n');
+                    self.line = self.line + 1;
+                    self.ptr_next();
+                }
+                _ => {
+                    return spaces;
+                }
+            }
+        }
+    }
     fn remove_spaces(&mut self) {
         loop {
             match self.peek() {
@@ -688,7 +706,7 @@ impl Parser {
 
         loop {
             if !self.can_pop() {
-                handle_error_parser(CompilationError::EOFInQuotVar, self);
+                panic!("todo msg. found eof at dqote var")
             }
             match self.peek() {
                 Token::NL => {
@@ -724,28 +742,15 @@ impl Parser {
                         arg_str.push_str(&kind);
                     } else {
                         // if value has a newline after the first ", then ends at mark + "
-                        let mut spaces = String::new();
-                        let mut ends = false;
-                        loop {
-                            match self.peek() {
-                                Token::SPACE => {
-                                    self.ptr_next();
-                                    spaces.push(' ');
-                                }
-                                Token::DQUOTE => {
-                                    self.ptr_next();
-                                    ends = true;
-                                    break;
-                                }
-                                _ => {
-                                    break;
-                                }
+                        // //-" ends the multiline dquote val
+                        let spaces = self.remove_and_return_spaces();
+                        arg_str.push_str(&spaces);
+                        match self.peek() {
+                            Token::DQUOTE => {
+                                self.ptr_next();
+                                break;
                             }
-                        }
-                        if ends {
-                            break;
-                        } else {
-                            arg_str.push_str(&spaces);
+                            _ => (),
                         }
                         // if has " after mark
                     }

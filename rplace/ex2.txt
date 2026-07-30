@@ -6,8 +6,12 @@ after_def
 //- for vala,valb in b:
 in_for
 $#vala
+$#valb?
 //- end:
 after_for
 //- end:
 after_def
-//- place b where b = [(a,c),(b),(c)]:
+//- place b where b = [(a,"
+hello world
+//-"
+),(b),(c)]:

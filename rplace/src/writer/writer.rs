@@ -464,33 +464,33 @@ impl Writer {
     }
 
     fn resolve_var(&self, var: &Var, value: &Value, args_map: &HashMap<String, ResValue>, name: &String) -> (String, ResValue){
- match value {
-                    Value::Literal{value,options} => {
-                        //args_map.insert(var.name.clone(), ResValue::new_val(value.to_string()));
-                        return (var.name.clone(),ResValue::new_val(value.to_string()));
-                    }
-                    Value::Var{value, options} => {
-                        let val = args_map.get(name);
-                        match val {
-                            Some(val) => {
-                                 //args_map.insert(var.name.clone(), val.clone()); 
-                                 return (var.name.clone(),val.clone());
-                            },
-                            None => {
-                                panic!("No value found for var type {:?} line ", name);
-                            },
-                        }
+        match value {
+            Value::Literal{value,options: _} => {
+                //args_map.insert(var.name.clone(), ResValue::new_val(value.to_string()));
+                return (var.name.clone(),ResValue::new_val(value.to_string()));
+            }
+            Value::Var{value: _, options: _} => {
+                let val = args_map.get(name);
+                match val {
+                    Some(val) => {
+                        //args_map.insert(var.name.clone(), val.clone()); 
+                        return (var.name.clone(),val.clone());
                     },
-                    Value::Array { values, names } => {
-                        // todo: resolve array values
-                        let resolved_array_values = values.iter().map(|v|{
-                            return v.iter().map(|val|{
-                                return self.resolve_var(var, value, args_map, name).1;
-                            }).collect();
-                        }).collect();
-                        return (var.name.clone(), ResValue::new_array(resolved_array_values));
+                    None => {
+                        panic!("No value found for var type {:?} line ", name);
                     },
                 }
+            },
+            Value::Array { values, names: _ } => {
+                // todo: resolve array values
+                let resolved_array_values = values.iter().map(|v|{
+                    return v.iter().map(|val|{
+                        return self.resolve_var(var, val, args_map, name).1;
+                    }).collect();
+                }).collect();
+                return (var.name.clone(), ResValue::new_array(resolved_array_values));
+            },
+        }
     }
 
     fn handle_place(

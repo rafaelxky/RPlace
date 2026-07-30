@@ -24,7 +24,7 @@ impl Deriver {
             let (value,options) = match pattern {
                 crate::structs::Value::Literal { value, options } => (value,options),
                 crate::structs::Value::Var { value, options } => todo!(),
-                crate::structs::Value::Array { values } => todo!(),
+                crate::structs::Value::Array { values , names} => todo!(),
             };
             let opts = options.as_ref();
 
