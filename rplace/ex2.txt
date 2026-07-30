@@ -3,15 +3,13 @@ first
 after_var
 //- def b:
 after_def
-//- for vala,valb in b:
+//- for vala in b:
 in_for
-$#vala
-$#valb?
+//- for valb in vala:
+    $#valb
+//- end:
 //- end:
 after_for
 //- end:
 after_def
-//- place b where b = [(a,"
-hello world
-//-"
-),(b),(c)]:
+//- place b where b = [([(a),(b),(c)]),([(d),(e),(f)])]:

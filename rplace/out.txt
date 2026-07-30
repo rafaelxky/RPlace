@@ -6,17 +6,18 @@ after_def
 after_def
 
 in_for
-a
 
-hello 
-world
+    a
 
+    b
 
-in_for
-b
-
+    c
 
 in_for
-c
 
+    d
+
+    e
+
+    f
 after_for
