@@ -6,10 +6,18 @@ after_def
 //- for vala in b:
 in_for
 //- for valb in vala:
+    //- place abc where data = $#valb:
     $#valb
 //- end:
 //- end:
 after_for
 //- end:
 after_def
-//- place b where b = [([(a),(b),(c)]),([(d),(e),(f)])]:
+//- place b where b = [([(a),(b),(c)]),([(d),(e),(f)])], var = val:
+
+//- def abc:
+    $#data
+    inside c
+//- end:
+
+not working idk why

@@ -820,6 +820,7 @@ impl Parser {
                             options = self.handle_var_options();
                         }
                         self.remove_spaces();
+                        println!("var type");
                         return Value::new_var_type(str, options);
                     }
                     _ => handle_error(
@@ -874,6 +875,7 @@ impl Parser {
     fn handle_vars(&mut self) -> Vec<(Var, Value)> {
         let mut args: Vec<(Var, Value)> = Vec::new();
         loop {
+            self.remove_spaces();
             let arg = self.handle_var();
             args.push(arg);
             self.remove_spaces();

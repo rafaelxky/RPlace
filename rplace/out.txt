@@ -8,16 +8,30 @@ after_def
 in_for
 
     a
+        valb
+    inside c
 
     b
+        valb
+    inside c
 
     c
+        valb
+    inside c
 
 in_for
 
     d
+        valb
+    inside c
 
     e
+        valb
+    inside c
 
     f
+        valb
+    inside c
 after_for
+
+:

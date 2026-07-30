@@ -331,7 +331,8 @@ impl Writer {
                         if val.optional {
                             &ResValue::new_val("".to_string())
                         } else {
-                            handle_error(format!("No value specified for \"{}\" in template {}!", name,def_name), line.clone(), self.file_path.clone())
+                            //handle_error(format!("No value specified for \"{}\" in template {}!", name,def_name), line.clone(), self.file_path.clone())
+                            panic!("no falue specified for {}, in template {}", name, def_name)
                         }
                     }
                 };
@@ -383,9 +384,9 @@ impl Writer {
                 }
                 def_queue.as_mut().unwrap().push(n.clone());
             }, 
-                Node::PLACE { name, args, line } => {
+            Node::PLACE { name, args, line } => {
                 // place inside body
-                // ??? whats this
+                // ??? whats this def_queue bellow ?
                 if def_queue.is_none() {
                     *def_queue = Some(Vec::new());
                 }
@@ -467,17 +468,19 @@ impl Writer {
         match value {
             Value::Literal{value,options: _} => {
                 //args_map.insert(var.name.clone(), ResValue::new_val(value.to_string()));
+                println!("name: {}, val: {:?}", var.name,value.to_string());
                 return (var.name.clone(),ResValue::new_val(value.to_string()));
             }
-            Value::Var{value: _, options: _} => {
-                let val = args_map.get(name);
+            Value::Var{value, options: _} => {
+                let val = args_map.get(value);
                 match val {
                     Some(val) => {
-                        //args_map.insert(var.name.clone(), val.clone()); 
-                        return (var.name.clone(),val.clone());
+                        //args_map.insert(var.name.clone(), val.clone());
+                        println!("name: {}, val: {:?}", value,val);
+                        return (value.clone(),val.clone());
                     },
                     None => {
-                        panic!("No value found for var type {:?} line ", name);
+                        panic!("No value found for var type {:?} line ", value);
                     },
                 }
             },
