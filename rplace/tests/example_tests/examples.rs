@@ -59,6 +59,13 @@ pub fn def_test_var() -> Result<()>{
     Ok(())
 }
 #[test]
+pub fn def_test_var_optional() -> Result<()>{
+    let code = "//- def a:$#var? value//- end://- place a:";
+    let str = parse(code)?;
+    assert_eq!(str, " value");
+    Ok(())
+}
+#[test]
 pub fn def_test_var_dquote() -> Result<()>{
     let code = "//- def a:$#var//- end://- place a where var = \"double quote var\":";
     let str = parse(code)?;
