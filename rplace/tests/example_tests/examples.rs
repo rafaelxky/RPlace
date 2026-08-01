@@ -52,6 +52,23 @@ pub fn def_test_var() -> Result<()>{
     Ok(())
 }
 #[test]
+pub fn def_test_var_dquote() -> Result<()>{
+    let code = "//- def a:$#var//- end://- place a where var = \"double quote var\":";
+    let str = parse(code)?;
+    assert_eq!(str, "double quote var");
+    Ok(())
+}
+#[test]
+pub fn def_test_var_multiline_var() -> Result<()>{
+    let code = 
+"//- def a:$#var//- end://- place a where var = \"
+double quote var
+//-\":";
+    let str = parse(code)?;
+    assert_eq!(str, "\ndouble quote var\n");
+    Ok(())
+}
+#[test]
 pub fn text_test() -> Result<()>{
     let code = "hello world :";
     let str = parse(code)?;
