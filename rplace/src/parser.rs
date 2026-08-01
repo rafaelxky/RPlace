@@ -375,7 +375,7 @@ impl Parser {
                 // def name:
                 Token::DD => {
                     self.ptr_next();
-                    self.remove_till_nl();
+                    self.remove_spaces();
                     break;
                 }
                 // def name place name where ...
@@ -433,32 +433,11 @@ impl Parser {
                                                 ));
                                                 self.remove_spaces();
                                                 match self.peek() {
-                                                    // def name when name = val:
-                                                    Token::DD => {
-                                                        self.ptr_next();
-                                                        self.remove_till_nl();
-                                                        break;
-                                                    }
                                                     Token::COMMA => {
                                                         self.ptr_next();
-                                                        break;
+                                                        continue;
                                                     }
-                                                    Token::PLACE => {
-                                                        break;
-                                                    }
-                                                    Token::DEF => {
-                                                        break;
-                                                    }
-                                                    Token::WHERE => {
-                                                        break;
-                                                    }
-                                                    // def name when name = val <here>
-                                                    _ => {
-                                                        handle_error_parser(
-                                                            CompilationError::InvalidFinishTokWhen,
-                                                            self,
-                                                        );
-                                                    }
+                                                    _ => break,
                                                 }
                                             }
                                             // def name when name = <here>
@@ -636,9 +615,8 @@ impl Parser {
     fn handle_var_options(&mut self) -> Option<Vec<VarOption>> {
         let mut options: Option<Vec<VarOption>> = None;
         'outer: loop {
-            match self.peek() {
+            match self.pop() {
                 Token::IDENT { str } => {
-                    self.ptr_next();
                     if options.is_none() {
                         options = Some(Vec::new());
                     }
@@ -676,9 +654,8 @@ impl Parser {
                         }
                     }
                 }
-                _ => match self.peek().try_get_soft_keyword() {
+                tok => match tok.try_get_soft_keyword() {
                     Some(str) => {
-                        self.ptr_next();
                         if options.is_none() {
                             options = Some(Vec::new());
                         }
@@ -964,11 +941,10 @@ impl Parser {
                 });
                 *body_str = String::new();
                 self.remove_spaces();
-                match self.peek() {
+                match self.pop() {
                     // end :
                     Token::DD => {
-                        self.ptr_next();
-                        self.remove_till_nl();
+                        self.remove_spaces();
                         /* 
                         if matches!(self.peek(), Token::NL) {
                             self.line = self.line - 1;
@@ -977,8 +953,8 @@ impl Parser {
                         // self.unpop();
                         return true;
                     }
-                    _ => {
-                        panic!("todo")
+                    tok => {
+                        panic!("todo message expected ddd at end found {:?}",tok)
                         //handle_error_parser(CompilationError::NoDDEndef, self);
                     }
                 }
@@ -1159,6 +1135,7 @@ impl Parser {
             Token::DD => (),
             _ => panic!("forgot : at for loop"),
         };
+        self.remove_spaces();
         let body = self.build_body();
         return Node::FOR {
             vars,
@@ -1216,18 +1193,18 @@ impl Parser {
     /// already poped match token here
     /// returns a body node and the match value inside the match arm struct
     fn handle_match_arm(&mut self) -> MatchArm {
-        self.remove_till_nl();
+        self.remove_spaces();
         let match_value = match self.pop() {
             Token::IDENT { str } => str,
             _ => panic!("todo error message expected ident at match arm"),
         };
 
-        self.remove_till_nl();
+        self.remove_spaces();
         match self.pop() {
             Token::DD => {}
             _ => panic!("todo error message expected : at match arm"),
         };
-        self.remove_till_nl();
+        self.remove_spaces();
 
         let body = self.build_body();
         MatchArm::new(match_value, body)
@@ -1253,7 +1230,6 @@ impl Parser {
                         line: self.line,
                     });
                     body_str = String::new();
-                    self.remove_spaces();
                     match self.peek() {
                         // $#ident
                         Token::IDENT { str } => {
@@ -1346,7 +1322,7 @@ impl Parser {
                 // place ident:
                 Token::DD => {
                     self.ptr_next();
-                    self.remove_till_nl();
+                    self.remove_spaces();
                     break;
                 }
                 // place ident were
