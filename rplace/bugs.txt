@@ -1,0 +1,2 @@
+random : in tests for_loop
+$# argument (var argument) not working ex: //- place a where a = $#b 

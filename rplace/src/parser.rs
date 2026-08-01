@@ -87,6 +87,7 @@ impl Parser {
     }
 
     pub fn parse(mut self) -> ParsingResult {
+        println!("toks: {:?}", self.tokens);
         let mut body_str = String::new();
         let mut parser_result = ParsingResult::new(self.file_path.clone());
         while self.can_pop() {
@@ -116,6 +117,7 @@ impl Parser {
                 body_str.push('\n');
             }
             tok => {
+                println!("pushed {} from TOK {:?}", tok.val(), tok);
                 body_str.push_str(&tok.val());
             }
         }
@@ -963,20 +965,25 @@ impl Parser {
                     data: body_str.to_string(),
                     line: self.line,
                 });
+                *body_str = String::new();
                 self.remove_spaces();
                 match self.peek() {
                     // end :
                     Token::DD => {
                         self.ptr_next();
                         self.remove_till_nl();
+                        /* 
                         if matches!(self.peek(), Token::NL) {
                             self.line = self.line - 1;
                         }
-                        self.unpop();
+                        */
+                        // self.unpop();
+                        println!("should end");
                         return true;
                     }
                     _ => {
-                        handle_error_parser(CompilationError::NoDDEndef, self);
+                        panic!("todo")
+                        //handle_error_parser(CompilationError::NoDDEndef, self);
                     }
                 }
             }
@@ -1066,7 +1073,7 @@ impl Parser {
                 if matches!(self.peek(), Token::NL) {
                     self.line = self.line - 1;
                 }
-                self.unpop();
+                //self.unpop();
             }
             Token::INCLUDE => {
                 // inner include
@@ -1109,6 +1116,7 @@ impl Parser {
     // reaches here after for
     fn handle_for(&mut self) -> Node {
         let mut vars = vec![];
+        // for a,b,c,d in ...
         loop {
             self.remove_spaces();
             match self.pop() {
@@ -1138,6 +1146,7 @@ impl Parser {
                 _ => panic!("todo err message, invalid token in for loop"),
             }
         }
+        // in var
         self.remove_spaces();
         let in_var = match self.pop() {
             Token::IDENT { str } => str,
@@ -1242,6 +1251,7 @@ impl Parser {
                 // $#var
                 Token::VAR => {
                     self.ptr_next();
+                    // push data before we continue
                     body.push(Node::DATA {
                         data: body_str.to_string(),
                         line: self.line,
@@ -1284,23 +1294,31 @@ impl Parser {
                     }
                 }
                 Token::MARK { kind: _ } => {
+                    println!("mark at body");
                     self.ptr_next();
                     let should_break = self.handle_mark_at_body(&mut body_str, &mut body);
                     if should_break {
+                        println!("should break");
                         break;
                     }
+                    continue;
                 }
-                Token::EOF => handle_error_parser(CompilationError::BodyEOF, self),
+                Token::EOF => {
+                    panic!("eof in body {:#?}", body);
+                    //handle_error_parser(CompilationError::BodyEOF, self),
+                }
                 Token::NL => {
+                    self.ptr_next();
                     body_str.push_str("\n");
                     self.line = self.line + 1;
                 }
                 tok => {
+                    self.ptr_next();
                     let val = &tok.val();
                     body_str.push_str(val);
                 }
             }
-            self.ptr_next();
+            //self.ptr_next();
         }
         return Node::BODY {
             data: body,
