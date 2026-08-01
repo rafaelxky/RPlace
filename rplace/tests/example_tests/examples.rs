@@ -90,7 +90,7 @@ double quote var
     Ok(())
 }
 #[test]
-pub fn text_test() -> Result<()>{
+pub fn raw_text_test() -> Result<()>{
     let code = "hello world :";
     let str = parse(code)?;
     assert_eq!(str, code);

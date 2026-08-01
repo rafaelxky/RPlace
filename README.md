@@ -306,5 +306,6 @@ $#var\lua::"return args[1]..\" world \""
 //- end:
 //- place template where val = [(a,b),(c,d),(e)]
 $#var?\option+
+//- def a place b where c=d:
 
 ```
