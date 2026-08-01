@@ -52,6 +52,13 @@ pub fn def_place() -> Result<()>{
     Ok(())
 }
 #[test]
+pub fn def_test_var_options() -> Result<()>{
+    let code = "//- def a:$#var\\screaming//- end://- place a where var = val:";
+    let str = parse(code)?;
+    assert_eq!(str, "VAL");
+    Ok(())
+}
+#[test]
 pub fn def_test_var() -> Result<()>{
     let code = "//- def a:$#var//- end://- place a where var = val:";
     let str = parse(code)?;
