@@ -90,3 +90,11 @@ pub fn arrow_var() -> Result<()>{
     assert_eq!(str, "default ");
     Ok(())
 }
+#[test]
+pub fn test_match() -> Result<()>{
+    let code = 
+    "//- def a: //- match var: //- case vala:case A//- end: //- case valb:case B//- end://- end://- end://- place a where var = valb:";
+    let str = parse(code)?;
+    assert_eq!(str, "case B");
+    Ok(())
+}
