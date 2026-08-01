@@ -87,7 +87,6 @@ impl Parser {
     }
 
     pub fn parse(mut self) -> ParsingResult {
-        println!("toks: {:?}", self.tokens);
         let mut body_str = String::new();
         let mut parser_result = ParsingResult::new(self.file_path.clone());
         while self.can_pop() {
@@ -117,7 +116,6 @@ impl Parser {
                 body_str.push('\n');
             }
             tok => {
-                println!("pushed {} from TOK {:?}", tok.val(), tok);
                 body_str.push_str(&tok.val());
             }
         }
@@ -822,7 +820,6 @@ impl Parser {
                             options = self.handle_var_options();
                         }
                         self.remove_spaces();
-                        println!("var type");
                         return Value::new_var_type(str, options);
                     }
                     _ => handle_error(
@@ -978,7 +975,6 @@ impl Parser {
                         }
                         */
                         // self.unpop();
-                        println!("should end");
                         return true;
                     }
                     _ => {
@@ -1294,11 +1290,9 @@ impl Parser {
                     }
                 }
                 Token::MARK { kind: _ } => {
-                    println!("mark at body");
                     self.ptr_next();
                     let should_break = self.handle_mark_at_body(&mut body_str, &mut body);
                     if should_break {
-                        println!("should break");
                         break;
                     }
                     continue;
@@ -1318,7 +1312,6 @@ impl Parser {
                     body_str.push_str(val);
                 }
             }
-            //self.ptr_next();
         }
         return Node::BODY {
             data: body,

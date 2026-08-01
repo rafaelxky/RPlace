@@ -1,37 +1,37 @@
 first
 
 after_var
-
 after_def
 after_def
 
 in_for
 
+        valb
+    inside c
     a
+
         valb
     inside c
-
     b
-        valb
-    inside c
 
-    c
         valb
     inside c
+    c
 
 in_for
 
+        valb
+    inside c
     d
+
         valb
     inside c
-
     e
-        valb
-    inside c
 
-    f
         valb
     inside c
+    f
 after_for
 
-:
+
+not working idk why
