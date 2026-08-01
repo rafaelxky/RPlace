@@ -50,6 +50,28 @@ pub struct /*- $#struct_name -> -*/ Vec2
     - \pascalcase -> turns to pascal case
     - \lua -> executes inline code, places the returned string
 
+## array variables
+- array variables can be used in for each loops
+- ex: [(a,b,c),(d,f,g)]
+- array variables can be nested
+- ex: [([(a,b,c)],b,c),([(a),(b),(c)],b,c)]
+- the array is marked by square brackets []
+- each element is marked by parentesis ()
+- the inner elements separated by commas ,
+- ex: array = [(a,b,c),(a,b,c)]
+- 
+//- for a,b,c in array:
+    $#a 
+    $#b
+    $#c
+//- end 
+- this will place the respective values of a, b and c
+
+## parent variables
+- you can use parent variables inside place
+- ex: //- place name where a=$#var
+- in this case "a" will be replaced by the value of "var" from the parent
+
 # def
 ## define templates
 - define template
@@ -129,11 +151,6 @@ it will call the default def
     World
     !
 //-":
-
-# parent variables
-- you can use parent variables inside place
-- ex: //- place name where a=$#var
-- in this case "a" will be replaced by the value of "var" from the parent
 
 # data source
 - rplace allows for file text data and http
@@ -288,5 +305,6 @@ $#var\lua::"return args[1]..\" world \""
     $#varB?
 //- end:
 //- place template where val = [(a,b),(c,d),(e)]
+$#var?\option+
 
 ```
