@@ -83,3 +83,10 @@ pub fn text_place_var_plus() -> Result<()>{
     assert_eq!(str, "valsuffix");
     Ok(())
 }
+#[test]
+pub fn arrow_var() -> Result<()>{
+    let code = "//- def a: /*- $#varname -> -*/ default //- end: //- place a:";
+    let str = parse(code)?;
+    assert_eq!(str, "default ");
+    Ok(())
+}

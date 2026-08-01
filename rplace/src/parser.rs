@@ -375,7 +375,7 @@ impl Parser {
                 // def name:
                 Token::DD => {
                     self.ptr_next();
-                    self.remove_spaces();
+                    self.remove_till_nl();
                     break;
                 }
                 // def name place name where ...
@@ -944,13 +944,7 @@ impl Parser {
                 match self.pop() {
                     // end :
                     Token::DD => {
-                        self.remove_spaces();
-                        /* 
-                        if matches!(self.peek(), Token::NL) {
-                            self.line = self.line - 1;
-                        }
-                        */
-                        // self.unpop();
+                        self.remove_till_nl();
                         return true;
                     }
                     tok => {
@@ -1135,7 +1129,7 @@ impl Parser {
             Token::DD => (),
             _ => panic!("forgot : at for loop"),
         };
-        self.remove_spaces();
+        self.remove_till_nl();
         let body = self.build_body();
         return Node::FOR {
             vars,
@@ -1155,9 +1149,7 @@ impl Parser {
             Token::DD => {}
             _ => panic!("todo error message expected : in match"),
         };
-
         let mut matches = Vec::new();
-        self.remove_spaces();
         loop {
             self.remove_spaces();
             match self.pop() {
@@ -1190,10 +1182,12 @@ impl Parser {
     }
 
     /// handles match arm
-    /// already poped match token here
+    /// already poped <case> token here
     /// returns a body node and the match value inside the match arm struct
+    /// ex: //- case name: nody //- end:
     fn handle_match_arm(&mut self) -> MatchArm {
         self.remove_spaces();
+        // case name
         let match_value = match self.pop() {
             Token::IDENT { str } => str,
             _ => panic!("todo error message expected ident at match arm"),
@@ -1201,10 +1195,11 @@ impl Parser {
 
         self.remove_spaces();
         match self.pop() {
-            Token::DD => {}
+            Token::DD => {
+                self.remove_till_nl();
+            }
             _ => panic!("todo error message expected : at match arm"),
         };
-        self.remove_spaces();
 
         let body = self.build_body();
         MatchArm::new(match_value, body)
@@ -1322,7 +1317,7 @@ impl Parser {
                 // place ident:
                 Token::DD => {
                     self.ptr_next();
-                    self.remove_spaces();
+                    self.remove_till_nl();
                     break;
                 }
                 // place ident were
