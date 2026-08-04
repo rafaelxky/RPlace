@@ -9,6 +9,8 @@ use crate::term::terminal_handler::handle_args;
 use crate::term::terminal_handler::{CliArgs, ParseArgs};
 use anyhow::{Result};
 use directories::ProjectDirs;
+use rplace::package_manager::auth::read_tok;
+use rplace::package_manager::web::create::{create_new_package, create_new_version};
 use std::process::exit;
 
 pub mod config;
@@ -75,8 +77,19 @@ async fn main() -> Result<()> {
         CliArgs::CreateUser { username, email, password } => {
             let config = CONFIG.clone().read().unwrap().clone();
             let user = create_user(&config.package_source,&username, &email, &password).await?;
-            println!("User create successfully!");
+            println!("User {} create successfully!", user.name);
             Ok(())
         },
+        CliArgs::NewPackage {  } => {
+            let config = CONFIG.clone().read().unwrap().clone();
+            let data = get_package_manager_data()?;
+            let package_name = data.package.name;
+            let package_version = data.package.version;
+            let token = read_tok()?;
+            let package = create_new_package(&config.package_source, &package_name, &token.token).await?;
+            let version = create_new_version(&config.package_source, &package_name, &package_version, &token.token).await?;
+            println!("Created new package {} and version {}", package.name, version.version);
+            Ok(())
+        }
     }
 }
