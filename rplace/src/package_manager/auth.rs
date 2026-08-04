@@ -1,19 +1,48 @@
 use std::{
-    fs::{self, File}, io::{BufReader, BufWriter}, process::exit,
+    fs::{self, File}, io::{BufReader, BufWriter, Write}, process::exit,
 };
 
-use anyhow::Result;
+use anyhow::{Ok, Result};
 use directories::ProjectDirs;
+use thiserror::Error;
 
 use crate::package_manager::web::structs::LogginResponse;
 
+#[derive(Debug,Error)]
+#[error("{message}")]
+pub struct  NotLoggedInError{
+    pub message: String,
+}
+impl NotLoggedInError {
+    pub fn new<T:Into<String>>(message: T) -> Self{
+        Self { message: message.into()}
+    }
+}
+
+pub fn remove_tok() -> Result<()>{
+ let dir = ProjectDirs::from("io", "rplace", "rplace");
+    let dir = match dir {
+        Some(dir) => dir,
+        None => {
+            return Err(NotLoggedInError::new("Unable to find path").into());
+        }
+    };
+    let config = dir.data_dir().join("tok.json");
+
+    let mut file = if !config.exists() {
+         File::create(&config)?
+    } else {
+        File::open(&config)?
+    };
+    file.write_all("".as_bytes())?;
+    Ok(())
+}
 pub fn save_tok(context: LogginResponse) -> Result<()> {
     let dir = ProjectDirs::from("io", "rplace", "rplace");
     let dir = match dir {
         Some(dir) => dir,
         None => {
-            println!("Unable to find path");
-            exit(0);
+            return Err(NotLoggedInError::new("Unable to find path").into());
         }
     };
     let config = dir.data_dir().join("tok.json");
@@ -33,8 +62,7 @@ pub fn read_tok() -> Result<LogginResponse> {
     let dir = match dir {
         Some(dir) => dir,
         None => {
-            println!("Unable to find path");
-            exit(0);
+            return Err(NotLoggedInError::new("Unable to find path").into());
         }
     };
     let config = dir.data_dir().join("tok.json");

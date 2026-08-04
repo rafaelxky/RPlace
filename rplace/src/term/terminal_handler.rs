@@ -1,8 +1,7 @@
 use std::path::Path;
 
-use clap::{Arg, CommandFactory, Parser, Subcommand, error::ErrorKind};
-
 use crate::constants::PROJECT_FILE;
+use clap::{CommandFactory, Parser, Subcommand, error::ErrorKind};
 
 #[derive(Subcommand, Debug)]
 pub enum SubCommand {
@@ -16,7 +15,14 @@ pub enum SubCommand {
         stops_at_parser: bool,
     },
     Reload,
-    Loggin {
+    Package {
+        #[command(subcommand)]
+        command: PackageSubcommand,
+    },
+}
+#[derive(Subcommand, Debug)]
+pub enum PackageSubcommand {
+    Login {
         email: String,
         password: String,
     },
@@ -29,13 +35,21 @@ pub enum SubCommand {
 }
 #[derive(Debug)]
 pub enum CliArgs {
-    Parse(
-        ParseArgs,
-    ),
+    Run(ParseArgs),
     ReloadConfig,
-    New { project_name: String },
-    Loggin { email: String, password: String },
+    New {
+        project_name: String,
+    },
     Push {},
+    Login {
+        email: String,
+        password: String,
+    },
+    CreateUser {
+        username: String,
+        email: String,
+        password: String,
+    },
 }
 #[derive(Debug)]
 pub struct ParseArgs {
@@ -56,7 +70,11 @@ pub fn handle_args() -> CliArgs {
         Some(SubCommand::New { project_name }) => {
             return CliArgs::New { project_name };
         }
-        Some(SubCommand::Run { origin, target, stops_at_parser }) => {
+        Some(SubCommand::Run {
+            origin,
+            target,
+            stops_at_parser,
+        }) => {
             let path = Path::new(PROJECT_FILE);
             if origin.is_none() && !path.is_file() {
                 Args::command()
@@ -66,20 +84,26 @@ pub fn handle_args() -> CliArgs {
                     )
                     .exit();
             }
-            return CliArgs::Parse(ParseArgs { origin, target,stops_at_parser });
+            return CliArgs::Run(ParseArgs {
+                origin,
+                target,
+                stops_at_parser,
+            });
         }
         Some(SubCommand::Reload) => return CliArgs::ReloadConfig,
-        Some(SubCommand::Loggin { email, password }) => {
-            return CliArgs::Loggin { email, password };
-        }
-        Some(SubCommand::CreateUser {
-            username,
-            email,
-            password,
-        }) => {
-            todo!()
-        }
-        Some(SubCommand::Push {}) => return CliArgs::Push {},
+        Some(SubCommand::Package { command }) => match command {
+            PackageSubcommand::Login { email, password } => {
+                return CliArgs::Login { email, password };
+            }
+            PackageSubcommand::CreateUser {
+                username,
+                email,
+                password,
+            } => {
+                return CliArgs::CreateUser { username, email, password };
+            }
+            PackageSubcommand::Push {} => return CliArgs::Push {},
+        },
         None => {
             panic!("Invalid subcommand!")
         }

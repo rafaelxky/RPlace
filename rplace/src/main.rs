@@ -3,6 +3,7 @@ use crate::package_manager::auth::save_tok;
 use crate::package_manager::package_load::{get_package_manager_data, join_args_and_config};
 use crate::package_manager::project_create::create_project;
 use crate::package_manager::web::auth::loggin;
+use crate::package_manager::web::user::create_user;
 use crate::run::run_options::run_parse;
 use crate::term::terminal_handler::handle_args;
 use crate::term::terminal_handler::{CliArgs, ParseArgs};
@@ -34,7 +35,7 @@ async fn main() -> Result<()> {
             create_project(project_name)?;
             Ok(())
         }
-        CliArgs::Parse(args) => {
+        CliArgs::Run(args) => {
             let data = get_package_manager_data();
             let config = CONFIG.clone().read().unwrap().clone();
             let (args, config): (ParseArgs, CompilerConfig) = match data {
@@ -58,11 +59,11 @@ async fn main() -> Result<()> {
             println!("Config reloaded successfully!");
             Ok(())
         }
-        CliArgs::Loggin { email, password } => {
+        CliArgs::Login { email, password } => {
             let config = CONFIG.clone().read().unwrap().clone();
             let res = loggin(&config.package_source,&email, &password).await?;
             save_tok(res)?;
-            println!("User created");
+            println!("Successull loggin!");
             Ok(())
         }
         CliArgs::Push {  } => {
@@ -71,5 +72,11 @@ async fn main() -> Result<()> {
             todo!();
             Ok(())
         }
+        CliArgs::CreateUser { username, email, password } => {
+            let config = CONFIG.clone().read().unwrap().clone();
+            let user = create_user(&config.package_source,&username, &email, &password).await?;
+            println!("User create successfully!");
+            Ok(())
+        },
     }
 }
