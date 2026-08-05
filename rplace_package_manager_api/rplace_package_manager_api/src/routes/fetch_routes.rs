@@ -372,6 +372,14 @@ pub async fn get_package_id_by_name(
         }))
     );
 }
+// /package/data/{name}/{version} GET
+// gives you the initial data to upload files
+/* 
+    returns: {
+        package_id: i32,
+        version_id: i32,
+    }
+*/ 
 pub async fn get_package_id_and_version_by_name(
     State(state): State<AppState>,
     Path((name, version)): Path<(String,String)>

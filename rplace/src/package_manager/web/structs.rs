@@ -51,3 +51,9 @@ pub struct ResponseGetPackageFile{
     pub file_hash: String,
     pub code: String,
 }
+
+#[derive(Debug,Clone,Deserialize)]
+pub struct InitialPackageData{
+    pub package_id: i32,
+    pub version_id: i32,
+}

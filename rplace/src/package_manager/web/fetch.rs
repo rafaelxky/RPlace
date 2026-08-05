@@ -1,11 +1,14 @@
 use anyhow::{Ok, Result, anyhow};
 use reqwest::Client;
 
-use crate::package_manager::web::structs::{ResponseGetPackageFile, ResponsePackageData};
+use crate::package_manager::web::structs::{
+    InitialPackageData, ResponseGetPackageFile, ResponsePackageData,
+};
 
 pub const INITIAL_PACKAGE_NO_VERSION_URI: &str = "/package/";
 pub const INITIAL_PACKAGE_URI: &str = "/package/";
 pub const GET_PACKAGE_FILE_URI: &str = "/package/fetch_file/";
+pub const INITIAL_PACKAGE_FETCH_DATA: &str = "/package/data/";
 
 // gets the rplace.toml file from web
 pub async fn get_initial_package(
@@ -69,8 +72,34 @@ pub async fn get_package_file(
     let client = Client::new();
 
     let response = client.get(uri).send().await?;
+    if !response.status().is_success() {
+        let body: String = response.text().await?;
+        return Err(anyhow!(body));
+    }
 
     let body: ResponseGetPackageFile = response.json().await?;
+
+    Ok(body)
+}
+
+pub async fn get_initial_data(
+    package_source: &str,
+    package_name: &str,
+    version_name: &str,
+) -> Result<InitialPackageData> {
+    let uri = format!(
+        "{}{}{}/{}",
+        package_source, INITIAL_PACKAGE_FETCH_DATA, package_name, version_name
+    );
+    let client = Client::new();
+
+    let response = client.get(uri).send().await?;
+    if !response.status().is_success() {
+        let body: String = response.text().await?;
+        return Err(anyhow!(body));
+    }
+
+    let body: InitialPackageData = response.json().await?;
 
     Ok(body)
 }

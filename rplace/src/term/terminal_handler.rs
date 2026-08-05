@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use crate::constants::PROJECT_FILE;
-use clap::{CommandFactory, Parser, Subcommand, error::ErrorKind};
+use clap::{CommandFactory, Parser, Subcommand, builder::Str, error::ErrorKind};
 
 #[derive(Subcommand, Debug)]
 pub enum SubCommand {
@@ -34,6 +34,9 @@ pub enum PackageSubcommand {
     Push {},
     New{},
     CreateVersion{},
+    Add {
+        dependency_name: String,
+    }
 }
 #[derive(Debug)]
 pub enum CliArgs {
@@ -54,6 +57,9 @@ pub enum CliArgs {
     },
     NewPackage{},
     NewVersion{},
+    AddDependency {
+        dependency_name: String
+    }
 }
 #[derive(Debug)]
 pub struct ParseArgs {
@@ -108,7 +114,8 @@ pub fn handle_args() -> CliArgs {
             }
             PackageSubcommand::Push {} => return CliArgs::Push {},
             PackageSubcommand::New {  } => return CliArgs::NewPackage {  },
-            PackageSubcommand::CreateVersion {  } => return CliArgs::NewVersion {  }
+            PackageSubcommand::CreateVersion {  } => return CliArgs::NewVersion {  },
+            PackageSubcommand::Add { dependency_name } => return CliArgs::AddDependency { dependency_name },
         },
         None => {
             panic!("Invalid subcommand!")
