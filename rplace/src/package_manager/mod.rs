@@ -4,3 +4,4 @@ pub mod project_create;
 pub mod web;
 pub mod auth;
 pub mod file;
+pub mod package_upload;

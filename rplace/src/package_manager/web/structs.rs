@@ -1,6 +1,11 @@
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 
+#[derive(Debug,Clone,Deserialize,Serialize)]
+pub struct ErrorResponse{
+    pub message: String,
+    pub err: String,
+}
 #[derive(Debug,Clone,Deserialize)]
 pub struct CreatedPackageResponse{
     pub id: i32,

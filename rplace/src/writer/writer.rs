@@ -183,6 +183,12 @@ impl Writer {
                     });
     }
 
+    pub fn get_paths(mut self) -> Vec<String>{
+        let mut def_map = HashMap::new();
+        let mut to_parse = Vec::new();
+        self.initial_sweap(&mut def_map, &mut to_parse);
+        return to_parse;
+    }
     pub fn replace(mut self) -> (WriterResult, FileConfig) {
         let mut result = WriterResult::new();
 

@@ -13,3 +13,4 @@ pub mod term;
 pub mod writer;
 pub mod package_manager;
 pub mod constants;
+pub mod errors;

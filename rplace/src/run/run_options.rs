@@ -9,13 +9,51 @@ use crate::lexer::Lexer;
 use crate::lua::lua_call_map::LuaCallMap;
 use crate::options::var_options::VarOptionsMap;
 use crate::output_stream::OutputWriter;
+use crate::package_manager::package_data::PackageData;
 use crate::parser::Parser;
 use crate::structs::FileConfig;
 use crate::term::terminal_handler::ParseArgs;
 use crate::writer::writer::Writer;
 use crate::writer::writer_structs::WriterResult;
 
-pub fn run_parse(args: ParseArgs, config: CompilerConfig) {
+pub fn parse_get_all_paths(data: PackageData, config: CompilerConfig) -> Vec<String>{
+    let project_src = data.package.root;
+    let output_src = "".to_string();
+    let (mut stream, _origin) = get_data_stream(&project_src);
+
+    let imports = Arc::new(RwLock::new(HashMap::new()));
+    let config = Arc::new(config);
+    let lua_map = LuaCallMap::load(config.clone());
+    let var_options_map = Arc::new(VarOptionsMap::new(config.clone(), lua_map));
+    let mut paths_outer: Vec<String> = vec![];
+
+    loop {
+        let data = stream.next();
+        if data.is_none() {
+            break;
+        }
+        let (data, path) = data.unwrap();
+        let lexer = Lexer::new(path.clone(), data);
+        let tokens = lexer.parse();
+        let parser = Parser::new(tokens, project_src.clone(), output_src.to_string());
+        let nodes = parser.parse();
+        let path = nodes.file_path.clone();
+        let writer = Writer::new_with_imports(
+            nodes,
+            imports.clone(),
+            project_src.clone(),
+            output_src.clone(),
+            config.clone(),
+            var_options_map.clone(),
+        );
+        let mut paths: Vec<String>= writer.get_paths();
+        stream.append(&mut paths);
+        paths_outer.push(path);
+    }
+    return paths_outer;
+}
+
+pub fn run_parse(args: ParseArgs, config: CompilerConfig) -> Vec<OutputWriter> {
     let (mut stream, origin) = get_data_stream(args.origin.as_ref().unwrap());
     let project_src = args.origin.unwrap();
     let output_src = match &args.target {
@@ -35,11 +73,8 @@ pub fn run_parse(args: ParseArgs, config: CompilerConfig) {
 
     // todo fix target path to create subfolders
     // todo make so that derive can create folders
-    // todo fix paths inside of the folder to reference according to folder path instead of program execution
-    // todo avoid access to upper folders from
     // fix imports check b.txt
     // fix import space between : and ident not working
-    // tests
     let imports = Arc::new(RwLock::new(HashMap::new()));
     let config = Arc::new(config);
     let lua_map = LuaCallMap::load(config.clone());
@@ -58,7 +93,14 @@ pub fn run_parse(args: ParseArgs, config: CompilerConfig) {
         if args.stops_at_parser {
             println!("{:#?}", nodes);
         }
-        let writer = Writer::new_with_imports(nodes, imports.clone(), project_src.clone(), output_src.clone(), config.clone(), var_options_map.clone());
+        let writer = Writer::new_with_imports(
+            nodes,
+            imports.clone(),
+            project_src.clone(),
+            output_src.clone(),
+            config.clone(),
+            var_options_map.clone(),
+        );
         let (mut replaced, config): (WriterResult, FileConfig) = writer.replace();
         stream.append(&mut replaced.to_parse);
 
@@ -86,15 +128,9 @@ pub fn run_parse(args: ParseArgs, config: CompilerConfig) {
                 .expect("Unable to open file"),
         };
 
-
         let output = OutputWriter::new(replaced, file, config);
         to_write.push(output);
     }
 
-    if args.stops_at_parser {
-        return;
-    }
-    to_write.into_iter().for_each(|output|{
-        output.write();
-    });
+    return to_write;
 }

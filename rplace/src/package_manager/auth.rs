@@ -6,18 +6,7 @@ use anyhow::{Ok, Result};
 use directories::ProjectDirs;
 use thiserror::Error;
 
-use crate::package_manager::web::structs::LogginResponse;
-
-#[derive(Debug,Error)]
-#[error("{message}")]
-pub struct  NotLoggedInError{
-    pub message: String,
-}
-impl NotLoggedInError {
-    pub fn new<T:Into<String>>(message: T) -> Self{
-        Self { message: message.into()}
-    }
-}
+use crate::{errors::NotLoggedInError, package_manager::web::structs::LogginResponse};
 
 pub fn remove_tok() -> Result<()>{
  let dir = ProjectDirs::from("io", "rplace", "rplace");
