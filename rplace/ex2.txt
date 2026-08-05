@@ -1,4 +1,6 @@
 first
+//- include ex1.txt:
+//- include out.txt:
 //- $#output = "out.txt":
 after_var
 //- def b:

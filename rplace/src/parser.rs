@@ -1,16 +1,17 @@
 use core::panic;
-use std::{path::Path, str};
-
-use path_clean::PathClean;
+use std::str;
 
 use crate::{
-    error_handler::{CompilationError, handle_error, handle_error_parser},
+    error_handler::{CompilationError, handle_error_parser},
     lexer::{
-        Token::{self, IDENT},
+        Token::{self},
         TokenResult,
     },
     structs::*,
 };
+
+pub mod parse_instructions;
+pub mod parse_variables;
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -122,40 +123,6 @@ impl Parser {
         return body_str;
     }
 
-    // gets here after //- $#
-    // currently only handles global variable set for stuff like file config
-    fn handle_set_variable(&mut self, nodes: &mut ParsingResult) {
-        let mut var = vec![];
-        loop {
-            let var_name = match self.pop() {
-                Token::IDENT { str } => str,
-                tok => panic!("Expected Ident found {:?}", tok),
-            };
-            var.push(var_name);
-            match self.peek() {
-                Token::DOT => {
-                    self.ptr_next();
-                }
-                _tok => break,
-            }
-        }
-        self.remove_spaces();
-        match self.pop() {
-            Token::EQUALS => {}
-            tok => panic!("Expected = found {:?}", tok),
-        }
-        self.remove_spaces();
-
-        let val = self.handle_val();
-        self.remove_spaces();
-        match self.pop() {
-            Token::DD => (),
-            _ => panic!("todo message: forgot :"),
-        }
-
-        nodes.push(Node::SETVARIABLE { var: var, val: val });
-    }
-
     fn handle_func(&mut self, nodes: &mut ParsingResult) {
         let mut nodes = nodes;
         self.remove_spaces();
@@ -188,160 +155,14 @@ impl Parser {
                 self.ptr_next();
                 self.handle_parse_instr(&mut nodes);
             }
+            Token::MOD => {
+                self.ptr_next();
+                self.handle_mod(&mut nodes);
+            }
             _ => {
                 handle_error_parser(CompilationError::InvalidFunc, self);
             }
         }
-    }
-
-    /// //- parse file.txt:
-    fn handle_parse_instr(&mut self, nodes: &mut ParsingResult) {
-        let path = self.handle_path(self.project_src.clone());
-        self.remove_spaces();
-        match self.pop() {
-            Token::DD => (),
-            _ => panic!("todo message: forgot : at PARSE"),
-        };
-        nodes.push(Node::PARSE { path });
-    }
-
-    /// gets the file path from tokens
-    /// at this point we know a path is to come but no ident has been consumed
-    /// stops at space or :
-    /// does not consume :
-    /// ex: parent/child.txt
-    fn handle_path(&mut self, base_path: String) -> String {
-        let mut path: String = String::new();
-        self.remove_spaces();
-        loop {
-            match self.peek() {
-                Token::IDENT { str } => {
-                    self.ptr_next();
-                    path.push_str(&str);
-                }
-                Token::SPACE => {
-                    self.ptr_next();
-                    break;
-                }
-                Token::DD => {
-                    break;
-                }
-                Token::DOT => {
-                    self.ptr_next();
-                    path.push('.');
-                }
-                _ => handle_error_parser(CompilationError::InvalidTokenInPath, self),
-            }
-        }
-        if path.starts_with('.') {
-            let path_inner = path.strip_prefix("./").unwrap();
-            let mut new_path = Path::new(&base_path).parent().unwrap().to_path_buf();
-            new_path.push(path_inner);
-            path = new_path.to_string_lossy().to_string();
-        };
-
-        path = Path::new(&path).clean().to_str().unwrap().to_string();
-        let root = Path::new(&base_path).clean();
-        let root = root.parent().unwrap();
-        let root = root.to_str().unwrap();
-        if !path.starts_with(&root) {
-            panic!(
-                "todo message: path escapes project root {} is outside of {}",
-                path, root
-            );
-        }
-
-        path
-    }
-
-    fn handle_derive(&mut self, nodes: &mut ParsingResult) {
-        self.remove_spaces();
-        let path = match self.peek() {
-            Token::IDENT { str: _ } => self.handle_path(self.project_src.clone()),
-            _ => self.file_path.to_string(),
-        };
-        self.remove_spaces();
-
-        // derive options
-        let args: Vec<(Var, Value)> = match self.peek() {
-            Token::WHERE => {
-                self.ptr_next();
-                self.remove_spaces();
-                let args = self.handle_vars();
-                match self.peek() {
-                    Token::DD => {
-                        self.ptr_next();
-                        args
-                    }
-                    _ => handle_error_parser(CompilationError::InvalidDeriveOption, self),
-                }
-            }
-            _ => handle_error_parser(CompilationError::InvalidDeriveOption, self),
-        };
-        nodes.push(Node::DERIVE {
-            path: path,
-            val: args,
-        });
-    }
-
-    // create filepath place defname:
-    fn handle_create(&mut self, nodes: &mut ParsingResult) {
-        let path: String = self.handle_path(self.output_src.clone());
-        let starting_line = self.get_line();
-        // filepath
-        // ex: parent/child.txt
-
-        self.remove_spaces();
-
-        match self.peek() {
-            Token::DD => {
-                self.ptr_next();
-                nodes.push(Node::CREATE {
-                    path,
-                    content: None,
-                });
-                self.remove_till_nl();
-                return;
-            }
-            Token::PLACE => {
-                self.ptr_next();
-                let mut temp_nodes = ParsingResult::new(path.clone());
-                // returns one place
-                self.handle_place(&mut temp_nodes);
-                //let content = Some(Box::new(Node::BODY { data: temp_nodes, line: starting_line }))
-                let node = Node::new_create(path, temp_nodes.nodes, starting_line);
-                nodes.push(node);
-                return;
-            }
-            _ => handle_error_parser(CompilationError::InvalidAfterFilePath, self),
-        }
-    }
-
-    fn handle_include(&mut self, nodes: &mut ParsingResult) {
-        self.remove_spaces();
-
-        let path = match self.peek() {
-            Token::IDENT { str: _ } => self.handle_path(self.project_src.clone()),
-            _ => {
-                handle_error_parser(CompilationError::InvalidTokenInIncludePath, self);
-            }
-        };
-
-        self.remove_till_nl();
-
-        match self.pop() {
-            Token::DD => {}
-            _ => {
-                panic!("todo error message, expected :")
-            }
-        }
-
-        nodes.push(Node::INCLUDE {
-            path: path.clone(),
-            line: self.line,
-        });
-
-        return;
     }
 
     fn handle_def(&mut self, nodes: &mut ParsingResult) {
@@ -608,268 +429,6 @@ impl Parser {
         }
     }
 
-    /// handles variable options
-    /// reaches here at the ident after \
-    /// returns a list of the options
-    /// ex: $#var\CAMEL
-    fn handle_var_options(&mut self) -> Option<Vec<VarOption>> {
-        let mut options: Option<Vec<VarOption>> = None;
-        'outer: loop {
-            match self.pop() {
-                Token::IDENT { str } => {
-                    if options.is_none() {
-                        options = Some(Vec::new());
-                    }
-                    options.as_mut().unwrap().push(VarOption::new(str, vec![]));
-                    'inner: loop {
-                        match self.peek() {
-                            Token::QD => {
-                                self.ptr_next();
-                                match self.peek() {
-                                    Token::IDENT { str } => {
-                                        self.ptr_next();
-                                        if let Some(options) = options.as_mut() {
-                                            if let Some(last) = options.last_mut() {
-                                                last.push_arg(str);
-                                            }
-                                        }
-                                    }
-                                    Token::DQUOTE => {
-                                        self.ptr_next();
-                                        if let Some(options) = options.as_mut() {
-                                            if let Some(last) = options.last_mut() {
-                                                let str = self.get_dquote_var();
-                                                last.push_arg(str);
-                                            }
-                                        }
-                                    }
-                                    _ => panic!("todo panic msg {:?}", self.peek()),
-                                }
-                            }
-                            Token::BSLASH => {
-                                self.ptr_next();
-                                break 'inner;
-                            }
-                            _ => break 'outer,
-                        }
-                    }
-                }
-                tok => match tok.try_get_soft_keyword() {
-                    Some(str) => {
-                        if options.is_none() {
-                            options = Some(Vec::new());
-                        }
-                        options.as_mut().unwrap().push(VarOption::new(str, vec![]));
-                        match self.peek() {
-                            Token::BSLASH => {
-                                self.ptr_next();
-                                continue;
-                            }
-                            _ => break,
-                        }
-                    }
-                    None => handle_error_parser(CompilationError::InvalidVarOption, self),
-                },
-            }
-        }
-        options
-    }
-
-    // gets here after the first "
-    // ends at the second "
-    fn get_dquote_var(&mut self) -> String {
-        let mut arg_str = String::new();
-        let mut has_new_line = false;
-
-        loop {
-            if !self.can_pop() {
-                panic!("todo msg. found eof at dqote var")
-            }
-            match self.peek() {
-                Token::NL => {
-                    arg_str.push('\n');
-                    self.line = self.line + 1;
-                    has_new_line = true;
-                    self.ptr_next();
-                }
-                // \"
-                Token::BSLASH => {
-                    self.ptr_next();
-                    match self.peek() {
-                        Token::DQUOTE => {
-                            self.ptr_next();
-                            arg_str.push('"');
-                        }
-                        _ => {
-                            arg_str.push('\\');
-                        }
-                    }
-                }
-                Token::DQUOTE => {
-                    self.ptr_next();
-                    if has_new_line {
-                        arg_str.push('"');
-                    } else {
-                        break;
-                    }
-                }
-                Token::MARK { kind } => {
-                    self.ptr_next();
-                    if !has_new_line {
-                        arg_str.push_str(&kind);
-                    } else {
-                        // if value has a newline after the first ", then ends at mark + "
-                        // //-" ends the multiline dquote val
-                        let spaces = self.remove_and_return_spaces();
-                        arg_str.push_str(&spaces);
-                        match self.peek() {
-                            Token::DQUOTE => {
-                                self.ptr_next();
-                                break;
-                            }
-                            _ => (),
-                        }
-                        // if has " after mark
-                    }
-                }
-                tok => {
-                    self.ptr_next();
-                    arg_str.push_str(&tok.val());
-                }
-            }
-        }
-        arg_str
-    }
-
-    /// gets here right after " in arg
-    fn get_dquote_arg_var(
-        &mut self,
-        options_2: &mut Option<Vec<VarOption>>,
-        args: &mut Vec<(String, Value)>,
-        from: &mut String,
-    ) {
-        let arg_str = self.get_dquote_var();
-
-        if matches!(self.peek(), Token::BSLASH) {
-            self.ptr_next();
-            *options_2 = self.handle_var_options();
-        }
-        self.remove_spaces();
-        args.push((
-            from.to_string(),
-            Value::new_literal_type(arg_str, options_2.clone()),
-        ));
-    }
-
-    /// handles values
-    /// reaches here after =
-    /// single word values
-    /// double quote values
-    /// multiline quote values
-    fn handle_val(&mut self) -> Value {
-        let mut options = None;
-        match self.peek() {
-            // ident = ident -> variable assignement
-            Token::IDENT { str } => {
-                self.ptr_next();
-                if matches!(self.peek(), Token::BSLASH) {
-                    self.ptr_next();
-                    options = self.handle_var_options();
-                }
-                self.remove_spaces();
-                return Value::new_literal_type(str, options);
-            }
-            // ident = "ident" -> quotation handling for multiline values
-            Token::DQUOTE => {
-                self.ptr_next();
-                let mut args = vec![];
-                self.get_dquote_arg_var(&mut options, &mut args, &mut "".to_string());
-                return args[0].clone().1;
-            }
-            // $#var
-            Token::VAR => {
-                self.ptr_next();
-                match self.peek() {
-                    Token::IDENT { str } => {
-                        self.ptr_next();
-                        if matches!(self.peek(), Token::BSLASH) {
-                            self.ptr_next();
-                            options = self.handle_var_options();
-                        }
-                        self.remove_spaces();
-                        return Value::new_var_type(str, options);
-                    }
-                    _ => handle_error(
-                        format!(
-                            "Expected Ident found {:?} at place with variable value",
-                            self.peek()
-                        ),
-                        self.line,
-                        self.file_path.clone(),
-                    ),
-                }
-            }
-            Token::LSRQBRACK => {
-                self.ptr_next();
-                return self.handle_array_values();
-            }
-            _ => {
-                handle_error_parser(CompilationError::Invalid2ndPlaceVar, self);
-            }
-        }
-    }
-
-    // the oneshot version of handle_vars
-    // expects ident = ident
-    // ends after that
-    fn handle_var(&mut self) -> (Var, Value) {
-        self.remove_spaces();
-        // name
-        let var_name = match self.peek() {
-            Token::IDENT { str } => {
-                self.ptr_next();
-                str
-            }
-            _ => handle_error_parser(CompilationError::Invalid1stPlaceVar, self),
-        };
-        self.remove_spaces();
-        // =
-        match self.peek() {
-            Token::EQUALS => self.ptr_next(),
-            _ => panic!("todo message"),
-        };
-        self.remove_spaces();
-        // value
-        let arg = self.handle_val();
-        (Var::new(var_name), arg)
-    }
-
-    // here after anything that requires variable assignement
-    // ex: before this -> name = val
-    // handles the whole var = val, var = val
-    // doesn't consume the final :
-    fn handle_vars(&mut self) -> Vec<(Var, Value)> {
-        let mut args: Vec<(Var, Value)> = Vec::new();
-        loop {
-            self.remove_spaces();
-            let arg = self.handle_var();
-            args.push(arg);
-            self.remove_spaces();
-            match self.peek() {
-                Token::COMMA => {
-                    self.ptr_next();
-                    continue;
-                }
-                Token::DD => {
-                    return args;
-                }
-                t => {
-                    panic!("todo message: Unexpected token {:?} in handle vars", t)
-                }
-            }
-        }
-    }
-
     fn get_ident_or_soft(&mut self) -> String {
         self.remove_spaces();
         match self.pop() {
@@ -885,44 +444,6 @@ impl Parser {
                 return w;
             }
         }
-    }
-
-    // reaches here after [
-    // ends at ] (consumes it)
-    // ex: [(a,b),(c,d)]
-    fn handle_array_values(&mut self) -> Value {
-        let mut vals: Vec<Vec<Value>> = vec![];
-        let mut names: Vec<Vec<Option<String>>> = vec![];
-        loop {
-            self.remove_spaces();
-            match self.pop() {
-                Token::LPAREN => {
-                    vals.push(vec![]);
-                    loop {
-                        let val = self.handle_val();
-                        let len = vals.len() - 1;
-                        vals[len].push(val);
-                        self.remove_spaces();
-                        match self.pop() {
-                            Token::COMMA => continue,
-                            Token::RPAREN => break,
-                            _ => panic!(),
-                        }
-                    }
-                }
-                tok => panic!("todo error message, expected lparen, found {:?}", tok),
-            }
-            self.remove_spaces();
-            match self.pop() {
-                Token::COMMA => continue,
-                Token::RSRQBRACK => break,
-                _ => panic!("todo"),
-            }
-        }
-
-        // todo: names
-        // [(name=val, name2=val2)]
-        return Value::new_array_type(vals, names);
     }
 
     /// handles any mark found inside a body
@@ -948,7 +469,7 @@ impl Parser {
                         return true;
                     }
                     tok => {
-                        panic!("todo message expected ddd at end found {:?}",tok)
+                        panic!("todo message expected ddd at end found {:?}", tok)
                         //handle_error_parser(CompilationError::NoDDEndef, self);
                     }
                 }
@@ -1138,72 +659,7 @@ impl Parser {
         };
     }
 
-    fn handle_match(&mut self) -> Node {
-        self.remove_till_nl();
-        let var_name = match self.pop() {
-            Token::IDENT { str } => str,
-            _ => panic!("todo error message expected ident in match"),
-        };
-        self.remove_till_nl();
-        match self.pop() {
-            Token::DD => {}
-            _ => panic!("todo error message expected : in match"),
-        };
-        let mut matches = Vec::new();
-        loop {
-            self.remove_spaces();
-            match self.pop() {
-                Token::MARK { kind: _ } => {}
-                _ => panic!("forgot mark"),
-            }
-            self.remove_spaces();
-            match self.pop() {
-                Token::CASE => {
-                    let arm_body = self.handle_match_arm();
-                    matches.push(arm_body);
-                }
-                Token::END => {
-                    self.ptr_next();
-                    break;
-                }
-                tok => panic!(
-                    "todo error message l: {} expected case found {:?}",
-                    self.get_line(),
-                    tok
-                ),
-            }
-        }
-
-        return Node::MATCH {
-            line: self.line,
-            var_name: var_name,
-            val: matches,
-        };
-    }
-
-    /// handles match arm
-    /// already poped <case> token here
-    /// returns a body node and the match value inside the match arm struct
-    /// ex: //- case name: nody //- end:
-    fn handle_match_arm(&mut self) -> MatchArm {
-        self.remove_spaces();
-        // case name
-        let match_value = match self.pop() {
-            Token::IDENT { str } => str,
-            _ => panic!("todo error message expected ident at match arm"),
-        };
-
-        self.remove_spaces();
-        match self.pop() {
-            Token::DD => {
-                self.remove_till_nl();
-            }
-            _ => panic!("todo error message expected : at match arm"),
-        };
-
-        let body = self.build_body();
-        MatchArm::new(match_value, body)
-    }
+   
 
     /// builds a body Node
     /// contains raw text and any nodes supported inside of a def body
@@ -1288,52 +744,5 @@ impl Parser {
             data: body,
             line: line_start,
         };
-    }
-
-    fn handle_place(&mut self, nodes: &mut ParsingResult) {
-        // reaches here as //- place
-        self.remove_spaces();
-
-        let place_id = match self.peek() {
-            Token::IDENT { str } => {
-                self.ptr_next();
-                str
-            }
-            tok => {
-                self.ptr_next();
-                let w = tok.try_get_soft_keyword();
-                match w {
-                    Some(w) => w,
-                    None => handle_error_parser(CompilationError::InvalidPlaceName, self),
-                }
-            }
-        };
-
-        self.remove_spaces();
-        let mut args = Vec::new();
-        let place_line = self.line;
-        loop {
-            match self.peek() {
-                // place ident:
-                Token::DD => {
-                    self.ptr_next();
-                    self.remove_till_nl();
-                    break;
-                }
-                // place ident were
-                Token::WHERE => {
-                    self.ptr_next();
-                    args.append(&mut self.handle_vars());
-                    self.remove_spaces();
-                }
-                _ => handle_error_parser(CompilationError::InvalidPlaceOption, self),
-            }
-        }
-        nodes.push(Node::PLACE {
-            name: place_id,
-            args: args,
-            line: place_line,
-        });
-        return;
     }
 }

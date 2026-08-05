@@ -86,8 +86,11 @@ impl Writer {
                 import_lock.insert(nodes.file_path.clone(), nodes.clone());
                 nodes
     }
-
-    fn initial_sweap(&mut self, def_map: &mut HashMap<String, Vec<Node>>, to_parse: &mut Vec<String>) {
+    fn initial_sweap(
+        &mut self, 
+        def_map: &mut HashMap<String, Vec<Node>>, 
+        to_parse: &mut Vec<String>, 
+        mod_list: &mut Vec<String>) {
         // initial sweap
         let mut to_import: Vec<(String,usize)> = Vec::new();
 
@@ -103,6 +106,7 @@ impl Writer {
                 self.handle_def(&mut *def_map, &node, &name);
             },
             Node::INCLUDE { path, line } => {
+                mod_list.push(path.clone());
                to_import.push((path.clone(),*line));
             },
             Node::SETVARIABLE { var, val } => {
@@ -125,6 +129,9 @@ impl Writer {
             },
             Node::PARSE { path } => {
                 to_parse.push(path.clone());
+            }
+            Node::MOD { path } => {
+                mod_list.push(path.clone());
             }
             _ => (),
         }};
@@ -183,11 +190,12 @@ impl Writer {
                     });
     }
 
-    pub fn get_paths(mut self) -> Vec<String>{
+    pub fn get_paths(mut self) -> (Vec<String>,Vec<String>){
         let mut def_map = HashMap::new();
         let mut to_parse = Vec::new();
-        self.initial_sweap(&mut def_map, &mut to_parse);
-        return to_parse;
+        let mut mod_list = Vec::new();
+        self.initial_sweap(&mut def_map, &mut to_parse, &mut mod_list);
+        return (to_parse,mod_list);
     }
     pub fn replace(mut self) -> (WriterResult, FileConfig) {
         let mut result = WriterResult::new();
@@ -195,7 +203,8 @@ impl Writer {
         let mut text = String::new();
         let mut def_map = HashMap::new();
         let mut to_parse = Vec::new();
-        self.initial_sweap(&mut def_map, &mut to_parse);
+        let mut mod_list = Vec::new();
+        self.initial_sweap(&mut def_map, &mut to_parse, &mut mod_list);
         result.set_to_parse(to_parse);
 
         let nodes = &self.nodes;
@@ -474,7 +483,6 @@ impl Writer {
         match value {
             Value::Literal{value,options: _} => {
                 //args_map.insert(var.name.clone(), ResValue::new_val(value.to_string()));
-                println!("name: {}, val: {:?}", var.name,value.to_string());
                 return (var.name.clone(),ResValue::new_val(value.to_string()));
             }
             Value::Var{value, options: _} => {
@@ -482,7 +490,6 @@ impl Writer {
                 match val {
                     Some(val) => {
                         //args_map.insert(var.name.clone(), val.clone());
-                        println!("name: {}, val: {:?}", value,val);
                         return (value.clone(),val.clone());
                     },
                     None => {

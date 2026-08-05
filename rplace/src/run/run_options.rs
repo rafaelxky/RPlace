@@ -46,8 +46,9 @@ pub fn parse_get_all_paths(data: PackageData, config: CompilerConfig) -> Vec<Str
             config.clone(),
             var_options_map.clone(),
         );
-        let mut paths: Vec<String>= writer.get_paths();
-        stream.append(&mut paths);
+        let (mut to_parse, mut moded): (Vec<String>, Vec<String>) = writer.get_paths();
+        stream.append(&mut to_parse);
+        stream.append(&mut moded);
         paths_outer.push(path);
     }
     return paths_outer;

@@ -163,6 +163,9 @@ pub enum Node {
         in_var: String,
         body: Box<Node>,
     },
+    MOD {
+        path: String,
+    }
 }
 impl Node {
     pub fn new_create(path: String, content: Vec<Node>, starting_line: usize) -> Node {

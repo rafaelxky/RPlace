@@ -33,6 +33,7 @@ pub enum Token {
     QUESTION,
     FOR,
     IN,
+    MOD,
 }
 impl Token {
     pub fn val(&self) -> String {
@@ -70,6 +71,7 @@ impl Token {
             Token::QUESTION => "?",
             Token::FOR => "for",
             Token::IN => "in",
+            Token::MOD => "mod",
         }
         .to_string();
     }
@@ -88,6 +90,7 @@ impl Token {
             Token::PARSE => "parse",
             Token::FOR => "for",
             Token::IN => "in",
+            Token::MOD => "mod",
             _ => "",
         };
         if res.is_empty() {
@@ -384,6 +387,10 @@ impl Lexer {
                 }
                 "in" => {
                     tokens.push(Token::IN);
+                    continue;
+                }
+                "mod" => {
+                    tokens.push(Token::MOD);
                     continue;
                 }
                 _ => {
