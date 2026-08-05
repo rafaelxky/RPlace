@@ -3,6 +3,7 @@ use crate::package_manager::auth::save_tok;
 use crate::package_manager::package_load::{get_package_manager_data, join_args_and_config};
 use crate::package_manager::project_create::create_project;
 use crate::package_manager::web::auth::loggin;
+use crate::package_manager::web::fetch::get_initial_package_version;
 use crate::package_manager::web::user::create_user;
 use crate::run::run_options::run_parse;
 use crate::term::terminal_handler::handle_args;
@@ -70,7 +71,8 @@ async fn main() -> Result<()> {
         }
         CliArgs::Push {  } => {
             let config = CONFIG.clone().read().unwrap().clone();
-            
+            let data = get_package_manager_data()?;
+            let header = get_initial_package_version(&config.package_source, &data.package.name, &data.package.version).await?;
             todo!();
             Ok(())
         }
@@ -89,6 +91,16 @@ async fn main() -> Result<()> {
             let package = create_new_package(&config.package_source, &package_name, &token.token).await?;
             let version = create_new_version(&config.package_source, &package_name, &package_version, &token.token).await?;
             println!("Created new package {} and version {}", package.name, version.version);
+            Ok(())
+        },
+        CliArgs::NewVersion {  } => {
+            let config = CONFIG.clone().read().unwrap().clone();
+            let data = get_package_manager_data()?;
+            let token = read_tok()?;
+            let package_name = data.package.name;
+            let package_version = data.package.version;
+            let res = create_new_version(&config.package_source, &package_name, &package_version, &token.token).await?;
+            println!("Created new package version {} for package {}", res.version, package_name);
             Ok(())
         }
     }

@@ -7,7 +7,7 @@ pub const INITIAL_PACKAGE_NO_VERSION_URI: &str = "/package/";
 pub const INITIAL_PACKAGE_URI: &str = "/package/";
 pub const GET_PACKAGE_FILE_URI: &str = "/package/fetch_file/";
 
-// gets the rplace.toml file form web
+// gets the rplace.toml file from web
 pub async fn get_initial_package(
     package_source: &str,
     package_name: &str,
@@ -23,7 +23,7 @@ pub async fn get_initial_package(
     }?;
     Ok(res)
 }
-// gets the rplace.toml file form web
+// gets the rplace.toml file from web with latest version
 pub async fn get_initial_package_no_version(package_source: &str, package_name: &str) -> Result<ResponsePackageData>{
     let mut uri = format!("{}{}", package_source, INITIAL_PACKAGE_NO_VERSION_URI);
     uri.push_str(package_name);
@@ -38,7 +38,6 @@ pub async fn get_initial_package_no_version(package_source: &str, package_name: 
 
     Ok(body)
 }
-// gets the rplace.toml file form web
 pub async fn get_initial_package_version(package_source: &str,package_name: &str, package_version: &str) -> Result<ResponsePackageData>{
     let mut uri = format!("{}{}", package_source, INITIAL_PACKAGE_URI);
     uri.push_str(package_name);

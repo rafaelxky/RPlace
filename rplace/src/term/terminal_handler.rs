@@ -33,6 +33,7 @@ pub enum PackageSubcommand {
     },
     Push {},
     New{},
+    CreateVersion{},
 }
 #[derive(Debug)]
 pub enum CliArgs {
@@ -52,6 +53,7 @@ pub enum CliArgs {
         password: String,
     },
     NewPackage{},
+    NewVersion{},
 }
 #[derive(Debug)]
 pub struct ParseArgs {
@@ -106,6 +108,7 @@ pub fn handle_args() -> CliArgs {
             }
             PackageSubcommand::Push {} => return CliArgs::Push {},
             PackageSubcommand::New {  } => return CliArgs::NewPackage {  },
+            PackageSubcommand::CreateVersion {  } => return CliArgs::NewVersion {  }
         },
         None => {
             panic!("Invalid subcommand!")
