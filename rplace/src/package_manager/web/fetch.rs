@@ -1,4 +1,4 @@
-use anyhow::{Ok, Result, anyhow};
+use anyhow::{Result, anyhow};
 use reqwest::Client;
 
 use crate::package_manager::web::structs::{
@@ -27,11 +27,14 @@ pub async fn get_initial_package_no_version(
     package_source: &str,
     package_name: &str,
 ) -> Result<ResponsePackageData> {
-    let mut uri = format!("{}{}", package_source, INITIAL_PACKAGE_NO_VERSION_URI);
-    uri.push_str(package_name);
+    let uri = format!("{}{}{}", package_source, INITIAL_PACKAGE_NO_VERSION_URI,package_name);
     let client = Client::new();
 
     let response = client.get(uri).send().await?;
+    if !response.status().is_success() {
+        let body: String = response.text().await?;
+        return Err(anyhow!(body));
+    }
 
     let body: ResponsePackageData = response.json().await?;
 
@@ -42,10 +45,7 @@ pub async fn get_initial_package_version(
     package_name: &str,
     package_version: &str,
 ) -> Result<ResponsePackageData> {
-    let mut uri = format!("{}{}", package_source, INITIAL_PACKAGE_URI);
-    uri.push_str(package_name);
-    uri.push_str("/");
-    uri.push_str(package_version);
+    let uri = format!("{}{}{}/{}", package_source, INITIAL_PACKAGE_URI, package_name,package_version);
     let client = Client::new();
 
     let response = client.get(uri).send().await?;

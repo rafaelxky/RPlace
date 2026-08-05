@@ -1,13 +1,13 @@
 use crate::config::config::{CONFIG, CompilerConfig, reload_config};
+use crate::constants::PROJECT_FILE;
 use crate::package_manager::auth::read_tok;
 use crate::package_manager::auth::save_tok;
-use crate::package_manager::package_data::PackageData;
-use crate::package_manager::package_load::{get_package_manager_data, join_args_and_config};
+use crate::package_manager::package_file::{create_project, get_package_manager_data, join_args_and_config, write_to_project};
+use crate::package_manager::package_structs::PackageData;
 use crate::package_manager::package_upload::upload_files;
-use crate::package_manager::project_create::create_project;
 use crate::package_manager::web::auth::loggin;
 use crate::package_manager::web::create::{create_new_package, create_new_version};
-use crate::package_manager::web::fetch::get_initial_package_version;
+use crate::package_manager::web::structs::ResponsePackageData;
 use crate::package_manager::web::user::create_user;
 use crate::run::run_options::parse_get_all_paths;
 use crate::run::run_options::run_parse;
@@ -15,7 +15,7 @@ use crate::term::terminal_handler::handle_args;
 use crate::term::terminal_handler::{CliArgs, ParseArgs};
 use anyhow::Result;
 use directories::ProjectDirs;
-use rplace::package_manager::web::fetch::get_initial_data;
+use crate::package_manager::web::fetch::{get_initial_data, get_initial_package_version, get_initial_package_no_version};
 use std::process::exit;
 
 pub mod config;
@@ -89,7 +89,8 @@ async fn main() -> Result<()> {
             let package_version = data.package.version.clone();
             let header = get_initial_data(&package_source, &package_name, &package_version).await?;
             let token = read_tok()?;
-            let paths = parse_get_all_paths(data, config);
+            let mut paths = parse_get_all_paths(data, config);
+            paths.push(PROJECT_FILE.to_string());
             let path_count = paths.len();
 
             upload_files(
@@ -155,8 +156,26 @@ async fn main() -> Result<()> {
             );
             Ok(())
         },
-        CliArgs::AddDependency { dependency_name } => {
-            
+        CliArgs::AddDependency { dependency_name, dependency_version } => {
+            let config = CONFIG.clone().read().unwrap().clone();
+            let package_source = config.package_source.clone();
+            let mut data = get_package_manager_data()?;
+            let package_data: ResponsePackageData = match dependency_version {
+                Some(version) => {
+                    let package_data = get_initial_package_version(&package_source, &dependency_name, &version).await?;
+                    package_data
+                },
+                None => {
+                    let package_data = get_initial_package_no_version(&package_source, &dependency_name).await?;
+                    package_data
+                }
+            };
+            let rplace_package_config: PackageData = toml::from_str(&package_data.code)?;
+            let package_name = rplace_package_config.package.name;
+            let package_version = rplace_package_config.package.version;
+            data.add_dependency(package_name.clone(), package_version.clone());
+            write_to_project(data)?;
+            println!("Added dependency {} {}", package_name, package_version);
             Ok(())
         },
     }

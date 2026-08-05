@@ -96,11 +96,12 @@ async fn get_package_initial_file_no_version(
     let link = match link {
         Ok(l) => l,
         Err(e) => {
+            let msg = format!("could not fetch file link for file {} for request get_package_initial_file_no_version", PROJECT_FILE_PATH.to_string());
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!(
                     {
-                        "message": "could not fetch file link",
+                        "message": msg,
                         "err": &e.to_string()
                     }
                 )),
@@ -209,11 +210,12 @@ async fn get_package_initial_file(
     let link = match link {
         Ok(l) => l,
         Err(e) => {
+            let msg = format!("could not fetch file link for file {} for request get_package_initial_file", PROJECT_FILE_PATH.to_string());
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!(
                     {
-                        "message": "could not fetch file link",
+                        "message": msg,
                         "err": &e.to_string()
                     }
                 )),

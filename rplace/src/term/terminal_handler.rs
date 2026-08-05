@@ -36,6 +36,7 @@ pub enum PackageSubcommand {
     CreateVersion{},
     Add {
         dependency_name: String,
+        dependency_version: Option<String>,
     }
 }
 #[derive(Debug)]
@@ -58,7 +59,8 @@ pub enum CliArgs {
     NewPackage{},
     NewVersion{},
     AddDependency {
-        dependency_name: String
+        dependency_name: String,
+        dependency_version: Option<String>,
     }
 }
 #[derive(Debug)]
@@ -115,7 +117,7 @@ pub fn handle_args() -> CliArgs {
             PackageSubcommand::Push {} => return CliArgs::Push {},
             PackageSubcommand::New {  } => return CliArgs::NewPackage {  },
             PackageSubcommand::CreateVersion {  } => return CliArgs::NewVersion {  },
-            PackageSubcommand::Add { dependency_name } => return CliArgs::AddDependency { dependency_name },
+            PackageSubcommand::Add { dependency_name, dependency_version } => return CliArgs::AddDependency { dependency_name, dependency_version },
         },
         None => {
             panic!("Invalid subcommand!")

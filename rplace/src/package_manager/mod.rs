@@ -1,7 +1,6 @@
-pub mod package_data;
-pub mod package_load;
-pub mod project_create;
+pub mod package_structs;
 pub mod web;
 pub mod auth;
 pub mod file;
 pub mod package_upload;
+pub mod package_file;

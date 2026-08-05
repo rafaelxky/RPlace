@@ -9,7 +9,7 @@ use crate::lexer::Lexer;
 use crate::lua::lua_call_map::LuaCallMap;
 use crate::options::var_options::VarOptionsMap;
 use crate::output_stream::OutputWriter;
-use crate::package_manager::package_data::PackageData;
+use crate::package_manager::package_structs::PackageData;
 use crate::parser::Parser;
 use crate::structs::FileConfig;
 use crate::term::terminal_handler::ParseArgs;
