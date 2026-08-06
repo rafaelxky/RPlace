@@ -46,12 +46,17 @@ async fn main() -> Result<()> {
         CliArgs::Run(args) => {
             let data = get_package_manager_data();
             let config = CONFIG.clone().read().unwrap().clone();
-            let (args, config): (ParseArgs, CompilerConfig) = match data {
+            let (args, config) = match &data {
                 Ok(d) => join_args_and_config(args, d, config),
                 Err(_e) => (args, config),
             };
             let stops_at_parser = args.stops_at_parser;
-            let to_write = run_parse(args, config);
+            let to_write = match data {
+                Ok(d) => {
+                    run_parse(args, config, Some(d))
+                },
+                _ => run_parse(args, config, None)
+            };
             if stops_at_parser {
                 return Ok(());
             }

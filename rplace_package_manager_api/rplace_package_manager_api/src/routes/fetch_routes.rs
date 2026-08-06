@@ -1,23 +1,20 @@
-use core::option::Option::{None};
 use anyhow::Result;
+use core::option::Option::None;
 
 use axum::{
     Json, Router,
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{get},
+    routing::get,
 };
-use serde_json::json;
+use serde_json::{Value, json};
 
-use crate::constants::PROJECT_FILE_PATH;
-use crate::{
-    models::{
-        app_state::AppState,
-        package_file::package_file::PackageFile,
-        registry::package_registry::{PackageRegistry},
-    },
+use crate::models::{
+    app_state::AppState, package_file::package_file::PackageFile,
+    registry::package_registry::PackageRegistry,
 };
+use crate::{constants::PROJECT_FILE_PATH, models::error::ErrorBuilder};
 
 // all routes in this file bellong to the fetching pipeline
 // they are used to get the file data from the server to the client
@@ -31,7 +28,36 @@ pub fn routes() -> Router<AppState> {
         .route("/package/{name}", get(get_package_initial_file_no_version))
         .route("/package/{name}/{version}", get(get_package_initial_file))
         .route("/package/data/{name}", get(get_package_id_by_name))
-        .route("/package/data/{name}/{version}", get(get_package_id_and_version_by_name))
+        .route(
+            "/package/data/{name}/{version}",
+            get(get_package_id_and_version_by_name),
+        )
+        .route(
+            "/package/paths/{package_id}/{version_id}",
+            get(get_package_version_paths),
+        )
+}
+
+async fn get_package_version_paths(
+    State(state): State<AppState>,
+    Path((package_id, version_id)): Path<(i32, i32)>,
+) -> (StatusCode, impl IntoResponse) {
+    // todo:
+    let links = state
+        .db_provider
+        .get_package_version_links_by_package_id_and_version(package_id, version_id)
+        .await;
+    let links = match links {
+        Ok(l) => l,
+        Err(e) => {
+            return ErrorBuilder::builder(StatusCode::NOT_FOUND)
+            .message("no match, incorrect package or version id")
+            .err(e).json();
+        }
+    };
+    return (StatusCode::OK, Json(json!({
+        "links": links,
+    })));
 }
 
 // 1st step for fetching
@@ -52,21 +78,15 @@ pub fn routes() -> Router<AppState> {
 async fn get_package_initial_file_no_version(
     State(state): State<AppState>,
     Path(name): Path<String>,
-) -> (StatusCode, impl IntoResponse) {
+) -> (StatusCode, Json<Value>) {
     let registry = state.db_provider.get_registry_by_name(name.clone()).await;
     let registry: PackageRegistry = match registry {
         Ok(reg) => reg,
         Err(e) => {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(
-                    json!({
-                        "message": format!("could not find registry with name {}", name), 
-                        "err": &e.to_string()
-                    }
-                    ),
-                ),
-            );
+            return ErrorBuilder::builder(StatusCode::NOT_FOUND)
+                .message(format!("could not find registry with name {}", name))
+                .err(e)
+                .json();
         }
     };
     let version_header = state
@@ -77,35 +97,31 @@ async fn get_package_initial_file_no_version(
     let version_header = match version_header {
         Ok(h) => h,
         Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!(
-                    {
-                        "message": "could not fetch package version header",
-                        "err": &e.to_string()
-                    }
-                )),
-            );
+            return ErrorBuilder::builder(StatusCode::NOT_FOUND)
+                .message(format!("could not fetch package version header"))
+                .err(e)
+                .json();
         }
     };
 
     let link = state
         .db_provider
-        .get_link_by_package_version_id_and_file_path(version_header.id, PROJECT_FILE_PATH.to_string())
+        .get_link_by_package_version_id_and_file_path(
+            version_header.id,
+            PROJECT_FILE_PATH.to_string(),
+        )
         .await;
     let link = match link {
         Ok(l) => l,
         Err(e) => {
-            let msg = format!("could not fetch file link for file {} for request get_package_initial_file_no_version", PROJECT_FILE_PATH.to_string());
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!(
-                    {
-                        "message": msg,
-                        "err": &e.to_string()
-                    }
-                )),
+            let msg = format!(
+                "could not fetch file link for file {} for request get_package_initial_file_no_version",
+                PROJECT_FILE_PATH.to_string()
             );
+            return ErrorBuilder::builder(StatusCode::INTERNAL_SERVER_ERROR)
+                .message(msg)
+                .err(e)
+                .json();
         }
     };
 
@@ -116,25 +132,15 @@ async fn get_package_initial_file_no_version(
     let file = match file {
         Ok(Some(f)) => f,
         Ok(None) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!(
-                    {
-                        "message": "could not find file",
-                    }
-                )),
-            );
+            return ErrorBuilder::builder(StatusCode::INTERNAL_SERVER_ERROR)
+                .message("could not find file")
+                .json();
         }
         Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!(
-                    {
-                        "message": "could not fetch file",
-                        "err": &&e.to_string(),
-                    }
-                )),
-            );
+            return ErrorBuilder::builder(StatusCode::INTERNAL_SERVER_ERROR)
+                .message("could not fetch file")
+                .err(e.to_string())
+                .json();
         }
     };
 
@@ -169,7 +175,7 @@ async fn get_package_initial_file_no_version(
 // path will be rplace.toml because its the initial fetch
 async fn get_package_initial_file(
     State(state): State<AppState>,
-    Path((name,version)): Path<(String,String)>,
+    Path((name, version)): Path<(String, String)>,
 ) -> (StatusCode, impl IntoResponse) {
     let registry = state.db_provider.get_registry_by_name(name.clone()).await;
     let registry: PackageRegistry = match registry {
@@ -205,12 +211,18 @@ async fn get_package_initial_file(
 
     let link = state
         .db_provider
-        .get_link_by_package_version_id_and_file_path(version_header.id, PROJECT_FILE_PATH.to_string())
+        .get_link_by_package_version_id_and_file_path(
+            version_header.id,
+            PROJECT_FILE_PATH.to_string(),
+        )
         .await;
     let link = match link {
         Ok(l) => l,
         Err(e) => {
-            let msg = format!("could not fetch file link for file {} for request get_package_initial_file", PROJECT_FILE_PATH.to_string());
+            let msg = format!(
+                "could not fetch file link for file {} for request get_package_initial_file",
+                PROJECT_FILE_PATH.to_string()
+            );
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(json!(
@@ -282,7 +294,7 @@ async fn get_package_initial_file(
 */
 async fn get_package_file(
     State(state): State<AppState>,
-    Path((version_header_id,path)): Path<(i32,String)>,
+    Path((version_header_id, path)): Path<(i32, String)>,
 ) -> (StatusCode, impl IntoResponse) {
     let link = state
         .db_provider
@@ -342,87 +354,96 @@ async fn get_package_file(
 // takes package name
 // returns package id
 // /package/data/{name} GET
-/*  
+/*
 returns: {
     "id": i32
 }
-*/ 
+*/
 pub async fn get_package_id_by_name(
     State(state): State<AppState>,
-    Path(name): Path<String>
-) -> (StatusCode, impl IntoResponse){
+    Path(name): Path<String>,
+) -> (StatusCode, impl IntoResponse) {
     let package_name = name;
-    let res = state.db_provider.get_registry_by_name(package_name.clone()).await;
+    let res = state
+        .db_provider
+        .get_registry_by_name(package_name.clone())
+        .await;
     let res = match res {
         Ok(r) => r,
         Err(e) => {
             let msg = format!("Could not find registry with name {} !", package_name);
-            return (
-                StatusCode::NOT_FOUND, 
-                Json(json!({
-                    "message": msg,
-                    "err": &e.to_string()
-                }))
-            );
-        },
-    };
-    let id = res.id;
-    return (
-        StatusCode::OK, 
-        Json(json!({
-            "id": id
-        }))
-    );
-}
-// /package/data/{name}/{version} GET
-// gives you the initial data to upload files
-/* 
-    returns: {
-        package_id: i32,
-        version_id: i32,
-    }
-*/ 
-pub async fn get_package_id_and_version_by_name(
-    State(state): State<AppState>,
-    Path((name, version)): Path<(String,String)>
-) -> (StatusCode, impl IntoResponse){
-    let package_name = name;
-    let version_name = version;
-    let res = state.db_provider.get_registry_by_name(package_name.clone()).await;
-    let res = match res {
-        Ok(r) => r,
-        Err(e) => {
-            let msg = format!("Could not find registry with name {} !", package_name);
-            return (
-                StatusCode::NOT_FOUND, 
-                Json(json!({
-                    "message": msg,
-                    "err": &e.to_string()
-                }))
-            );
-        },
-    };
-    let package_id = res.id;
-    let version = state.db_provider.get_package_version_header_by_package_id_and_version(package_id, version_name.clone()).await;
-    let ver = match version {
-        Ok(v) => v,
-        Err(e) => {
-              let msg = format!("Could not find version with name {} !", version_name);
             return (
                 StatusCode::NOT_FOUND,
                 Json(json!({
                     "message": msg,
                     "err": &e.to_string()
-                }))
+                })),
             );
-        },
+        }
+    };
+    let id = res.id;
+    return (
+        StatusCode::OK,
+        Json(json!({
+            "id": id
+        })),
+    );
+}
+// /package/data/{name}/{version} GET
+// gives you the initial data to upload files
+/*
+    returns: {
+        package_id: i32,
+        version_id: i32,
+    }
+*/
+pub async fn get_package_id_and_version_by_name(
+    State(state): State<AppState>,
+    Path((name, version)): Path<(String, String)>,
+) -> (StatusCode, impl IntoResponse) {
+    let package_name = name;
+    let version_name = version;
+    let res = state
+        .db_provider
+        .get_registry_by_name(package_name.clone())
+        .await;
+    let res = match res {
+        Ok(r) => r,
+        Err(e) => {
+            let msg = format!("Could not find registry with name {} !", package_name);
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({
+                    "message": msg,
+                    "err": &e.to_string()
+                })),
+            );
+        }
+    };
+    let package_id = res.id;
+    let version = state
+        .db_provider
+        .get_package_version_header_by_package_id_and_version(package_id, version_name.clone())
+        .await;
+    let ver = match version {
+        Ok(v) => v,
+        Err(e) => {
+            let msg = format!("Could not find version with name {} !", version_name);
+            return (
+                StatusCode::NOT_FOUND,
+                Json(json!({
+                    "message": msg,
+                    "err": &e.to_string()
+                })),
+            );
+        }
     };
     let version_id = ver.id;
     return (
-        StatusCode::OK, 
+        StatusCode::OK,
         Json(json!({
             "package_id": package_id,
             "version_id": version_id
-        }))
+        })),
     );
 }

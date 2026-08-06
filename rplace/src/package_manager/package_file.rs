@@ -18,12 +18,12 @@ pub fn get_package_manager_data() -> Result<PackageData> {
 }
 pub fn join_args_and_config(
     args: ParseArgs,
-    package_manager_data: PackageData,
+    package_manager_data: &PackageData,
     config: CompilerConfig,
 ) -> (ParseArgs, CompilerConfig) {
     let mut config = config;
-    let args = join_package(args, package_manager_data.package);
-    match package_manager_data.config {
+    let args = join_package(args, package_manager_data.package.clone());
+    match &package_manager_data.config {
         Some(c) => {
             config = join_config(config, c);
         }
@@ -36,7 +36,7 @@ fn join_package(args: ParseArgs, package: Package) -> ParseArgs {
     args.origin = Some(package.root);
     args
 }
-fn join_config(config: CompilerConfig, package: PackageManagerCompilerConfig) -> CompilerConfig {
+fn join_config(config: CompilerConfig, package: &PackageManagerCompilerConfig) -> CompilerConfig {
     let mut config = config;
     match package.allow_import {
         Some(b) => config.allow_import = b,
@@ -46,7 +46,7 @@ fn join_config(config: CompilerConfig, package: PackageManagerCompilerConfig) ->
         Some(b) => config.allow_lua = b,
         None => (),
     }
-    match package.package_source {
+    match package.package_source.clone() {
         Some(s) => config.package_source = s,
         None => (),
     }

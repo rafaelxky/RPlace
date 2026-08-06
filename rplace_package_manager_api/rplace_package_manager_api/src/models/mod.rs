@@ -6,3 +6,4 @@ pub mod link;
 pub mod package_file;
 pub mod user;
 pub mod loggin;
+pub mod error;
