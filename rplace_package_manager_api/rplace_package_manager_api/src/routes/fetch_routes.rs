@@ -33,19 +33,26 @@ pub fn routes() -> Router<AppState> {
             get(get_package_id_and_version_by_name),
         )
         .route(
-            "/package/paths/{package_id}/{version_id}",
+            "/package/paths/{version_id}",
             get(get_package_version_paths),
         )
 }
 
+// package/paths/{version_id} GET
+// returns all paths for every file of that version
+/*
+    returns: {
+        "links": [String]
+    }
+*/
 async fn get_package_version_paths(
     State(state): State<AppState>,
-    Path((package_id, version_id)): Path<(i32, i32)>,
+    Path( version_id): Path<i32>,
 ) -> (StatusCode, impl IntoResponse) {
     // todo:
     let links = state
         .db_provider
-        .get_package_version_links_by_package_id_and_version(package_id, version_id)
+        .get_package_version_links_by_version_id(version_id)
         .await;
     let links = match links {
         Ok(l) => l,
@@ -55,8 +62,9 @@ async fn get_package_version_paths(
             .err(e).json();
         }
     };
+    let paths: Vec<String> = links.into_iter().map(|l|l.file_path).collect();
     return (StatusCode::OK, Json(json!({
-        "links": links,
+        "links": paths,
     })));
 }
 
