@@ -2,11 +2,17 @@ use crate::config::config::{CONFIG, CompilerConfig, reload_config};
 use crate::constants::PROJECT_FILE;
 use crate::package_manager::auth::read_tok;
 use crate::package_manager::auth::save_tok;
-use crate::package_manager::package_file::{create_project, get_package_manager_data, join_args_and_config, write_to_project};
+use crate::package_manager::file::load_all_package_files;
+use crate::package_manager::package_file::{
+    create_project, get_package_manager_data, join_args_and_config, write_to_project,
+};
 use crate::package_manager::package_structs::PackageData;
 use crate::package_manager::package_upload::upload_files;
 use crate::package_manager::web::auth::loggin;
 use crate::package_manager::web::create::{create_new_package, create_new_version};
+use crate::package_manager::web::fetch::{
+    get_initial_data, get_initial_package_no_version, get_initial_package_version,
+};
 use crate::package_manager::web::structs::ResponsePackageData;
 use crate::package_manager::web::user::create_user;
 use crate::run::run_options::parse_get_all_paths;
@@ -15,7 +21,6 @@ use crate::term::terminal_handler::handle_args;
 use crate::term::terminal_handler::{CliArgs, ParseArgs};
 use anyhow::Result;
 use directories::ProjectDirs;
-use crate::package_manager::web::fetch::{get_initial_data, get_initial_package_version, get_initial_package_no_version};
 use std::process::exit;
 
 pub mod config;
@@ -51,11 +56,13 @@ async fn main() -> Result<()> {
                 Err(_e) => (args, config),
             };
             let stops_at_parser = args.stops_at_parser;
+
             let to_write = match data {
                 Ok(d) => {
+                    load_all_package_files(&config.package_source, &d).await?;
                     run_parse(args, config, Some(d))
                 },
-                _ => run_parse(args, config, None)
+                _ => run_parse(args, config, None),
             };
             if stops_at_parser {
                 return Ok(());
@@ -160,18 +167,24 @@ async fn main() -> Result<()> {
                 res.version, package_name
             );
             Ok(())
-        },
-        CliArgs::AddDependency { dependency_name, dependency_version } => {
+        }
+        CliArgs::AddDependency {
+            dependency_name,
+            dependency_version,
+        } => {
             let config = CONFIG.clone().read().unwrap().clone();
             let package_source = config.package_source.clone();
             let mut data = get_package_manager_data()?;
             let package_data: ResponsePackageData = match dependency_version {
                 Some(version) => {
-                    let package_data = get_initial_package_version(&package_source, &dependency_name, &version).await?;
+                    let package_data =
+                        get_initial_package_version(&package_source, &dependency_name, &version)
+                            .await?;
                     package_data
-                },
+                }
                 None => {
-                    let package_data = get_initial_package_no_version(&package_source, &dependency_name).await?;
+                    let package_data =
+                        get_initial_package_no_version(&package_source, &dependency_name).await?;
                     package_data
                 }
             };
@@ -182,6 +195,6 @@ async fn main() -> Result<()> {
             write_to_project(data)?;
             println!("Added dependency {} {}", package_name, package_version);
             Ok(())
-        },
+        }
     }
 }

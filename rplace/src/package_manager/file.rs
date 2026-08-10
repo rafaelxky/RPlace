@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{ Result};
 use directories::ProjectDirs;
 use path_clean::PathClean;
 use std::{
@@ -7,7 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{constants::PROJECT_FILE, package_manager::{package_structs::PackageData, web::fetch::{get_initial_data, get_package_file}}};
+use crate::package_manager::{package_structs::{Dependency, PackageData}, web::{fetch::{get_initial_data, get_package_file, get_version_paths}, structs::PackageFile}};
 pub fn package_exists(path: &str) -> bool {
     let dir = ProjectDirs::from("io", "rplace", "rplace").unwrap();
     let dir = dir.data_dir();
@@ -18,17 +18,43 @@ pub fn package_exists(path: &str) -> bool {
 // get rplace.toml data
 // get a list of all code and paths
 // one by one copy to project file
-pub async fn load_all_package_files(package_source: &str, package_data: &PackageData){
+pub async fn load_all_package_files(package_source: &str, package_data: &PackageData) -> Result<()>{
+    let dependencies = &package_data.dependencies;
+    let dependencies = match dependencies {
+        Some(d) => d,
+        None => return Ok(()),
+    };
+    for (package_name ,dependency) in dependencies {
+        let version = match dependency {
+            Dependency::Simple(version) => {
+                version
+            },
+            Dependency::Detailed { version } => {
+                version
+            },
+        };
 
+        let package = load_single_package(package_source, package_name, version).await?;
+        for file in package {
+            let path = save_package_file_raw(&file.file_path, &file.code)?;
+            println!("loaded dependency to path {}", path);
+        }
+    }
+    Ok(())
 }
-// todo: this bellow
-pub async fn load_single_package(package_source: &str, package_name: &str, package_version: &str) -> Result<()>{
+
+pub async fn load_single_package(package_source: &str, package_name: &str, package_version: &str) -> Result<Vec<PackageFile>>{
     let data = get_initial_data(package_source, package_name, package_version).await?;
-    let header_file = get_package_file(package_source, data.package_id, PROJECT_FILE).await?;
-    // fetch all files
-    // server must allow you to enumerate all version files
-    // if file already exists, check version, if same, skip
-    todo!();
+    let version_id = data.version_id;
+    //let header_file: super::web::structs::ResponseGetPackageFile = get_package_file(package_source, data.package_id, PROJECT_FILE).await?;
+    let paths = get_version_paths(package_source, version_id).await?;
+
+    let mut files = vec![];
+    for path in paths.links {
+        let file = get_package_file(package_source, version_id, &path).await?;
+        files.push(file.into_package_file());
+    }
+    return Ok(files);
 }
 pub fn save_package_file_raw(path: &str, code: &str) -> Result<String> {
     let dir = ProjectDirs::from("io", "rplace", "rplace").unwrap();

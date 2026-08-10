@@ -110,3 +110,29 @@ http://localhost:3000
     "code": string
 }
 
+## get package version paths
+- /package/paths/{version_id} GET
+- returns all paths for every file of that version
+- returns: 
+{
+    "links": string[],
+}
+
+## get package id by name
+- /package/data/{name} GET
+- returns package id by name
+- used to get initial data to start fetching files
+- returns: 
+{
+    "id":i32
+}
+
+## get package id and version by name 
+- /package/data/{name}/{version} GET
+- returns package and version id by package name and version name
+- used to get initial data to start fetching files
+- returns:
+{
+    "package_id": i32,
+    "version_id: i32,
+}

@@ -2,13 +2,14 @@ use anyhow::{Result, anyhow};
 use reqwest::Client;
 
 use crate::package_manager::web::structs::{
-    InitialPackageData, ResponseGetPackageFile, ResponsePackageData,
+    InitialPackageData, Links, ResponseGetPackageFile, ResponsePackageData,
 };
 
 pub const INITIAL_PACKAGE_NO_VERSION_URI: &str = "/package/";
 pub const INITIAL_PACKAGE_URI: &str = "/package/";
 pub const GET_PACKAGE_FILE_URI: &str = "/package/fetch_file/";
 pub const INITIAL_PACKAGE_FETCH_DATA: &str = "/package/data/";
+pub const GET_VERSION_PATHS_URI: &str = "/package/paths/";
 
 // gets the rplace.toml file from web
 pub async fn get_initial_package(
@@ -27,7 +28,10 @@ pub async fn get_initial_package_no_version(
     package_source: &str,
     package_name: &str,
 ) -> Result<ResponsePackageData> {
-    let uri = format!("{}{}{}", package_source, INITIAL_PACKAGE_NO_VERSION_URI,package_name);
+    let uri = format!(
+        "{}{}{}",
+        package_source, INITIAL_PACKAGE_NO_VERSION_URI, package_name
+    );
     let client = Client::new();
 
     let response = client.get(uri).send().await?;
@@ -45,7 +49,10 @@ pub async fn get_initial_package_version(
     package_name: &str,
     package_version: &str,
 ) -> Result<ResponsePackageData> {
-    let uri = format!("{}{}{}/{}", package_source, INITIAL_PACKAGE_URI, package_name,package_version);
+    let uri = format!(
+        "{}{}{}/{}",
+        package_source, INITIAL_PACKAGE_URI, package_name, package_version
+    );
     let client = Client::new();
 
     let response = client.get(uri).send().await?;
@@ -100,6 +107,28 @@ pub async fn get_initial_data(
     }
 
     let body: InitialPackageData = response.json().await?;
+
+    Ok(body)
+}
+
+pub async fn get_version_paths(
+    package_source: &str,
+    version_header_id: i32,
+) -> Result<Links> {
+    let uri = format!(
+        "{}{}{}",
+        package_source, GET_VERSION_PATHS_URI, version_header_id
+    );
+
+    let client = Client::new();
+
+    let response = client.get(uri).send().await?;
+    if !response.status().is_success() {
+        let body: String = response.text().await?;
+        return Err(anyhow!(body));
+    }
+
+    let body: Links = response.json().await?;
 
     Ok(body)
 }

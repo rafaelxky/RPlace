@@ -44,6 +44,12 @@ pub struct ResponsePackageData{
     pub code: String,
 }
 
+#[derive(Debug,Clone)]
+pub struct PackageFile{
+    pub file_path: String,
+    pub file_hash: String,
+    pub code: String,
+}
 #[derive(Debug,Clone,Deserialize)]
 pub struct ResponseGetPackageFile{
     pub header_id: i32,
@@ -51,9 +57,20 @@ pub struct ResponseGetPackageFile{
     pub file_hash: String,
     pub code: String,
 }
+impl ResponseGetPackageFile {
+    pub fn into_package_file(self) -> PackageFile{
+        PackageFile { file_path: self.file_path, file_hash: self.file_hash, code: self.code }
+    }
+}
 
 #[derive(Debug,Clone,Deserialize)]
 pub struct InitialPackageData{
     pub package_id: i32,
     pub version_id: i32,
 }
+
+#[derive(Debug,Clone,Deserialize)]
+pub struct Links{
+    pub links: Vec<String>,
+}
+
