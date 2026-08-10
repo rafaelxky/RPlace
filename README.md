@@ -246,7 +246,26 @@ this will take regular text and transform it into a template acording to rules
 # project config
 - project config config is defined in the rplace.toml file
 - here is defined the root file to be executed
-- this allows you to simply run "rplace" to run the program 
+- this allows you to simply run "rplace" to run the program
+
+# package manager
+- the rpalce package manager is a work in progress
+- it allows you to fetch and use dependencies from the web
+## cli 
+### login
+- package login <email> <password>
+### create user 
+-  package create-user <username> <email> <password>
+- creates a new user
+### push package
+- package push
+- pushes files to server
+### new package
+- package new
+- uploads a new package from the rplace.toml version
+### add package
+- package add <package_name>
+- adds a dependency to rplace.toml
 
 # list of examples
 ```

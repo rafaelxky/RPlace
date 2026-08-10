@@ -8,7 +8,7 @@ use crate::package_manager::package_file::{
 };
 use crate::package_manager::package_structs::PackageData;
 use crate::package_manager::package_upload::upload_files;
-use crate::package_manager::web::auth::loggin;
+use crate::package_manager::web::auth::login;
 use crate::package_manager::web::create::{create_new_package, create_new_version};
 use crate::package_manager::web::fetch::{
     get_initial_data, get_initial_package_no_version, get_initial_package_version,
@@ -88,9 +88,9 @@ async fn main() -> Result<()> {
         }
         CliArgs::Login { email, password } => {
             let config: CompilerConfig = CONFIG.clone().read().unwrap().clone();
-            let res = loggin(&config.package_source, &email, &password).await?;
+            let res = login(&config.package_source, &email, &password).await?;
             save_tok(res)?;
-            println!("Successull loggin!");
+            println!("Successull login!");
             Ok(())
         }
         CliArgs::Push {} => {

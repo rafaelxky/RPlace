@@ -1,25 +1,3 @@
-first
-//- include ex1.txt:
-//- include out.txt:
-//- $#output = "out.txt":
-after_var
-//- def b:
-after_def
-//- for vala in b:
-in_for
-//- for valb in vala:
-    //- place abc where data = $#valb:
-    $#valb
+//- def a:
+    hello world
 //- end:
-//- end:
-after_for
-//- end:
-after_def
-//- place b where b = [([(a),(b),(c)]),([(d),(e),(f)])], var = val:
-
-//- def abc:
-    $#data
-    inside c
-//- end:
-
-not working idk why

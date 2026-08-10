@@ -26,7 +26,7 @@ pub struct UploadedFileResponse{
     pub file_hash: String,
 }
 #[derive(Debug,Clone,Deserialize,Serialize)]
-pub struct LogginResponse{
+pub struct LoginResponse{
     pub token: String,
 }
 #[derive(Debug,Clone,Deserialize)]

@@ -1,9 +1,14 @@
 use std::path::Path;
 
+use directories::ProjectDirs;
 use path_clean::PathClean;
 
 use crate::{
-    error_handler::{CompilationError, handle_error, handle_error_parser}, lexer::Token, parser::Parser, structs::{Value, Var, VarOption},
+    error_handler::{CompilationError, handle_error, handle_error_parser},
+    lexer::Token,
+    package_manager::file::parse_package_path,
+    parser::Parser,
+    structs::{Value, Var, VarOption},
 };
 
 impl Parser {
@@ -179,6 +184,7 @@ impl Parser {
     /// ex: parent/child.txt
     pub(super) fn handle_path(&mut self, base_path: String) -> String {
         let mut path: String = String::new();
+        let base_path = base_path;
         self.remove_spaces();
         loop {
             match self.peek() {
@@ -205,7 +211,12 @@ impl Parser {
             let mut new_path = Path::new(&base_path).parent().unwrap().to_path_buf();
             new_path.push(path_inner);
             path = new_path.to_string_lossy().to_string();
-        };
+        } else if path.starts_with("package/") {
+            let dir = ProjectDirs::from("io", "rplace", "rplace").unwrap();
+            let dir = dir.data_dir();
+            let dir = dir.join("packages");
+            path = parse_package_path(path, &dir);
+        }
 
         path = Path::new(&path).clean().to_str().unwrap().to_string();
         let root = Path::new(&base_path).clean();
@@ -353,6 +364,4 @@ impl Parser {
         }
         arg_str
     }
-
-
 }

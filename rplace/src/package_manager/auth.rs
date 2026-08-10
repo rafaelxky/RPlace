@@ -8,7 +8,7 @@ use anyhow::{Ok, Result};
 use directories::ProjectDirs;
 use thiserror::Error;
 
-use crate::{errors::NotLoggedInError, package_manager::web::structs::LogginResponse};
+use crate::{errors::NotLoggedInError, package_manager::web::structs::LoginResponse};
 
 pub fn remove_tok() -> Result<()> {
     let dir = ProjectDirs::from("io", "rplace", "rplace");
@@ -29,7 +29,7 @@ pub fn remove_tok() -> Result<()> {
     Ok(())
 }
 const TOK_FILE: &str = "tok.json";
-pub fn save_tok(context: LogginResponse) -> Result<()> {
+pub fn save_tok(context: LoginResponse) -> Result<()> {
     let dir = ProjectDirs::from("io", "rplace", "rplace");
     let dir = match dir {
         Some(dir) => dir,
@@ -49,7 +49,7 @@ pub fn save_tok(context: LogginResponse) -> Result<()> {
     serde_json::to_writer_pretty(writer, &context)?;
     Ok(())
 }
-pub fn read_tok() -> Result<LogginResponse> {
+pub fn read_tok() -> Result<LoginResponse> {
     let dir = ProjectDirs::from("io", "rplace", "rplace");
     let dir = match dir {
         Some(dir) => dir,

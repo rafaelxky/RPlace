@@ -3,12 +3,12 @@ use reqwest::{Client, StatusCode};
 use serde_json::json;
 use anyhow::anyhow;
 
-use crate::package_manager::web::structs::{ErrorResponse, LogginResponse};
+use crate::package_manager::web::structs::{ErrorResponse, LoginResponse};
 
-pub const LOGGIN_URI: &str = "/loggin";
+pub const LOGIN_URI: &str = "/loggin";
 
-pub async fn loggin(package_source: &str, email: &str, password: &str) -> Result<LogginResponse> {
-    let uri = format!("{}{}", package_source, LOGGIN_URI);
+pub async fn login(package_source: &str, email: &str, password: &str) -> Result<LoginResponse> {
+    let uri = format!("{}{}", package_source, LOGIN_URI);
 
     let client = Client::new();
     let response = client
@@ -27,7 +27,7 @@ pub async fn loggin(package_source: &str, email: &str, password: &str) -> Result
         return Err(anyhow!(body));
     }
 
-    let body: LogginResponse = response.json().await?;
+    let body: LoginResponse = response.json().await?;
 
     Ok(body)
 }
