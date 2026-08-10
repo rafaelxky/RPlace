@@ -93,10 +93,11 @@ pub async fn register_new_package_header(
     let user = match user {
         Ok(u) => u,
         Err(e) => {
+            let msg = format!( "invalid jwt token no such user");
             return (
                 StatusCode::UNAUTHORIZED,
                 Json(json!({
-                    "message": "invalid jwt token no such user",
+                    "message": msg,
                     "err": e.to_string()
                 })),
             );

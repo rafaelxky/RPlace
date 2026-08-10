@@ -3,7 +3,7 @@ use axum::{
     extract::State,
     http::{HeaderMap, HeaderValue, StatusCode},
     response::IntoResponse,
-    routing::{post},
+    routing::post,
 };
 use serde_json::json;
 use sha2::{Digest, Sha256};
@@ -146,10 +146,12 @@ pub async fn new_file(
         );
     }
 
+    // hash file
     let mut hasher = Sha256::new();
     hasher.update(file_request.code.clone());
     let hash = hex::encode(hasher.finalize());
 
+    // check if said file exists
     let maybe_file = state
         .db_provider
         .get_package_file_by_hash(hash.clone())
@@ -165,17 +167,74 @@ pub async fn new_file(
                 code: file_request.code,
                 file_hash: hash,
             };
-            let f = state.db_provider.new_file(f).await;
-            let f = match f {
-                Ok(f) => f,
-                Err(e) => {
-                    return (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        Json(json!({
-                            "message": "could not create new file",
-                            "err": &e.to_string()
-                        })),
-                    );
+            // if a file exists with same path and version, replace file content and hash
+            let file = state
+                .db_provider
+                .get_link_by_package_version_id_and_file_path(
+                    file_request.version_header_id,
+                    file_request.path.clone(),
+                )
+                .await;
+            let f: PackageFile = match file {
+                // found a link for a file with path for that version,
+                // update file content to avoid duplicates
+                // update link
+                Ok(link) => {
+                    let f = state
+                        .db_provider
+                        .update_file(f.code, link.file_hash, f.file_hash)
+                        .await;
+                    let f = match f {
+                        Ok(f) => f,
+                        Err(e) => {
+                            return (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                Json(json!({
+                                    "message": "found link for file that doesnt exist",
+                                    "err": &e.to_string()
+                                })),
+                            );
+                        }
+                    };
+                    let l = state
+                        .db_provider
+                        .update_link_hash(
+                            file_request.version_header_id,
+                            file_request.path.clone(),
+                            f.file_hash.clone(),
+                        )
+                        .await;
+                    match l {
+                        Ok(_l) => {
+
+                        },
+                        Err(e) => {
+                            return (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                Json(json!({
+                                    "message": "error, could not update link",
+                                    "err": &e.to_string()
+                                })),
+                            );
+                        }
+                    }
+                    f
+                }
+                Err(_) => {
+                    let f = state.db_provider.new_file(f).await;
+                    let f = match f {
+                        Ok(f) => f,
+                        Err(e) => {
+                            return (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                Json(json!({
+                                    "message": "could not create new file",
+                                    "err": &e.to_string()
+                                })),
+                            );
+                        }
+                    };
+                    f
                 }
             };
             f

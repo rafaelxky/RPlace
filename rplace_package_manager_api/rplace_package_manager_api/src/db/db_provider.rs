@@ -33,12 +33,14 @@ pub trait PackageRegistryRepo: Debug + Send + Sync{
 #[async_trait]
 pub trait LinkRepo: Debug + Send + Sync{
     async fn get_link_by_package_version_id_and_file_path(&self, package_version_id: i32, file_path: String) -> Result<Link>;
-    async fn new_link(&self, link: LinkCreateDto) -> Result<Link>; 
+    async fn new_link(&self, link: LinkCreateDto) -> Result<Link>;
+    async fn update_link_hash(&self, version_header_id: i32, file_path: String, new_file_hash: String) -> Result<Link>;
 }
 #[async_trait]
 pub trait PackageFileRepo: Debug + Send + Sync{
     async fn get_package_file_by_hash(&self, file_hash: String) -> Result<Option<PackageFile>>;
     async fn new_file(&self, file: PackageFile) -> Result<PackageFile>;
+    async fn update_file(&self, code: String, file_hash: String, new_file_hash:String) -> Result<PackageFile>;
 }
 #[async_trait]
 pub trait UserRepo: Debug + Send + Sync{

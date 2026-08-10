@@ -16,4 +16,10 @@ impl PackageFileRepo for SqliteDb {
         let file = sqlx::query_as::<_,PackageFile>(sql).bind(file.file_hash).bind(file.code).fetch_one(&self.pool).await?;
         Ok(file)
     }
+    // todo: test
+    async fn update_file(&self, code:String, file_hash: String, new_file_hash: String) -> Result<PackageFile>{
+        let sql = "UPDATE package_file SET code = (?), file_hash = (?) WHERE file_hash = (?) RETURNING *;";
+        let file = sqlx::query_as::<_,PackageFile>(sql).bind(code).bind(new_file_hash).bind(file_hash).fetch_one(&self.pool).await?;
+        Ok(file)
+    }
 }
