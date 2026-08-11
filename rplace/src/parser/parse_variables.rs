@@ -124,7 +124,7 @@ impl Parser {
     // ex: [(a,b),(c,d)]
     pub(super) fn handle_array_values(&mut self) -> Value {
         let mut vals: Vec<Vec<Value>> = vec![];
-        let mut names: Vec<Vec<Option<String>>> = vec![];
+        let names: Vec<Vec<Option<String>>> = vec![];
         loop {
             self.remove_spaces();
             match self.pop() {

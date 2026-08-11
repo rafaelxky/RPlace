@@ -18,7 +18,7 @@ use crate::package_manager::web::user::create_user;
 use crate::run::run_options::parse_get_all_paths;
 use crate::run::run_options::run_parse;
 use crate::term::terminal_handler::handle_args;
-use crate::term::terminal_handler::{CliArgs, ParseArgs};
+use crate::term::terminal_handler::{CliArgs};
 use anyhow::Result;
 use directories::ProjectDirs;
 use std::process::exit;

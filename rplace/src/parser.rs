@@ -54,9 +54,6 @@ impl Parser {
     fn ptr_next(&mut self) {
         self.ptr = self.ptr + 1;
     }
-    fn unpop(&mut self) {
-        self.ptr = self.ptr - 1;
-    }
     fn can_pop(&self) -> bool {
         self.tokens.len() > self.ptr
     }

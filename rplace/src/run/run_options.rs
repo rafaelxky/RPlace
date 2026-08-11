@@ -9,7 +9,6 @@ use crate::lexer::Lexer;
 use crate::lua::lua_call_map::LuaCallMap;
 use crate::options::var_options::VarOptionsMap;
 use crate::output_stream::OutputWriter;
-use crate::package_manager::file::load_all_package_files;
 use crate::package_manager::package_structs::PackageData;
 use crate::parser::Parser;
 use crate::structs::FileConfig;
@@ -55,7 +54,7 @@ pub fn parse_get_all_paths(data: PackageData, config: CompilerConfig) -> Vec<Str
     return paths_outer;
 }
 
-pub fn run_parse(args: ParseArgs, config: CompilerConfig, package_data: Option<PackageData>) -> Vec<OutputWriter> {
+pub fn run_parse(args: ParseArgs, config: CompilerConfig, _package_data: Option<PackageData>) -> Vec<OutputWriter> {
     let (mut stream, origin) = get_data_stream(args.origin.as_ref().unwrap());
     let project_src = args.origin.unwrap();
     let output_src = match &args.target {
@@ -73,21 +72,12 @@ pub fn run_parse(args: ParseArgs, config: CompilerConfig, package_data: Option<P
         DataSouce::Package => (),
     }
 
-    // todo fix target path to create subfolders
-    // todo make so that derive can create folders
-    // fix imports check b.txt
-    // fix import space between : and ident not working
     let imports = Arc::new(RwLock::new(HashMap::new()));
     let config = Arc::new(config);
     let lua_map = LuaCallMap::load(config.clone());
     let var_options_map = Arc::new(VarOptionsMap::new(config.clone(), lua_map));
 
-    match package_data {
-        Some(package_data) => {
-            load_all_package_files(&config.package_source, &package_data);
-        },
-        None => (),
-    }
+   
 
     let mut to_write = vec![];
     loop {

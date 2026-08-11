@@ -29,19 +29,19 @@ pub async fn load_all_package_files(
     package_data: &PackageData,
 ) -> Result<()> {
     let dependencies = &package_data.dependencies;
-    let dependencies = match dependencies {
+    let dependencies: &std::collections::HashMap<String, Dependency> = match dependencies {
         Some(d) => d,
         None => return Ok(()),
     };
     for (package_name, dependency) in dependencies {
-        let version = match dependency {
+        let version_name = match dependency {
             Dependency::Simple(version) => version,
             Dependency::Detailed { version } => version,
         };
 
-        let package = load_single_package(package_source, package_name, version).await?;
+        let package = load_single_package(package_source, package_name, version_name).await?;
         for file in package {
-            let path = save_package_file_raw(package_name,&file.file_path, &file.code)?;
+            let path = save_package_file_raw(package_name,version_name,&file.file_path, &file.code)?;
             println!("loaded dependency to path {}", path);
         }
     }
@@ -76,8 +76,8 @@ pub fn create_dependency_folder(name: &str) -> Result<PathBuf>{
     fs::create_dir_all(&dir)?;
     Ok(dir)
 }
-pub fn save_package_file_raw(package_name: &str,path: &str, code: &str) -> Result<String> {
-    let path = resolve_package_path(package_name,path);
+pub fn save_package_file_raw(package_name: &str,package_version_name: &str,path: &str, code: &str) -> Result<String> {
+    let path = resolve_package_path(package_name,package_version_name,path);
     let path = PathBuf::from(path);
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
@@ -86,11 +86,12 @@ pub fn save_package_file_raw(package_name: &str,path: &str, code: &str) -> Resul
     file.write_all(code.as_bytes())?;
     Ok(path.to_str().unwrap().to_string())
 }
-pub fn resolve_package_path(package_name: &str,path: &str) -> String {
+pub fn resolve_package_path(package_name: &str,package_version_name: &str,path: &str) -> String {
     let dir = ProjectDirs::from("io", "rplace", "rplace").unwrap();
     let dir = dir.data_dir();
     let dir = dir.join("packages");
     let dir = dir.join(package_name);
+    let dir = dir.join(package_version_name);
     parse_package_path(path.to_string(), &dir)
 }
 pub fn parse_package_path(path: String, base_dir: &PathBuf) -> String {

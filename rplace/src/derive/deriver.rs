@@ -23,8 +23,8 @@ impl Deriver {
         derive.vals.iter().for_each(|(var, pattern)| {
             let (value,options) = match pattern {
                 crate::structs::Value::Literal { value, options } => (value,options),
-                crate::structs::Value::Var { value, options } => todo!(),
-                crate::structs::Value::Array { values , names} => todo!(),
+                crate::structs::Value::Var { value: _, options: _ } => todo!(),
+                crate::structs::Value::Array { values: _ , names: _} => todo!(),
             };
             let opts = options.as_ref();
 

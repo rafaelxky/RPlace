@@ -1,12 +1,10 @@
 use std::{
     fs::{self, File, OpenOptions},
     io::{BufReader, BufWriter, Write},
-    process::exit,
 };
 
 use anyhow::{Ok, Result};
 use directories::ProjectDirs;
-use thiserror::Error;
 
 use crate::{errors::NotLoggedInError, package_manager::web::structs::LoginResponse};
 

@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use crate::constants::PROJECT_FILE;
-use clap::{CommandFactory, Parser, Subcommand, builder::Str, error::ErrorKind};
+use clap::{CommandFactory, Parser, Subcommand,error::ErrorKind};
 
 #[derive(Subcommand, Debug)]
 pub enum SubCommand {

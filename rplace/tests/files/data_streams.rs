@@ -93,7 +93,7 @@ pub fn test_folder_file_data_stream() -> Result<()> {
 }
 
 pub fn setup_package(path: &str, code: &str) -> Result<String> {
-    let path = save_package_file_raw("",path, code)?;
+    let path = save_package_file_raw("","",path, code)?;
     Ok(path)
 }
 

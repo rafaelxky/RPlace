@@ -16,7 +16,7 @@ fn parse(code: &str) -> Result<String> {
     let var_options_map = Arc::new(VarOptionsMap::new(config.clone(), lua_map));
     let tok = Lexer::new(PATH, code).parse();
     let res = Parser::new(tok, PATH.to_string(), OUTPUT_PATH.to_string()).parse();
-    let (mut replaced, config) = Writer::new(
+    let (mut replaced, _config) = Writer::new(
         res,
         PATH.to_string(),
         OUTPUT_PATH.to_string(),

@@ -1,9 +1,9 @@
 use anyhow::{Result};
-use reqwest::{Client, StatusCode};
+use reqwest::{Client};
 use serde_json::json;
 use anyhow::anyhow;
 
-use crate::package_manager::web::structs::{ErrorResponse, LoginResponse};
+use crate::package_manager::web::structs::{LoginResponse};
 
 pub const LOGIN_URI: &str = "/loggin";
 

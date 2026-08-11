@@ -318,7 +318,7 @@ impl Writer {
                         ResValue::Val { value } => {
                             arm.matches(value.to_string())
                         },
-                        ResValue::Array { array } => todo!(),
+                        ResValue::Array { array: _ } => todo!(),
                     }
                 });
 
@@ -356,7 +356,7 @@ impl Writer {
                     Some(opts) => {
                         let mut curr = match replacement {
                             ResValue::Val { value } => value.to_string(),
-                            ResValue::Array { array } => todo!(),
+                            ResValue::Array { array: _ } => todo!(),
                         };
                         for opt in opts {
                             curr = self.var_options.exec_option(opt, curr);
@@ -366,7 +366,7 @@ impl Writer {
                     None => {
                         match replacement {
                             ResValue::Val { value } => value.to_string(),
-                            ResValue::Array { array } => todo!(),
+                            ResValue::Array { array: _ } => todo!(),
                         }
                     },
                 };
@@ -390,7 +390,7 @@ impl Writer {
                     ResValue::Val { value } => {
                         text.push_str(&value);
                     },
-                    ResValue::Array { array } => todo!(),
+                    ResValue::Array { array: _ } => todo!(),
                 }
             },
             Node::DEF { conditions: _, name: _, body:_, line: _ , defaults: _} => {
@@ -424,7 +424,7 @@ impl Writer {
                     Some(ResValue::Array { array }) => {
                         array
                     },
-                    Some(ResValue::Val { value }) => panic!("expected array todo message"),
+                    Some(ResValue::Val { value: _ }) => panic!("expected array todo message"),
                     None => panic!("todo message, array var not found for in_var {in_var}"),
                 }.clone();
                 self.handle_for(
@@ -565,7 +565,7 @@ impl Writer {
                                         Some(ResValue::Val { value }) => {
                                             value
                                         },
-                                        Some(ResValue::Array { array }) => todo!(),
+                                        Some(ResValue::Array { array: _ }) => todo!(),
                                         None => break,
                                     };
                                     if !eval.2.eval(value, &eval.1) {
