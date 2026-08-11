@@ -266,6 +266,9 @@ this will take regular text and transform it into a template acording to rules
 ### add package
 - package add <package_name>
 - adds a dependency to rplace.toml
+### create version
+- package create-version
+- creates a new version, uses the version in rplace.toml
 
 # list of examples
 ```
