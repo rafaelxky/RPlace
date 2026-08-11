@@ -1,3 +1,2 @@
-//- def a:
-    hello world
-//- end:
+//- include package/main/1.0.0.1/ex2.txt:
+//- place a:

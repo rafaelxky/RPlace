@@ -1,7 +1,7 @@
 [package]
 name = "main"
-version = "1.0.0.0"
+version = "1.0.0.1"
 root = "ex2.txt"
 
 [dependencies]
-main = "1.0.0.0"
+main = "1.0.0.1"
