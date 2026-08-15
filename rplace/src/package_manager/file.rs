@@ -2,18 +2,16 @@ use anyhow::{Result};
 use directories::ProjectDirs;
 use path_clean::PathClean;
 use std::{
-    fs::{self, File},
-    io::Write,
-    path::{Path, PathBuf},
+    collections::{HashMap, HashSet}, fs::{self, File}, io::Write, path::{Path, PathBuf},
 };
 
-use crate::package_manager::{
+use crate::{constants::PROJECT_FILE, package_manager::{
     package_structs::{Dependency, PackageData},
     web::{
         fetch::{get_initial_data, get_package_file, get_version_paths},
         structs::PackageFile,
     },
-};
+}};
 pub fn package_exists(path: &str) -> bool {
     let dir = ProjectDirs::from("io", "rplace", "rplace").unwrap();
     let dir = dir.data_dir();
@@ -29,21 +27,41 @@ pub async fn load_all_package_files(
     package_data: &PackageData,
 ) -> Result<()> {
     let dependencies = &package_data.dependencies;
-    let dependencies: &std::collections::HashMap<String, Dependency> = match dependencies {
-        Some(d) => d,
+    let dependencies: HashMap<String, Dependency> = match dependencies {
+        Some(d) => d.clone(),
         None => return Ok(()),
     };
-    for (package_name, dependency) in dependencies {
-        let version_name = match dependency {
-            Dependency::Simple(version) => version,
-            Dependency::Detailed { version } => version,
-        };
-
-        let package = load_single_package(package_source, package_name, version_name).await?;
+    // hashset to avoid duplicate imports
+    let mut dep_map: HashSet<(String, String)> = HashSet::new();
+    for (name, dep) in dependencies.iter() {
+        dep_map.insert((name.to_string(),dep.get_version().to_string()));
+    }
+    // list of dependencies to import
+    let mut dep: Vec<(String, Dependency)> = dependencies.iter().map(|(name,dep)| {return (name.clone(), dep.clone());}).collect();
+    let mut i: usize = 0;
+    while i < dep.len() {
+        let (package_name,dependency) = &dep[i].clone();
+        let version_name = dependency.get_version();
+        
+        let package = load_single_package(package_source, &package_name, &version_name).await?;
         for file in package {
-            let path = save_package_file_raw(package_name,version_name,&file.file_path, &file.code)?;
+            if file.file_path == PROJECT_FILE {
+                let toml = PackageData::from_toml(file.code.clone())?;
+                if toml.dependencies.is_none() {
+                    continue;
+                }
+                for (name,dependency) in toml.dependencies.unwrap() {
+                    let data = (name.to_string(),dependency.get_version().to_string());
+                    if !dep_map.contains(&data) {
+                        dep_map.insert(data);
+                        dep.push((name, dependency));
+                    }
+                }
+            }
+            let path = save_package_file_raw(&package_name,&version_name,&file.file_path, &file.code)?;
             println!("loaded dependency to path {}", path);
         }
+        i+=1;
     }
     Ok(())
 }

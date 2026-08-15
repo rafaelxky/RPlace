@@ -1,14 +1,22 @@
 use std::collections::HashMap;
 
+use clap::builder::Str;
 use serde::{Deserialize, Serialize};
 
 use crate::config::config::PackageManagerCompilerConfig;
+use anyhow::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PackageData {
     pub package: Package,
     pub dependencies: Option<HashMap<String, Dependency>>,
     pub config: Option<PackageManagerCompilerConfig>,
+}
+impl PackageData {
+    pub fn from_toml<T: Into<String>>(toml: T) -> Result<Self> {
+        let data: PackageData = toml::from_str(&toml.into())?;
+        Ok(data)
+    }
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Package {
@@ -25,6 +33,18 @@ pub enum Dependency {
 impl Dependency {
     pub fn new_simple(version: String) -> Self {
         Self::Simple(version)
+    }
+    pub fn get_version(&self) -> &String {
+        match self {
+            Dependency::Simple(version) => version,
+            Dependency::Detailed { version } => version,
+        }
+    }
+    pub fn get_version_owned(self) -> String {
+        match self {
+            Dependency::Simple(version) => version,
+            Dependency::Detailed { version } => version,
+        }
     }
 }
 impl Package {
