@@ -65,6 +65,7 @@ pub async fn load_all_package_files(
 
         let package = load_single_package(package_source, &package_name, &version_name).await?;
         for file in package {
+            // add nested dependencies to be imported
             if file.file_path == PROJECT_FILE {
                 let toml = PackageData::from_toml(file.code.clone())?;
                 if toml.dependencies.is_none() {

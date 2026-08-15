@@ -347,7 +347,7 @@ impl Writer {
                             &ResValue::new_val("".to_string())
                         } else {
                             //handle_error(format!("No value specified for \"{}\" in template {}!", name,def_name), line.clone(), self.file_path.clone())
-                            panic!("no value specified for {}, in template {}", name, def_name)
+                            panic!("no value specified for <{}>, in template <{}>, vars {:?}", name, def_name, args_map)
                         }
                     }
                 };
@@ -400,6 +400,7 @@ impl Writer {
                 def_queue.as_mut().unwrap().push(n.clone());
             }, 
             Node::PLACE { name, args, line } => {
+                println!("place {} args {:?}",name,args);
                 // place inside body
                 // ??? whats this def_queue bellow ?
                 if def_queue.is_none() {
@@ -489,11 +490,10 @@ impl Writer {
                 let val = args_map.get(value);
                 match val {
                     Some(val) => {
-                        //args_map.insert(var.name.clone(), val.clone());
-                        return (value.clone(),val.clone());
+                        return (var.name.clone(), val.clone());
                     },
                     None => {
-                        panic!("No value found for var type {:?} line ", value);
+                        panic!("No value found for <var> type {:?} line ", value);
                     },
                 }
             },
@@ -527,6 +527,7 @@ impl Writer {
             if !args_map.contains_key(&arg.0.name.clone()) {
                 // resolve variables
                 let (name,val) = self.resolve_var(&arg.0, &arg.1, args_map, name);
+                println!("solved var {}, {:?}", name, val);
                 args_map.insert(name, val);
             }
         });
