@@ -1,9 +1,14 @@
 //- def a:
-    //- for a in array:
-        //- place b where value = $#a:
+    //- for a,b,c in array:
+    A
+        $#a?
+    B
+        $#b?
+    C
+        $#c?
     //- end:
 //- end:
 //- def b:
     $#value
 //- end:
-//- place a where array = [(a),(b),(c)]:
+//- place a where array = [(a=a),(b=b),(c=c)]:

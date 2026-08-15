@@ -43,6 +43,19 @@ impl Condition {
     }
 }
 #[derive(Debug, Clone)]
+pub enum ArrayValue {
+    Value(Value),
+    Named{
+        name: String,
+        value:Value,
+    }
+}
+impl ArrayValue {
+    pub fn from_value(value: Value) -> Self{
+        Self::Value(value)
+    }
+}
+#[derive(Debug, Clone)]
 pub enum Value {
     // "var"
     Literal {
@@ -56,7 +69,7 @@ pub enum Value {
     },
     // [(a,b), (c,d)]
     Array {
-        values: Vec<Vec<Value>>,
+        values: Vec<Vec<ArrayValue>>,
         names: Vec<Vec<Option<String>>>,
     }
 }
@@ -73,7 +86,7 @@ impl Value {
             options,
         };
     }
-    pub fn new_array_type(values: Vec<Vec<Value>>, names: Vec<Vec<Option<String>>>) -> Value {
+    pub fn new_value_array_type(values: Vec<Vec<ArrayValue>>, names: Vec<Vec<Option<String>>>) -> Value {
         return Value::Array { values, names};
     }
 }

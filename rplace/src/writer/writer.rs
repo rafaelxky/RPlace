@@ -318,7 +318,7 @@ impl Writer {
                         ResValue::Val { value } => {
                             arm.matches(value.to_string())
                         },
-                        ResValue::Array { array: _ } => todo!(),
+                        _ => panic!(),
                     }
                 });
 
@@ -357,6 +357,7 @@ impl Writer {
                         let mut curr = match replacement {
                             ResValue::Val { value } => value.to_string(),
                             ResValue::Array { array: _ } => todo!(),
+                            ResValue::NamedArrayValue { name, value } => todo!(),
                         };
                         for opt in opts {
                             curr = self.var_options.exec_option(opt, curr);
@@ -367,6 +368,7 @@ impl Writer {
                         match replacement {
                             ResValue::Val { value } => value.to_string(),
                             ResValue::Array { array: _ } => todo!(),
+                            ResValue::NamedArrayValue { name, value } => todo!(),
                         }
                     },
                 };
@@ -391,6 +393,7 @@ impl Writer {
                         text.push_str(&value);
                     },
                     ResValue::Array { array: _ } => todo!(),
+                    ResValue::NamedArrayValue { name, value } => todo!(),
                 }
             },
             Node::DEF { conditions: _, name: _, body:_, line: _ , defaults: _} => {
@@ -425,8 +428,8 @@ impl Writer {
                     Some(ResValue::Array { array }) => {
                         array
                     },
-                    Some(ResValue::Val { value: _ }) => panic!("expected array todo message"),
                     None => panic!("todo message, array var not found for in_var {in_var}"),
+                    Some(_) => panic!("expected array todo message"),
                 }.clone();
                 self.handle_for(
                     vars,
@@ -449,7 +452,7 @@ impl Writer {
 
     fn handle_for(
         &self, 
-        var_names: &Vec<String>, 
+        var_names: &Vec<String>,
         var_values: Vec<Vec<ResValue>>,
         body: &Box<Node>, 
         text: &mut String, 
@@ -466,7 +469,14 @@ impl Writer {
             let mut def_queue = def_queue.clone();
             
             for (name,val) in var_names.iter().zip(val) {
-                args_map.insert(name.to_string(), val);
+                match val {
+                    ResValue::NamedArrayValue { name, value } => {
+                        args_map.insert(name.to_string(), value.as_ref().clone());
+                    },
+                    _ => {
+                        args_map.insert(name.to_string(), val);
+                    }
+                };
             }
             
 
@@ -501,7 +511,15 @@ impl Writer {
                 // todo: resolve array values
                 let resolved_array_values = values.iter().map(|v|{
                     return v.iter().map(|val|{
-                        return self.resolve_var(var, val, args_map, name).1;
+                        match val {
+                            ArrayValue::Value(value) => {
+                                return self.resolve_var(var, value, args_map, name).1;
+                            },
+                            ArrayValue::Named { name, value } => {
+                                let val = self.resolve_var(var, value, args_map, name).1;
+                                return ResValue::new_named_array_value(name, val);
+                            },
+                        }
                     }).collect();
                 }).collect();
                 return (var.name.clone(), ResValue::new_array(resolved_array_values));
@@ -567,6 +585,7 @@ impl Writer {
                                             value
                                         },
                                         Some(ResValue::Array { array: _ }) => todo!(),
+                                        Some(ResValue::NamedArrayValue { name, value }) => todo!(),
                                         None => break,
                                     };
                                     if !eval.2.eval(value, &eval.1) {

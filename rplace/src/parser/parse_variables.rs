@@ -4,11 +4,7 @@ use directories::ProjectDirs;
 use path_clean::PathClean;
 
 use crate::{
-    error_handler::{CompilationError, handle_error, handle_error_parser},
-    lexer::Token,
-    package_manager::file::parse_package_path,
-    parser::Parser,
-    structs::{Value, Var, VarOption},
+    error_handler::{CompilationError, handle_error, handle_error_parser}, lexer::Token, package_manager::file::parse_package_path, parser::Parser, structs::{ArrayValue, Value, Var, VarOption},
 };
 
 impl Parser {
@@ -123,7 +119,7 @@ impl Parser {
     // ends at ] (consumes it)
     // ex: [(a,b),(c,d)]
     pub(super) fn handle_array_values(&mut self) -> Value {
-        let mut vals: Vec<Vec<Value>> = vec![];
+        let mut vals: Vec<Vec<ArrayValue>> = vec![];
         let names: Vec<Vec<Option<String>>> = vec![];
         loop {
             self.remove_spaces();
@@ -133,12 +129,41 @@ impl Parser {
                     loop {
                         let val = self.handle_val();
                         let len = vals.len() - 1;
-                        vals[len].push(val);
                         self.remove_spaces();
                         match self.pop() {
-                            Token::COMMA => continue,
-                            Token::RPAREN => break,
+                            Token::COMMA => {
+                                vals[len].push(ArrayValue::Value(val));
+                                continue
+                            },
+                            Token::RPAREN => {
+                                vals[len].push(ArrayValue::Value(val));
+                                break
+                            },
+                            Token::EQUALS => {
+                                let name = match val {
+                                    Value::Literal { value, options } => {
+                                        if options.is_some() {
+                                            panic!("todo message")
+                                        }
+                                        value
+                                    },
+                                    _ => panic!("todo message ")
+                                };
+                                self.remove_spaces();
+                                let val_inner = self.handle_val();
+                                vals[len].push(ArrayValue::Named { name, value: val_inner });
+                            }
                             _ => panic!(),
+                        }
+                        self.remove_spaces();
+                        match self.pop() {
+                            Token::COMMA => {
+                                continue
+                            },
+                            Token::RPAREN => {
+                                break
+                            },
+                            _ => panic!()
                         }
                     }
                 }
@@ -154,7 +179,7 @@ impl Parser {
 
         // todo: names
         // [(name=val, name2=val2)]
-        return Value::new_array_type(vals, names);
+        return Value::new_value_array_type(vals, names);
     }
 
     /// gets here right after " in arg

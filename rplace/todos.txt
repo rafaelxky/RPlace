@@ -108,7 +108,7 @@ imports must allow for ./ and not break with the import map so I'd need to store
 
 - better inner def scope
 
-- make so it can execute other files
+- make so it can execute other files X 
 
 //- parse file.txt: X
 
@@ -122,3 +122,21 @@ imports must allow for ./ and not break with the import map so I'd need to store
 //- end
 
 - if is semi implented, please remember to implement the rest
+
+- named arrays
+//- for a,b,c in arr:
+
+//- a: X
+//- place template where arr = [(a="abc", d="dbc")]: X
+
+- type match 
+//- match var:
+    //- case type array:
+        ...
+    //- end:
+    //- case type value:
+        ...
+    //- end:
+//- end:
+
+- todo: [(a=a, b, c)] <- should not be allowed
