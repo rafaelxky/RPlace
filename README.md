@@ -69,7 +69,7 @@ pub struct /*- $#struct_name -> -*/ Vec2
 
 ## parent variables
 - you can use parent variables inside place
-- ex: //- place name where a=$#var
+- ex: //- place name where a=$#var:
 - in this case "a" will be replaced by the value of "var" from the parent
 
 # def
