@@ -1,17 +1,24 @@
 use anyhow::{Result};
 use directories::ProjectDirs;
 use path_clean::PathClean;
+use reqwest::{Client, StatusCode};
 use std::{
-    collections::{HashMap, HashSet}, fs::{self, File}, io::Write, path::{Path, PathBuf},
+    collections::{HashMap, HashSet},
+    fs::{self, File},
+    io::Write,
+    path::{Path, PathBuf},
 };
 
-use crate::{constants::PROJECT_FILE, package_manager::{
-    package_structs::{Dependency, PackageData},
-    web::{
-        fetch::{get_initial_data, get_package_file, get_version_paths},
-        structs::PackageFile,
+use crate::{
+    constants::PROJECT_FILE,
+    package_manager::{
+        package_structs::{Dependency, PackageData},
+        web::{
+            fetch::{get_initial_data, get_package_file, get_version_paths},
+            structs::PackageFile,
+        },
     },
-}};
+};
 pub fn package_exists(path: &str) -> bool {
     let dir = ProjectDirs::from("io", "rplace", "rplace").unwrap();
     let dir = dir.data_dir();
@@ -26,6 +33,14 @@ pub async fn load_all_package_files(
     package_source: &str,
     package_data: &PackageData,
 ) -> Result<()> {
+
+    let client = Client::new();
+    let response = client.get(package_source).send().await;
+    if response.is_err() || response.unwrap().status() != StatusCode::OK {
+        println!("Package manager source {} offline!", package_source);
+        return Ok(());
+    }
+
     let dependencies = &package_data.dependencies;
     let dependencies: HashMap<String, Dependency> = match dependencies {
         Some(d) => d.clone(),
@@ -34,15 +49,20 @@ pub async fn load_all_package_files(
     // hashset to avoid duplicate imports
     let mut dep_map: HashSet<(String, String)> = HashSet::new();
     for (name, dep) in dependencies.iter() {
-        dep_map.insert((name.to_string(),dep.get_version().to_string()));
+        dep_map.insert((name.to_string(), dep.get_version().to_string()));
     }
     // list of dependencies to import
-    let mut dep: Vec<(String, Dependency)> = dependencies.iter().map(|(name,dep)| {return (name.clone(), dep.clone());}).collect();
+    let mut dep: Vec<(String, Dependency)> = dependencies
+        .iter()
+        .map(|(name, dep)| {
+            return (name.clone(), dep.clone());
+        })
+        .collect();
     let mut i: usize = 0;
     while i < dep.len() {
-        let (package_name,dependency) = &dep[i].clone();
+        let (package_name, dependency) = &dep[i].clone();
         let version_name = dependency.get_version();
-        
+
         let package = load_single_package(package_source, &package_name, &version_name).await?;
         for file in package {
             if file.file_path == PROJECT_FILE {
@@ -50,18 +70,19 @@ pub async fn load_all_package_files(
                 if toml.dependencies.is_none() {
                     continue;
                 }
-                for (name,dependency) in toml.dependencies.unwrap() {
-                    let data = (name.to_string(),dependency.get_version().to_string());
+                for (name, dependency) in toml.dependencies.unwrap() {
+                    let data = (name.to_string(), dependency.get_version().to_string());
                     if !dep_map.contains(&data) {
                         dep_map.insert(data);
                         dep.push((name, dependency));
                     }
                 }
             }
-            let path = save_package_file_raw(&package_name,&version_name,&file.file_path, &file.code)?;
+            let path =
+                save_package_file_raw(&package_name, &version_name, &file.file_path, &file.code)?;
             println!("loaded dependency to path {}", path);
         }
-        i+=1;
+        i += 1;
     }
     Ok(())
 }
@@ -83,7 +104,7 @@ pub async fn load_single_package(
     }
     return Ok(files);
 }
-pub fn create_dependency_folder(name: &str) -> Result<PathBuf>{
+pub fn create_dependency_folder(name: &str) -> Result<PathBuf> {
     let dir = ProjectDirs::from("io", "rplace", "rplace").unwrap();
     let dir = dir.data_dir();
     let dir = dir.join("packages");
@@ -94,8 +115,13 @@ pub fn create_dependency_folder(name: &str) -> Result<PathBuf>{
     fs::create_dir_all(&dir)?;
     Ok(dir)
 }
-pub fn save_package_file_raw(package_name: &str,package_version_name: &str,path: &str, code: &str) -> Result<String> {
-    let path = resolve_package_path(package_name,package_version_name,path);
+pub fn save_package_file_raw(
+    package_name: &str,
+    package_version_name: &str,
+    path: &str,
+    code: &str,
+) -> Result<String> {
+    let path = resolve_package_path(package_name, package_version_name, path);
     let path = PathBuf::from(path);
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
@@ -104,7 +130,7 @@ pub fn save_package_file_raw(package_name: &str,package_version_name: &str,path:
     file.write_all(code.as_bytes())?;
     Ok(path.to_str().unwrap().to_string())
 }
-pub fn resolve_package_path(package_name: &str,package_version_name: &str,path: &str) -> String {
+pub fn resolve_package_path(package_name: &str, package_version_name: &str, path: &str) -> String {
     let dir = ProjectDirs::from("io", "rplace", "rplace").unwrap();
     let dir = dir.data_dir();
     let dir = dir.join("packages");

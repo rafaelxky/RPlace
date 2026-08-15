@@ -85,26 +85,26 @@ and it would be able to translate to multiple languages X
 - implement any / _ for match
 
 - array example
-//- for (var, type) in collection var:
-    $#var+: $#type
-//- end:
-//- place a where arr=(a,b),(c,d),(e,f), var=val:
+//- for (var, type) in collection var: X
+    $#var+: $#type X
+//- end: X
+//- place a where arr=(a,b),(c,d),(e,f), var=val: X
 
-- package manager
+- package manager X
 rplace.toml
 ex: 
-[project]
-name = "name"
-version = "version"
+[project] X
+name = "name" X
+version = "version" X
 
-[packages]
-package1 = {version = "1.0.0.0", features = ["stuffA"]}
+[packages] X
+package1 = {version = "1.0.0.0", features = ["stuffA"]} X
 
-- lib.rp file listing all public available templates to be used
+- lib.rp file listing all public available templates to be used 
 
 package2
-- better imports
-imports must allow for ./ and not break with the import map so I'd need to store the absolute path
+- better imports X
+imports must allow for ./ and not break with the import map so I'd need to store the absolute path X
 
 - better inner def scope
 
@@ -112,10 +112,10 @@ imports must allow for ./ and not break with the import map so I'd need to store
 
 //- parse file.txt: X
 
-- make so that you can parse an entire folder and allow it to handle custom output
+- make so that you can parse an entire folder and allow it to handle custom output X
 
-- $#var? -> none if not set
-- $#var?default
+- $#var? -> none if not set X
+- $#var?default 
 - 
 //- if var? = val:
 

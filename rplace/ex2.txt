@@ -1,2 +1,9 @@
-//- include package/main/1.0.0.1/ex2.txt:
-//- place a:
+//- def a:
+    //- for a in array:
+        //- place b where value = $#a:
+    //- end:
+//- end:
+//- def b:
+    $#value
+//- end:
+//- place a where array = [(a),(b),(c)]:

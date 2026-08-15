@@ -347,7 +347,7 @@ impl Writer {
                             &ResValue::new_val("".to_string())
                         } else {
                             //handle_error(format!("No value specified for \"{}\" in template {}!", name,def_name), line.clone(), self.file_path.clone())
-                            panic!("no falue specified for {}, in template {}", name, def_name)
+                            panic!("no value specified for {}, in template {}", name, def_name)
                         }
                     }
                 };

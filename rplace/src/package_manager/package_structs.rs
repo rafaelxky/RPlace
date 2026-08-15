@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use clap::builder::Str;
 use serde::{Deserialize, Serialize};
 
 use crate::config::config::PackageManagerCompilerConfig;
