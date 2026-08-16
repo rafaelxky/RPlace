@@ -140,3 +140,5 @@ imports must allow for ./ and not break with the import map so I'd need to store
 //- end:
 
 - todo: [(a=a, b, c)] <- should not be allowed
+
+- allow trailing comma ,)],:
