@@ -15,7 +15,7 @@ fn parse(code: &str) -> Result<String> {
     let lua_map = LuaCallMap::empty(config.clone());
     let var_options_map = Arc::new(VarOptionsMap::new(config.clone(), lua_map));
     let tok = Lexer::new(PATH, code).parse();
-    let res = Parser::new(tok, PATH.to_string(), OUTPUT_PATH.to_string()).parse();
+    let res = Parser::new(tok, PATH.to_string(), OUTPUT_PATH.to_string()).parse()?;
     let (mut replaced, _config) = Writer::new(
         res,
         PATH.to_string(),
@@ -23,7 +23,7 @@ fn parse(code: &str) -> Result<String> {
         config,
         var_options_map,
     )
-    .replace();
+    .replace()?;
     let str = replaced.file_data.pop().unwrap().data;
     Ok(str)
 }

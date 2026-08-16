@@ -1,3 +1,5 @@
+use anyhow::{Ok, Result};
+
 use crate::{
     error_handler::{CompilationError, handle_error_parser},
     lexer::Token,
@@ -9,7 +11,7 @@ impl Parser {
     // gets here after //- $#
     // currently only handles global variable set for stuff like file config
     // ex: //- $#var = val:
-    pub(super) fn handle_set_variable(&mut self, nodes: &mut ParsingResult) {
+    pub(super) fn handle_set_variable(&mut self, nodes: &mut ParsingResult) -> Result<()>{
         let mut var = vec![];
         loop {
             let var_name = match self.pop() {
@@ -31,7 +33,7 @@ impl Parser {
         }
         self.remove_spaces();
 
-        let val = self.handle_val();
+        let val = self.handle_val()?;
         self.remove_spaces();
         match self.pop() {
             Token::DD => (),
@@ -39,6 +41,7 @@ impl Parser {
         }
 
         nodes.push(Node::SETVARIABLE { var: var, val: val });
+        Ok(())
     }
     /// //- parse file.txt:
     pub(super) fn handle_parse_instr(&mut self, nodes: &mut ParsingResult) {
@@ -52,7 +55,7 @@ impl Parser {
     }
 
     // //- derive file.txt:
-    pub(super) fn handle_derive(&mut self, nodes: &mut ParsingResult) {
+    pub(super) fn handle_derive(&mut self, nodes: &mut ParsingResult) -> Result<()>{
         self.remove_spaces();
         let path = match self.peek() {
             Token::IDENT { str: _ } => self.handle_path(self.project_src.clone()),
@@ -65,7 +68,7 @@ impl Parser {
             Token::WHERE => {
                 self.ptr_next();
                 self.remove_spaces();
-                let args = self.handle_vars();
+                let args = self.handle_vars()?;
                 match self.peek() {
                     Token::DD => {
                         self.ptr_next();
@@ -80,10 +83,11 @@ impl Parser {
             path: path,
             val: args,
         });
+        Ok(())
     }
 
     // create filepath place defname:
-    pub(super) fn handle_create(&mut self, nodes: &mut ParsingResult) {
+    pub(super) fn handle_create(&mut self, nodes: &mut ParsingResult) -> Result<()>{
         let path: String = self.handle_path(self.output_src.clone());
         let starting_line = self.get_line();
         // filepath
@@ -99,23 +103,23 @@ impl Parser {
                     content: None,
                 });
                 self.remove_till_nl();
-                return;
+                return Ok(());
             }
             Token::PLACE => {
                 self.ptr_next();
                 let mut temp_nodes = ParsingResult::new(path.clone());
                 // returns one place
-                self.handle_place(&mut temp_nodes);
+                self.handle_place(&mut temp_nodes)?;
                 //let content = Some(Box::new(Node::BODY { data: temp_nodes, line: starting_line }))
                 let node = Node::new_create(path, temp_nodes.nodes, starting_line);
                 nodes.push(node);
-                return;
+                return Ok(());
             }
             _ => handle_error_parser(CompilationError::InvalidAfterFilePath, self),
         }
     }
 
-    pub(super) fn handle_place(&mut self, nodes: &mut ParsingResult) {
+    pub(super) fn handle_place(&mut self, nodes: &mut ParsingResult) -> Result<()>{
         // reaches here as //- place
         self.remove_spaces();
 
@@ -148,7 +152,7 @@ impl Parser {
                 // place ident were
                 Token::WHERE => {
                     self.ptr_next();
-                    args.append(&mut self.handle_vars());
+                    args.append(&mut self.handle_vars()?);
                     self.remove_spaces();
                 }
                 _ => handle_error_parser(CompilationError::InvalidPlaceOption, self),
@@ -159,11 +163,11 @@ impl Parser {
             args: args,
             line: place_line,
         });
-        return;
+        return Ok(());
     }
 
     // //- match var:
-    pub(super) fn handle_match(&mut self) -> Node {
+    pub(super) fn handle_match(&mut self) -> Result<Node> {
         self.remove_till_nl();
         let var_name = match self.pop() {
             Token::IDENT { str } => str,
@@ -174,7 +178,7 @@ impl Parser {
             Token::DD => {}
             _ => panic!("todo error message expected : in match"),
         };
-        let mut matches = Vec::new();
+        let mut matches: Vec<MatchArm> = Vec::new();
         loop {
             self.remove_spaces();
             match self.pop() {
@@ -184,7 +188,7 @@ impl Parser {
             self.remove_spaces();
             match self.pop() {
                 Token::CASE => {
-                    let arm_body = self.handle_match_arm();
+                    let arm_body = self.handle_match_arm()?;
                     matches.push(arm_body);
                 }
                 Token::END => {
@@ -199,17 +203,17 @@ impl Parser {
             }
         }
 
-        return Node::MATCH {
+        return Ok(Node::MATCH {
             line: self.line,
             var_name: var_name,
             val: matches,
-        };
+        });
     }
     /// handles match arm
     /// already poped <case> token here
     /// returns a body node and the match value inside the match arm struct
     /// ex: //- case name: nody //- end:
-    pub(super) fn handle_match_arm(&mut self) -> MatchArm {
+    pub(super) fn handle_match_arm(&mut self) -> Result<MatchArm> {
         self.remove_spaces();
         // case name
         let match_value = match self.pop() {
@@ -225,8 +229,8 @@ impl Parser {
             _ => panic!("todo error message expected : at match arm"),
         };
 
-        let body = self.build_body();
-        MatchArm::new(match_value, body)
+        let body = self.build_body()?;
+        Ok(MatchArm::new(match_value, body))
     }
 
     // //- include text.txt:

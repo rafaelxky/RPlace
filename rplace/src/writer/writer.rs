@@ -4,6 +4,7 @@ use std::{
 };
 use rayon::{ prelude::*};
 use rayon::iter::IntoParallelRefIterator;
+use anyhow::{Result};
 
 use crate::config::config::{CompilerConfig};
 use crate::derive::deriver::Deriver;
@@ -67,30 +68,30 @@ impl Writer {
         }
     }
 
-    fn handle_import(&self, data: String, path: String) -> ParsingResult {
+    fn handle_import(&self, data: String, path: String) -> Result<ParsingResult> {
         {
             let import_lock = self.imports.read().unwrap();
             let maybe_import = import_lock.get(&path);
 
             match maybe_import {
                 Some(result) => {
-                    return result.clone();
+                    return Ok(result.clone());
                 },
                 None => (),
             }
         }
                 let lexer = Lexer::new(path.clone(), data);
                 let parser = Parser::new(lexer.parse(),self.project_src.clone(), self.output_src.clone());
-                let nodes = parser.parse();
+                let nodes = parser.parse()?;
                 let mut import_lock = self.imports.write().unwrap();
                 import_lock.insert(nodes.file_path.clone(), nodes.clone());
-                nodes
+                Ok(nodes)
     }
     fn initial_sweap(
         &mut self, 
         def_map: &mut HashMap<String, Vec<Node>>, 
         to_parse: &mut Vec<String>, 
-        mod_list: &mut Vec<String>) {
+        mod_list: &mut Vec<String>) -> Result<()>{
         // initial sweap
         let mut to_import: Vec<(String,usize)> = Vec::new();
 
@@ -136,9 +137,9 @@ impl Writer {
             _ => (),
         }};
 
-        let imports: Vec<Vec<ParsingResult>> = to_import.par_iter().map(|(path, _line)|{
+        let imports: Vec<Vec<ParsingResult>> = to_import.par_iter().map(|(path, _line)| -> Result<Vec<ParsingResult>>{
             let (mut stream, _) = get_data_stream(path);
-            let mut imp = Vec::new();
+            let mut imp: Vec<ParsingResult> = Vec::new();
             loop {
                 let data = stream.next();
                 if data.is_none() {
@@ -148,24 +149,25 @@ impl Writer {
                 if !self.compiler_config.allow_import {
                     continue;
                 }
-                imp.push(self.handle_import(data,path));
+                let import = self.handle_import(data, path)?;
+                imp.push(import);
             }
-            imp
-        }).collect();
+            Ok(imp)
+        }).collect::<anyhow::Result<Vec<Vec<ParsingResult>>>>()?;
 
         for imports_inner in imports{
-        for import in imports_inner {
-            for node in import.nodes {
-                match &node {
-                    Node::DEF { conditions:_, defaults:_, name, body:_, line:_ } => {
-                        def_map.entry(name.clone()).or_insert_with(Vec::new).push(node.clone());
-                    },
-                    _ => ()
+            for import in imports_inner {
+                for node in import.nodes {
+                    match &node {
+                        Node::DEF { conditions:_, defaults:_, name, body:_, line:_ } => {
+                            def_map.entry(name.clone()).or_insert_with(Vec::new).push(node.clone());
+                        },
+                        _ => ()
+                    }
                 }
             }
         }
-    }
-        
+     Ok(())   
     }
 
     fn handle_def(&self, def_map: &mut HashMap<String, Vec<Node>>, node: &Node, name: &String) {
@@ -190,21 +192,21 @@ impl Writer {
                     });
     }
 
-    pub fn get_paths(mut self) -> (Vec<String>,Vec<String>){
+    pub fn get_paths(mut self) -> Result<(Vec<String>,Vec<String>)>{
         let mut def_map = HashMap::new();
         let mut to_parse = Vec::new();
         let mut mod_list = Vec::new();
-        self.initial_sweap(&mut def_map, &mut to_parse, &mut mod_list);
-        return (to_parse,mod_list);
+        self.initial_sweap(&mut def_map, &mut to_parse, &mut mod_list)?;
+        return Ok((to_parse,mod_list));
     }
-    pub fn replace(mut self) -> (WriterResult, FileConfig) {
+    pub fn replace(mut self) -> Result<(WriterResult, FileConfig)> {
         let mut result = WriterResult::new();
 
         let mut text = String::new();
         let mut def_map = HashMap::new();
         let mut to_parse = Vec::new();
         let mut mod_list = Vec::new();
-        self.initial_sweap(&mut def_map, &mut to_parse, &mut mod_list);
+        self.initial_sweap(&mut def_map, &mut to_parse, &mut mod_list)?;
         result.set_to_parse(to_parse);
 
         let nodes = &self.nodes;
@@ -247,7 +249,7 @@ impl Writer {
             }
         }
         result.push_elements(text, self.file_path);
-        (result, self.file_config)
+        Ok((result, self.file_config))
     }
 
     fn handle_create(&self, path: &str, body: &Option<Box<Node>>, def_map: &HashMap<String, Vec<Node>>) -> WriterResult {
@@ -359,8 +361,7 @@ impl Writer {
                     Some(opts) => {
                         let mut curr = match replacement {
                             ResValue::Val { value } => value.to_string(),
-                            ResValue::Array { array: _ } => todo!(),
-                            ResValue::NamedArrayValue { name, value } => todo!(),
+                            _ => todo!()
                         };
                         for opt in opts {
                             curr = self.var_options.exec_option(opt, curr);
@@ -370,8 +371,7 @@ impl Writer {
                     None => {
                         match replacement {
                             ResValue::Val { value } => value.to_string(),
-                            ResValue::Array { array: _ } => todo!(),
-                            ResValue::NamedArrayValue { name, value } => todo!(),
+                            _ => todo!()
                         }
                     },
                 };
@@ -395,8 +395,7 @@ impl Writer {
                     ResValue::Val { value } => {
                         text.push_str(&value);
                     },
-                    ResValue::Array { array: _ } => todo!(),
-                    ResValue::NamedArrayValue { name, value } => todo!(),
+                    _ => panic!(),
                 }
             },
             Node::DEF { conditions: _, name: _, body:_, line: _ , defaults: _} => {
@@ -586,9 +585,8 @@ impl Writer {
                                         Some(ResValue::Val { value }) => {
                                             value
                                         },
-                                        Some(ResValue::Array { array: _ }) => todo!(),
-                                        Some(ResValue::NamedArrayValue { name, value }) => todo!(),
                                         None => break,
+                                        _ => todo!(),
                                     };
                                     if !eval.2.eval(value, &eval.1) {
                                         break;

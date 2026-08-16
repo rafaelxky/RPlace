@@ -15,8 +15,9 @@ use crate::structs::FileConfig;
 use crate::term::terminal_handler::ParseArgs;
 use crate::writer::writer::Writer;
 use crate::writer::writer_structs::WriterResult;
+use anyhow::Result;
 
-pub fn parse_get_all_paths(data: PackageData, config: CompilerConfig) -> Vec<String>{
+pub fn parse_get_all_paths(data: PackageData, config: CompilerConfig) -> Result<Vec<String>>{
     let project_src = data.package.root;
     let output_src = "".to_string();
     let (mut stream, _origin) = get_data_stream(&project_src);
@@ -36,7 +37,7 @@ pub fn parse_get_all_paths(data: PackageData, config: CompilerConfig) -> Vec<Str
         let lexer = Lexer::new(path.clone(), data);
         let tokens = lexer.parse();
         let parser = Parser::new(tokens, project_src.clone(), output_src.to_string());
-        let nodes = parser.parse();
+        let nodes = parser.parse()?;
         let path = nodes.file_path.clone();
         let writer = Writer::new_with_imports(
             nodes,
@@ -46,15 +47,15 @@ pub fn parse_get_all_paths(data: PackageData, config: CompilerConfig) -> Vec<Str
             config.clone(),
             var_options_map.clone(),
         );
-        let (mut to_parse, mut moded): (Vec<String>, Vec<String>) = writer.get_paths();
+        let (mut to_parse, mut moded): (Vec<String>, Vec<String>) = writer.get_paths()?;
         stream.append(&mut to_parse);
         stream.append(&mut moded);
         paths_outer.push(path);
     }
-    return paths_outer;
+    return Ok(paths_outer);
 }
 
-pub fn run_parse(args: ParseArgs, config: CompilerConfig, _package_data: Option<PackageData>) -> Vec<OutputWriter> {
+pub fn run_parse(args: ParseArgs, config: CompilerConfig, _package_data: Option<PackageData>) -> Result<Vec<OutputWriter>> {
     let (mut stream, origin) = get_data_stream(args.origin.as_ref().unwrap());
     let project_src = args.origin.unwrap();
     let output_src = match &args.target {
@@ -89,7 +90,7 @@ pub fn run_parse(args: ParseArgs, config: CompilerConfig, _package_data: Option<
         let lexer = Lexer::new(path.clone(), data);
         let tokens = lexer.parse();
         let parser = Parser::new(tokens, project_src.clone(), output_src.clone());
-        let nodes = parser.parse();
+        let nodes = parser.parse()?;
         if args.stops_at_parser {
             println!("{:#?}", nodes);
         }
@@ -101,7 +102,7 @@ pub fn run_parse(args: ParseArgs, config: CompilerConfig, _package_data: Option<
             config.clone(),
             var_options_map.clone(),
         );
-        let (mut replaced, config): (WriterResult, FileConfig) = writer.replace();
+        let (mut replaced, config): (WriterResult, FileConfig) = writer.replace()?;
         stream.append(&mut replaced.to_parse);
 
         if args.stops_at_parser {
@@ -132,5 +133,5 @@ pub fn run_parse(args: ParseArgs, config: CompilerConfig, _package_data: Option<
         to_write.push(output);
     }
 
-    return to_write;
+    return Ok(to_write);
 }

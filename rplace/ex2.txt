@@ -1,16 +1,29 @@
+//- $#output = "out.txt":
 //- def a:
-    //- for a,b,c in array:
-        //- match a:
-        //- case _ :
-            case _ a
+
+//- for struct_name,add,delete,update,remove,get,fields in fields:
+    pub struct $#struct_name\pascalcase {
+        //- for field,type in fields:
+            pub $#field+: $#type+,
+
         //- end:
-        //- end:
-        $#a?
-        $#b?
-        $#c?
-    //- end:
+    }
+    impl $#struct_name\pascalcase {
+
+    }
 //- end:
-//- def b:
-    $#value
+
 //- end:
-//- place a where array = [(a=a),(b=b),(c=c)]:
+
+//- place a where fields = [(
+    struct_name="user",
+    add = true, 
+    delete = true, 
+    update = true,
+    remove = true,
+    get = true,
+    fields = [(
+        field = name,
+        type = String
+    )]
+    )]:

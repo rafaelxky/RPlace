@@ -63,7 +63,7 @@ async fn main() -> Result<()> {
                     run_parse(args, config, Some(d))
                 },
                 _ => run_parse(args, config, None),
-            };
+            }?;
             if stops_at_parser {
                 return Ok(());
             }
@@ -101,7 +101,7 @@ async fn main() -> Result<()> {
             let package_version = data.package.version.clone();
             let header = get_initial_data(&package_source, &package_name, &package_version).await?;
             let token = read_tok()?;
-            let mut paths: Vec<String> = parse_get_all_paths(data, config);
+            let mut paths: Vec<String> = parse_get_all_paths(data, config)?;
             paths.push(PROJECT_FILE.to_string());
             let path_count = paths.len();
 

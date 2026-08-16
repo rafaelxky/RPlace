@@ -1,5 +1,6 @@
 use core::panic;
 use std::str;
+use anyhow::{Ok, Result};
 
 use crate::{
     error_handler::{CompilationError, handle_error_parser},
@@ -45,6 +46,9 @@ impl Parser {
         self.ptr = self.ptr + 1;
         self.tokens[self.ptr - 1].clone()
     }
+    fn unpop(&mut self) {
+        self.ptr = self.ptr - 1;
+    }
     fn peek_behind(&self, i: usize) -> Token {
         self.tokens[self.ptr - i].clone()
     }
@@ -84,20 +88,20 @@ impl Parser {
         return str;
     }
 
-    pub fn parse(mut self) -> ParsingResult {
+    pub fn parse(mut self) -> Result<ParsingResult> {
         let mut body_str = String::new();
         let mut parser_result = ParsingResult::new(self.file_path.clone());
         while self.can_pop() {
-            body_str = self.parse_inner(&mut parser_result, body_str);
+            body_str = self.parse_inner(&mut parser_result, body_str)?;
         }
         parser_result.push(Node::DATA {
             data: body_str.to_string(),
             line: self.line,
         });
-        parser_result
+        Ok(parser_result)
     }
 
-    fn parse_inner(&mut self, nodes: &mut ParsingResult, body_str: String) -> String {
+    fn parse_inner(&mut self, nodes: &mut ParsingResult, body_str: String) -> Result<String> {
         let curr = self.pop();
         let mut body_str = body_str;
         match curr {
@@ -107,7 +111,7 @@ impl Parser {
                     line: self.line,
                 });
                 body_str = String::new();
-                self.handle_func(nodes);
+                self.handle_func(nodes)?;
             }
             Token::NL => {
                 self.line = self.line + 1;
@@ -117,20 +121,20 @@ impl Parser {
                 body_str.push_str(&tok.val());
             }
         }
-        return body_str;
+        return Ok(body_str);
     }
 
-    fn handle_func(&mut self, nodes: &mut ParsingResult) {
+    fn handle_func(&mut self, nodes: &mut ParsingResult) -> Result<()>{
         let mut nodes = nodes;
         self.remove_spaces();
         match self.peek() {
             Token::DEF => {
                 self.ptr_next();
-                self.handle_def(&mut nodes);
+                self.handle_def(&mut nodes)?;
             }
             Token::PLACE => {
                 self.ptr_next();
-                self.handle_place(&mut nodes);
+                self.handle_place(&mut nodes)?;
             }
             Token::INCLUDE => {
                 self.ptr_next();
@@ -138,15 +142,15 @@ impl Parser {
             }
             Token::CREATE => {
                 self.ptr_next();
-                self.handle_create(&mut nodes);
+                self.handle_create(&mut nodes)?;
             }
             Token::DERIVE => {
                 self.ptr_next();
-                self.handle_derive(&mut nodes);
+                self.handle_derive(&mut nodes)?;
             }
             Token::VAR => {
                 self.ptr_next();
-                self.handle_set_variable(&mut nodes);
+                self.handle_set_variable(&mut nodes)?;
             }
             Token::PARSE => {
                 self.ptr_next();
@@ -157,12 +161,14 @@ impl Parser {
                 self.handle_mod(&mut nodes);
             }
             _ => {
-                handle_error_parser(CompilationError::InvalidFunc, self);
+                //handle_error_parser(CompilationError::InvalidFunc, self);
+                panic!("todo error")
             }
         }
+        Ok(())
     }
 
-    fn handle_def(&mut self, nodes: &mut ParsingResult) {
+    fn handle_def(&mut self, nodes: &mut ParsingResult) -> Result<()>{
         //- def ...
         self.remove_spaces();
 
@@ -181,7 +187,8 @@ impl Parser {
                 "place".to_string()
             }
             _ => {
-                handle_error_parser(CompilationError::InvalidDefName, self);
+                //handle_error_parser(CompilationError::InvalidDefName, self);
+                panic!("todo error");
             }
         };
 
@@ -202,19 +209,22 @@ impl Parser {
                     self.remove_spaces();
                     match self.peek() {
                         Token::IDENT { str: _ } => {
-                            self.handle_place(nodes);
+                            self.handle_place(nodes)?;
                             let place = nodes.remove(nodes.len() - 1);
                             body = Some(Box::new(place));
                             break;
                         }
-                        _ => handle_error_parser(CompilationError::InvalidDefPlaceName, self),
+                        _ => {
+                            //handle_error_parser(CompilationError::InvalidDefPlaceName, self)
+                            panic!("todo error");
+                        },
                     }
                 }
                 Token::DERIVE => {
                     // todo:
                     self.ptr_next();
                     let mut temp_nodes = ParsingResult::new(self.file_path.clone());
-                    self.handle_derive(&mut temp_nodes);
+                    self.handle_derive(&mut temp_nodes)?;
                     body = Some(Box::new(temp_nodes.nodes[0].clone()));
                     break;
                 }
@@ -259,23 +269,24 @@ impl Parser {
                                                 }
                                             }
                                             // def name when name = <here>
-                                            _ => handle_error_parser(
-                                                CompilationError::Invalid2ndIdentWhen,
-                                                self,
-                                            ),
+                                            _ => {
+                                                //handle_error_parser(CompilationError::Invalid2ndIdentWhen,self,)
+                                                panic!("todo error");
+                                        },
                                         }
                                     }
-                                    _ => handle_error_parser(
-                                        CompilationError::InvalidComparissonTok,
-                                        self,
-                                    ),
+                                    _ => {
+                                        //handle_error_parser(CompilationError::InvalidComparissonTok,self,)
+                                        panic!("todo error");
+                                },
                                 }
                             }
                             Token::PLACE => {
                                 break;
                             }
                             _ => {
-                                handle_error_parser(CompilationError::Invalid1stIdentWhen, self);
+                                //handle_error_parser(CompilationError::Invalid1stIdentWhen, self);
+                                panic!("todo error");
                             }
                         }
                     }
@@ -320,32 +331,27 @@ impl Parser {
                                             }
                                             // def a where a = <here>
                                             _ => {
-                                                handle_error_parser(
-                                                    CompilationError::Invalid2ndIdentDefWhere,
-                                                    self,
-                                                );
+                                                //handle_error_parser(CompilationError::Invalid2ndIdentDefWhere,self,);
+                                                panic!("todo message")
                                             }
                                         }
                                     }
                                     _ => {
-                                        handle_error_parser(
-                                            CompilationError::InvalidAssignementDefWhere,
-                                            self,
-                                        );
+                                        //handle_error_parser(CompilationError::InvalidAssignementDefWhere,self,);
+                                        panic!("todo message")
                                     }
                                 }
                             }
                             _ => {
-                                handle_error_parser(
-                                    CompilationError::Invalid1stIdentDefWhere,
-                                    self,
-                                );
+                                //handle_error_parser(CompilationError::Invalid1stIdentDefWhere,self,);
+                                panic!("todo message")
                             }
                         }
                     }
                 }
                 _ => {
-                    handle_error_parser(CompilationError::InvalidDefOption, self);
+                    //handle_error_parser(CompilationError::InvalidDefOption, self);
+                    panic!("todo message")
                 }
             }
         }
@@ -359,12 +365,12 @@ impl Parser {
                 conditions: conditions,
                 defaults: defaults,
             });
-            return;
+            return Ok(());
         }
 
         // if nothing defines a body then its a def of kind /*- def name: ... endef -*/
         // so we need to build the body
-        let body = self.build_body();
+        let body = self.build_body()?;
         nodes.push(Node::DEF {
             name: def_name.to_string(),
             body: Box::new(body),
@@ -372,6 +378,7 @@ impl Parser {
             conditions: conditions,
             defaults: defaults.clone(),
         });
+        return Ok(());
     }
     fn remove_and_return_spaces(&mut self) -> String {
         let mut spaces = String::new();
@@ -426,6 +433,7 @@ impl Parser {
         }
     }
 
+    #[allow(unused)]
     fn get_ident_or_soft(&mut self) -> String {
         self.remove_spaces();
         match self.pop() {
@@ -447,7 +455,7 @@ impl Parser {
     /// this is ONLY called coming from a body
     /// already consumed the mark
     /// ex: //-, /*- -*/ etc
-    fn handle_mark_at_body(&mut self, body_str: &mut String, body: &mut Vec<Node>) -> bool {
+    fn handle_mark_at_body(&mut self, body_str: &mut String, body: &mut Vec<Node>) -> Result<bool> {
         self.remove_spaces();
         match self.peek() {
             //- end:
@@ -463,7 +471,7 @@ impl Parser {
                     // end :
                     Token::DD => {
                         self.remove_till_nl();
-                        return true;
+                        return Ok(true);
                     }
                     tok => {
                         panic!("todo message expected ddd at end found {:?}", tok)
@@ -522,7 +530,7 @@ impl Parser {
                                                 });
                                             }
                                         }
-                                        return false;
+                                        return Ok(false);
                                     }
                                     _ => handle_error_parser(
                                         CompilationError::NotMarkAfterArrowVar,
@@ -540,7 +548,7 @@ impl Parser {
                 // inner def
                 self.ptr_next();
                 let mut nodes = ParsingResult::new(self.file_path.clone());
-                self.handle_def(&mut nodes);
+                self.handle_def(&mut nodes)?;
                 body.append(&mut nodes.nodes);
             }
             Token::PLACE => {
@@ -552,7 +560,7 @@ impl Parser {
                 });
                 *body_str = String::new();
                 let mut nodes = ParsingResult::new(self.file_path.clone());
-                self.handle_place(&mut nodes);
+                self.handle_place(&mut nodes)?;
                 body.append(&mut nodes.nodes);
                 if matches!(self.peek(), Token::NL) {
                     self.line = self.line - 1;
@@ -573,7 +581,7 @@ impl Parser {
                     line: self.line,
                 });
                 *body_str = String::new();
-                let node = self.handle_match();
+                let node: Node = self.handle_match()?;
                 body.push(node);
             }
             Token::FOR => {
@@ -586,19 +594,19 @@ impl Parser {
                     line: self.line,
                 });
                 *body_str = String::new();
-                let node = self.handle_for();
+                let node = self.handle_for()?;
                 body.push(node);
             }
             _ => {
                 handle_error_parser(CompilationError::InvalidBodyCommand, self);
             }
         }
-        return false;
+        return Ok(false);
     }
 
     // handles for loop
     // reaches here after for
-    fn handle_for(&mut self) -> Node {
+    fn handle_for(&mut self) -> Result<Node> {
         let mut vars = vec![];
         // for a,b,c,d in ...
         loop {
@@ -648,12 +656,12 @@ impl Parser {
             _ => panic!("forgot : at for loop"),
         };
         self.remove_till_nl();
-        let body = self.build_body();
-        return Node::FOR {
+        let body = self.build_body()?;
+        return Ok(Node::FOR {
             vars,
             in_var,
             body: Box::new(body),
-        };
+        });
     }
 
    
@@ -662,7 +670,7 @@ impl Parser {
     /// contains raw text and any nodes supported inside of a def body
     /// ends at "end"
     /// comes from def or match arm
-    fn build_body(&mut self) -> Node {
+    fn build_body(&mut self) -> Result<Node> {
         let mut body_str = String::new();
         let mut body: Vec<Node> = Vec::new();
         let line_start = self.line;
@@ -715,7 +723,7 @@ impl Parser {
                 }
                 Token::MARK { kind: _ } => {
                     self.ptr_next();
-                    let should_break = self.handle_mark_at_body(&mut body_str, &mut body);
+                    let should_break = self.handle_mark_at_body(&mut body_str, &mut body)?;
                     if should_break {
                         break;
                     }
@@ -737,9 +745,9 @@ impl Parser {
                 }
             }
         }
-        return Node::BODY {
+        return Ok(Node::BODY {
             data: body,
             line: line_start,
-        };
+        });
     }
 }

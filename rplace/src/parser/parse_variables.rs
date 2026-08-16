@@ -1,10 +1,15 @@
 use std::path::Path;
 
+use anyhow::Result;
 use directories::ProjectDirs;
 use path_clean::PathClean;
 
 use crate::{
-    error_handler::{CompilationError, handle_error, handle_error_parser}, lexer::Token, package_manager::file::parse_package_path, parser::Parser, structs::{ArrayValue, Value, Var, VarOption},
+    error_handler::{CompilationError, ParserError, handle_error, handle_error_parser},
+    lexer::Token,
+    package_manager::file::parse_package_path,
+    parser::Parser,
+    structs::{ArrayValue, Value, Var, VarOption},
 };
 
 impl Parser {
@@ -13,61 +18,57 @@ impl Parser {
     /// single word values
     /// double quote values
     /// multiline quote values
-    pub(super) fn handle_val(&mut self) -> Value {
+    pub(super) fn handle_val(&mut self) -> Result<Value> {
         let mut options = None;
-        match self.peek() {
+        self.remove_spaces();
+        match self.pop() {
             // ident = ident -> variable assignement
             Token::IDENT { str } => {
-                self.ptr_next();
                 if matches!(self.peek(), Token::BSLASH) {
                     self.ptr_next();
                     options = self.handle_var_options();
                 }
                 self.remove_spaces();
-                return Value::new_literal_type(str, options);
+                return Ok(Value::new_literal_type(str, options));
             }
             // ident = "ident" -> quotation handling for multiline values
             Token::DQUOTE => {
-                self.ptr_next();
                 let mut args = vec![];
                 self.get_dquote_arg_var(&mut options, &mut args, &mut "".to_string());
-                return args[0].clone().1;
+                return Ok(args[0].clone().1);
             }
             // $#var
-            Token::VAR => {
-                self.ptr_next();
-                match self.peek() {
-                    Token::IDENT { str } => {
+            Token::VAR => match self.pop() {
+                Token::IDENT { str } => {
+                    if matches!(self.peek(), Token::BSLASH) {
                         self.ptr_next();
-                        if matches!(self.peek(), Token::BSLASH) {
-                            self.ptr_next();
-                            options = self.handle_var_options();
-                        }
-                        self.remove_spaces();
-                        return Value::new_var_type(str, options);
+                        options = self.handle_var_options();
                     }
-                    _ => handle_error(
-                        format!(
-                            "Expected Ident found {:?} at place with variable value",
-                            self.peek()
-                        ),
-                        self.line,
-                        self.file_path.clone(),
-                    ),
+                    self.remove_spaces();
+                    return Ok(Value::new_var_type(str, options));
                 }
-            }
+                t => handle_error(
+                    format!("Expected Ident found {:?} at place with variable value", t),
+                    self.line,
+                    self.file_path.clone(),
+                ),
+            },
             Token::LSRQBRACK => {
-                self.ptr_next();
-                return self.handle_array_values();
+                return Ok(self.handle_array_values()?);
             }
-            _ => handle_error_parser(CompilationError::Invalid2ndPlaceVar, self),
+            _ => {
+                self.remove_spaces();
+                self.unpop();
+                //handle_error_parser(CompilationError::Invalid2ndPlaceVar, self)
+                return Err(ParserError::NotImplemented.into());
+            }
         }
     }
 
     // the oneshot version of handle_vars
     // expects ident = ident
     // ends after that
-    pub(super) fn handle_var(&mut self) -> (Var, Value) {
+    pub(super) fn handle_var(&mut self) -> Result<(Var, Value)> {
         self.remove_spaces();
         // name
         let var_name = match self.peek() {
@@ -85,19 +86,19 @@ impl Parser {
         };
         self.remove_spaces();
         // value
-        let arg = self.handle_val();
-        (Var::new(var_name), arg)
+        let arg = self.handle_val()?;
+        Ok((Var::new(var_name), arg))
     }
 
     // here after anything that requires variable assignement
     // ex: before this -> name = val
     // handles the whole var = val, var = val
     // doesn't consume the final :
-    pub(super) fn handle_vars(&mut self) -> Vec<(Var, Value)> {
+    pub(super) fn handle_vars(&mut self) -> Result<Vec<(Var, Value)>> {
         let mut args: Vec<(Var, Value)> = Vec::new();
         loop {
             self.remove_spaces();
-            let arg = self.handle_var();
+            let arg = self.handle_var()?;
             args.push(arg);
             self.remove_spaces();
             match self.peek() {
@@ -106,7 +107,7 @@ impl Parser {
                     continue;
                 }
                 Token::DD => {
-                    return args;
+                    return Ok(args);
                 }
                 t => {
                     panic!("todo message: Unexpected token {:?} in handle vars", t)
@@ -118,56 +119,54 @@ impl Parser {
     // reaches here after [
     // ends at ] (consumes it)
     // ex: [(a,b),(c,d)]
-    pub(super) fn handle_array_values(&mut self) -> Value {
+    pub(super) fn handle_array_values(&mut self) -> Result<Value> {
         let mut vals: Vec<Vec<ArrayValue>> = vec![];
         let names: Vec<Vec<Option<String>>> = vec![];
         loop {
             self.remove_spaces();
             match self.pop() {
-                Token::LPAREN => {
-                    vals.push(vec![]);
-                    loop {
-                        let val = self.handle_val();
-                        let len = vals.len() - 1;
-                        self.remove_spaces();
-                        match self.pop() {
-                            Token::COMMA => {
-                                vals[len].push(ArrayValue::Value(val));
-                                continue
-                            },
-                            Token::RPAREN => {
-                                vals[len].push(ArrayValue::Value(val));
-                                break
-                            },
-                            Token::EQUALS => {
-                                let name = match val {
-                                    Value::Literal { value, options } => {
-                                        if options.is_some() {
-                                            panic!("todo message")
-                                        }
-                                        value
-                                    },
-                                    _ => panic!("todo message ")
-                                };
-                                self.remove_spaces();
-                                let val_inner = self.handle_val();
-                                vals[len].push(ArrayValue::Named { name, value: val_inner });
-                            }
-                            _ => panic!(),
-                        }
-                        self.remove_spaces();
-                        match self.pop() {
-                            Token::COMMA => {
-                                continue
-                            },
-                            Token::RPAREN => {
-                                break
-                            },
-                            _ => panic!()
-                        }
-                    }
-                }
+                Token::LPAREN => (),
                 tok => panic!("todo error message, expected lparen, found {:?}", tok),
+            };
+            vals.push(vec![]);
+            loop {
+                let val = self.handle_val()?;
+                let len = vals.len() - 1;
+                self.remove_spaces();
+                match self.pop() {
+                    Token::COMMA => {
+                        vals[len].push(ArrayValue::Value(val));
+                        continue;
+                    }
+                    Token::RPAREN => {
+                        vals[len].push(ArrayValue::Value(val));
+                        break;
+                    }
+                    Token::EQUALS => {
+                        let name = match val {
+                            Value::Literal { value, options } => {
+                                if options.is_some() {
+                                    panic!("todo message")
+                                }
+                                value
+                            }
+                            _ => panic!("todo message "),
+                        };
+                        self.remove_spaces();
+                        let val_inner = self.handle_val()?;
+                        vals[len].push(ArrayValue::Named {
+                            name,
+                            value: val_inner,
+                        });
+                    }
+                    _ => panic!(),
+                }
+                self.remove_spaces();
+                match self.pop() {
+                    Token::COMMA => continue,
+                    Token::RPAREN => break,
+                    _ => panic!(),
+                }
             }
             self.remove_spaces();
             match self.pop() {
@@ -179,7 +178,7 @@ impl Parser {
 
         // todo: names
         // [(name=val, name2=val2)]
-        return Value::new_value_array_type(vals, names);
+        return Ok(Value::new_value_array_type(vals, names));
     }
 
     /// gets here right after " in arg

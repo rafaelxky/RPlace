@@ -327,3 +327,9 @@ impl CompilationError {
         get_pretty_err(self, parser)
     }
 }
+
+#[derive(Debug, thiserror::Error)]
+pub enum ParserError {
+    #[error("not implemented")]
+    NotImplemented,
+}

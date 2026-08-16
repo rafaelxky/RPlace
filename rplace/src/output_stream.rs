@@ -7,11 +7,11 @@ use std::path::Path;
 pub struct OutputWriter {
     to_write: WriterResult,
     file: File,
-    file_config: FileConfig,
+    _file_config: FileConfig,
 }
 impl OutputWriter {
     pub fn new(to_write: WriterResult, file: File, file_config: FileConfig) -> Self {
-        Self { to_write, file, file_config }
+        Self { to_write, file, _file_config: file_config }
     }
     pub fn write(mut self) {
         let mut replaced = self.to_write;
