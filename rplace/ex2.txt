@@ -1,10 +1,12 @@
 //- def a:
     //- for a,b,c in array:
-    A
+        //- match a:
+        //- case _ :
+            case _ a
+        //- end:
+        //- end:
         $#a?
-    B
         $#b?
-    C
         $#c?
     //- end:
 //- end:

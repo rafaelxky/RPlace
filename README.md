@@ -197,6 +197,7 @@ this will take regular text and transform it into a template acording to rules
 //- end:
 - the first matched case will be placed
 - can have inner instructions wich will be executed
+- if the case value is _ then it will  match any or none
 
 ## for loops
 - for loops allow you to iterate over an array

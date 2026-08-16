@@ -310,14 +310,17 @@ impl Writer {
                 let var_name = var_name;
                 let var = args_map.get(var_name);
                 let var_value = match var {
-                    Some(val) => val,
-                    None => panic!("todo error message found no arg to match"),
+                    Some(val) => Some(val),
+                    None => None,
                 };
                 let matched = val.iter().find(|arm|{
                     match var_value {
-                        ResValue::Val { value } => {
+                        Some(ResValue::Val { value }) => {
                             arm.matches(value.to_string())
                         },
+                        None => {
+                            arm.is_any_arm()
+                        }
                         _ => panic!(),
                     }
                 });
@@ -545,7 +548,6 @@ impl Writer {
             if !args_map.contains_key(&arg.0.name.clone()) {
                 // resolve variables
                 let (name,val) = self.resolve_var(&arg.0, &arg.1, args_map, name);
-                println!("solved var {}, {:?}", name, val);
                 args_map.insert(name, val);
             }
         });

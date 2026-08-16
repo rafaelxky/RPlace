@@ -224,6 +224,9 @@ impl MatchArm {
         }
         self.match_value == *val
     }
+    pub fn is_any_arm(&self) -> bool{
+        self.match_value == "_"
+    }
 }
 
 #[derive(Debug, Clone)]
