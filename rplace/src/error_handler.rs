@@ -1,5 +1,6 @@
 
 use crate::parser::Parser;
+use anyhow::{anyhow, Error};
 
 const YELLOW: &str = "\x1b[33m";
 const RESET: &str = "\x1b[0m";
@@ -51,6 +52,10 @@ pub fn get_pretty_err(error_message: &CompilationError, parser: &Parser) ->Strin
 pub fn handle_error_parser(error_message: CompilationError, parser: &Parser) -> ! {
    let err = get_pretty_err(&error_message, parser);
    panic!("{}",err);
+}
+
+pub fn parser_error(error_message: CompilationError, parser: &Parser) -> Error {
+    anyhow!(get_pretty_err(&error_message, parser))
 }
 
 #[derive(Debug, Clone)]

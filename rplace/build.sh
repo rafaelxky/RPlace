@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 cargo build --release
-sudo cp target/release/rplace /usr/local/bin/
+sudo install -Dm755 target/release/rplace /usr/local/bin/rplace
 
-echo "release build successfull, you can use the program with \"rplace <source> <target>\""
+echo "Release build successful."

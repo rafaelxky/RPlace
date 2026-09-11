@@ -112,7 +112,8 @@ impl PackageDataStream {
         let dir = binding.data_dir();
         let dir = dir.join("packages");
         let dir = dir.to_path_buf();
-        let path = parse_package_path(path, &dir);
+        let path = parse_package_path(path, &dir)
+            .unwrap_or_else(|error| panic!("Invalid package path: {error}"));
         let mut paths: Vec<String> = Vec::new();
         for entry in WalkDir::new(path.clone()) {
             if entry.is_err() {

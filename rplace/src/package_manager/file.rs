@@ -1,4 +1,4 @@
-use anyhow::{Result};
+use anyhow::{bail, Result};
 use directories::ProjectDirs;
 use path_clean::PathClean;
 use reqwest::{Client, StatusCode};
@@ -23,7 +23,10 @@ pub fn package_exists(path: &str) -> bool {
     let dir = ProjectDirs::from("io", "rplace", "rplace").unwrap();
     let dir = dir.data_dir();
     let dir = dir.join("packages");
-    let path = parse_package_path(path.to_string(), &dir);
+    let path = match parse_package_path(path.to_string(), &dir) {
+        Ok(path) => path,
+        Err(_) => return false,
+    };
     Path::new(&path).exists()
 }
 // get rplace.toml data
@@ -122,7 +125,7 @@ pub fn save_package_file_raw(
     path: &str,
     code: &str,
 ) -> Result<String> {
-    let path = resolve_package_path(package_name, package_version_name, path);
+    let path = resolve_package_path(package_name, package_version_name, path)?;
     let path = PathBuf::from(path);
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
@@ -131,7 +134,14 @@ pub fn save_package_file_raw(
     file.write_all(code.as_bytes())?;
     Ok(path.to_str().unwrap().to_string())
 }
-pub fn resolve_package_path(package_name: &str, package_version_name: &str, path: &str) -> String {
+pub fn resolve_package_path(
+    package_name: &str,
+    package_version_name: &str,
+    path: &str,
+) -> Result<String> {
+    validate_package_component(package_name, "package name")?;
+    validate_package_component(package_version_name, "package version")?;
+
     let dir = ProjectDirs::from("io", "rplace", "rplace").unwrap();
     let dir = dir.data_dir();
     let dir = dir.join("packages");
@@ -139,14 +149,38 @@ pub fn resolve_package_path(package_name: &str, package_version_name: &str, path
     let dir = dir.join(package_version_name);
     parse_package_path(path.to_string(), &dir)
 }
-pub fn parse_package_path(path: String, base_dir: &PathBuf) -> String {
-    let mut path = path;
-    if path.starts_with("package/") {
-        path = path.strip_prefix("package/").unwrap().to_string();
+pub fn parse_package_path(path: String, base_dir: &PathBuf) -> Result<String> {
+    let path = path.strip_prefix("package/").unwrap_or(&path);
+    let target = Path::new(path).clean();
+
+    if target.is_absolute() {
+        if target.strip_prefix(base_dir).is_ok() {
+            return Ok(target.to_string_lossy().into_owned());
+        }
+        bail!("package path escapes package directory: {path}");
     }
-    let target = Path::new(&path).clean();
-    if !target.starts_with(&base_dir) {
-        path = base_dir.join(path).clean().to_str().unwrap().to_string();
+
+    if target
+        .components()
+        .any(|component| matches!(component, std::path::Component::ParentDir))
+    {
+        bail!("package path escapes package directory: {path}");
     }
-    return path;
+
+    Ok(base_dir.join(target).to_string_lossy().into_owned())
+}
+
+fn validate_package_component(value: &str, label: &str) -> Result<()> {
+    if value.is_empty() {
+        return Ok(());
+    }
+
+    let mut components = Path::new(value).components();
+    if !matches!(components.next(), Some(std::path::Component::Normal(_)))
+        || components.next().is_some()
+    {
+        bail!("invalid {label}: {value}");
+    }
+
+    Ok(())
 }

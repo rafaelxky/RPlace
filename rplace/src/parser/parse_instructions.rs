@@ -1,7 +1,7 @@
 use anyhow::{Ok, Result};
 
 use crate::{
-    error_handler::{CompilationError, handle_error_parser},
+    error_handler::{parser_error, CompilationError},
     lexer::Token,
     parser::Parser,
     structs::{MatchArm, Node, ParsingResult, Value, Var},
@@ -16,7 +16,7 @@ impl Parser {
         loop {
             let var_name = match self.pop() {
                 Token::IDENT { str } => str,
-                tok => panic!("Expected Ident found {:?}", tok),
+                _ => return Err(parser_error(CompilationError::InvalidVar, self)),
             };
             var.push(var_name);
             match self.peek() {
@@ -29,7 +29,7 @@ impl Parser {
         self.remove_spaces();
         match self.pop() {
             Token::EQUALS => {}
-            tok => panic!("Expected = found {:?}", tok),
+            _ => return Err(parser_error(CompilationError::InvalidAssignementDefWhere, self)),
         }
         self.remove_spaces();
 
@@ -37,28 +37,29 @@ impl Parser {
         self.remove_spaces();
         match self.pop() {
             Token::DD => (),
-            _ => panic!("todo message: forgot :"),
+            _ => return Err(parser_error(CompilationError::NoDDAfterQuotVar, self)),
         }
 
         nodes.push(Node::SETVARIABLE { var: var, val: val });
         Ok(())
     }
     /// //- parse file.txt:
-    pub(super) fn handle_parse_instr(&mut self, nodes: &mut ParsingResult) {
-        let path = self.handle_path(self.project_src.clone());
+    pub(super) fn handle_parse_instr(&mut self, nodes: &mut ParsingResult) -> Result<()> {
+        let path = self.handle_path(self.project_src.clone())?;
         self.remove_spaces();
         match self.pop() {
             Token::DD => (),
-            _ => panic!("todo message: forgot : at PARSE"),
+            _ => return Err(parser_error(CompilationError::InvalidAfterFilePath, self)),
         };
         nodes.push(Node::PARSE { path });
+        Ok(())
     }
 
     // //- derive file.txt:
     pub(super) fn handle_derive(&mut self, nodes: &mut ParsingResult) -> Result<()>{
         self.remove_spaces();
         let path = match self.peek() {
-            Token::IDENT { str: _ } => self.handle_path(self.project_src.clone()),
+            Token::IDENT { str: _ } => self.handle_path(self.project_src.clone())?,
             _ => self.file_path.to_string(),
         };
         self.remove_spaces();
@@ -74,10 +75,10 @@ impl Parser {
                         self.ptr_next();
                         args
                     }
-                    _ => handle_error_parser(CompilationError::InvalidDeriveOption, self),
+                    _ => return Err(parser_error(CompilationError::InvalidDeriveOption, self)),
                 }
             }
-            _ => handle_error_parser(CompilationError::InvalidDeriveOption, self),
+            _ => return Err(parser_error(CompilationError::InvalidDeriveOption, self)),
         };
         nodes.push(Node::DERIVE {
             path: path,
@@ -88,7 +89,7 @@ impl Parser {
 
     // create filepath place defname:
     pub(super) fn handle_create(&mut self, nodes: &mut ParsingResult) -> Result<()>{
-        let path: String = self.handle_path(self.output_src.clone());
+        let path: String = self.handle_path(self.output_src.clone())?;
         let starting_line = self.get_line();
         // filepath
         // ex: parent/child.txt
@@ -115,7 +116,7 @@ impl Parser {
                 nodes.push(node);
                 return Ok(());
             }
-            _ => handle_error_parser(CompilationError::InvalidAfterFilePath, self),
+            _ => return Err(parser_error(CompilationError::InvalidAfterFilePath, self)),
         }
     }
 
@@ -133,7 +134,7 @@ impl Parser {
                 let w = tok.try_get_soft_keyword();
                 match w {
                     Some(w) => w,
-                    None => handle_error_parser(CompilationError::InvalidPlaceName, self),
+                    None => return Err(parser_error(CompilationError::InvalidPlaceName, self)),
                 }
             }
         };
@@ -155,7 +156,7 @@ impl Parser {
                     args.append(&mut self.handle_vars()?);
                     self.remove_spaces();
                 }
-                _ => handle_error_parser(CompilationError::InvalidPlaceOption, self),
+                _ => return Err(parser_error(CompilationError::InvalidPlaceOption, self)),
             }
         }
         nodes.push(Node::PLACE {
@@ -171,19 +172,19 @@ impl Parser {
         self.remove_till_nl();
         let var_name = match self.pop() {
             Token::IDENT { str } => str,
-            _ => panic!("todo error message expected ident in match"),
+            _ => return Err(parser_error(CompilationError::Invalid1stIdentWhen, self)),
         };
         self.remove_till_nl();
         match self.pop() {
             Token::DD => {}
-            _ => panic!("todo error message expected : in match"),
+            _ => return Err(parser_error(CompilationError::NoDDAfterQuotVar, self)),
         };
         let mut matches: Vec<MatchArm> = Vec::new();
         loop {
             self.remove_spaces();
             match self.pop() {
                 Token::MARK { kind: _ } => {}
-                _ => panic!("forgot mark"),
+                _ => return Err(parser_error(CompilationError::InvalidBodyCommand, self)),
             }
             self.remove_spaces();
             match self.pop() {
@@ -195,11 +196,7 @@ impl Parser {
                     self.ptr_next();
                     break;
                 }
-                tok => panic!(
-                    "todo error message l: {} expected case found {:?}",
-                    self.get_line(),
-                    tok
-                ),
+                _ => return Err(parser_error(CompilationError::InvalidBodyCommand, self)),
             }
         }
 
@@ -218,7 +215,7 @@ impl Parser {
         // case name
         let match_value = match self.pop() {
             Token::IDENT { str } => str,
-            _ => panic!("todo error message expected ident at match arm"),
+            _ => return Err(parser_error(CompilationError::Invalid2ndIdentWhen, self)),
         };
 
         self.remove_spaces();
@@ -226,7 +223,7 @@ impl Parser {
             Token::DD => {
                 self.remove_till_nl();
             }
-            _ => panic!("todo error message expected : at match arm"),
+            _ => return Err(parser_error(CompilationError::NoDDAfterQuotVar, self)),
         };
 
         let body = self.build_body()?;
@@ -234,13 +231,13 @@ impl Parser {
     }
 
     // //- include text.txt:
-    pub(super) fn handle_include(&mut self, nodes: &mut ParsingResult) {
+    pub(super) fn handle_include(&mut self, nodes: &mut ParsingResult) -> Result<()> {
         self.remove_spaces();
 
         let path = match self.peek() {
-            Token::IDENT { str: _ } => self.handle_path(self.project_src.clone()),
+            Token::IDENT { str: _ } => self.handle_path(self.project_src.clone())?,
             _ => {
-                handle_error_parser(CompilationError::InvalidTokenInIncludePath, self);
+                return Err(parser_error(CompilationError::InvalidTokenInIncludePath, self));
             }
         };
 
@@ -249,7 +246,7 @@ impl Parser {
         match self.pop() {
             Token::DD => {}
             _ => {
-                panic!("todo error message, expected :")
+                return Err(parser_error(CompilationError::NoDDAfterQuotVar, self));
             }
         }
 
@@ -258,19 +255,20 @@ impl Parser {
             line: self.line,
         });
 
-        return;
+        Ok(())
     }
 
     // //- mod file.txt:
-    pub (super) fn handle_mod(&mut self, nodes: &mut ParsingResult){
+    pub (super) fn handle_mod(&mut self, nodes: &mut ParsingResult) -> Result<()> {
         self.remove_spaces();
-        let path = self.handle_path(self.file_path.clone());
+        let path = self.handle_path(self.file_path.clone())?;
         self.remove_spaces();
         match self.pop() {
             Token::DD => (),
-            _ => panic!("todo message expected : at mod")
+            _ => return Err(parser_error(CompilationError::NoDDAfterQuotVar, self)),
         }
         nodes.push(Node::MOD { path });
+        Ok(())
     }   
 
 }

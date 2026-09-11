@@ -1,9 +1,8 @@
-use core::panic;
 use std::str;
 use anyhow::{Ok, Result};
 
 use crate::{
-    error_handler::{CompilationError, handle_error_parser},
+    error_handler::{parser_error, CompilationError},
     lexer::{
         Token::{self},
         TokenResult,
@@ -40,7 +39,7 @@ impl Parser {
         &self.file_path
     }
     pub fn peek(&self) -> Token {
-        self.tokens[self.ptr].clone()
+        self.tokens.get(self.ptr).cloned().unwrap_or(Token::EOF)
     }
     fn pop(&mut self) -> Token {
         self.ptr = self.ptr + 1;
@@ -53,7 +52,10 @@ impl Parser {
         self.tokens[self.ptr - i].clone()
     }
     fn peek_ahead(&self, i: usize) -> Token {
-        self.tokens[self.ptr + i].clone()
+        self.tokens
+            .get(self.ptr.saturating_add(i))
+            .cloned()
+            .unwrap_or(Token::EOF)
     }
     fn ptr_next(&mut self) {
         self.ptr = self.ptr + 1;
@@ -77,7 +79,7 @@ impl Parser {
         let reset = "\x1b[0m";
         let mut str = String::new();
         let behind = self.ptr.min(dist);
-        let ahead = (self.tokens.len() - 1 - self.ptr).min(dist);
+        let ahead = self.tokens.len().saturating_sub(self.ptr + 1).min(dist);
         for i in (1..=behind).rev() {
             str.push_str(&self.peek_behind(i).val());
         }
@@ -138,7 +140,7 @@ impl Parser {
             }
             Token::INCLUDE => {
                 self.ptr_next();
-                self.handle_include(&mut nodes);
+                self.handle_include(&mut nodes)?;
             }
             Token::CREATE => {
                 self.ptr_next();
@@ -154,15 +156,14 @@ impl Parser {
             }
             Token::PARSE => {
                 self.ptr_next();
-                self.handle_parse_instr(&mut nodes);
+                self.handle_parse_instr(&mut nodes)?;
             }
             Token::MOD => {
                 self.ptr_next();
-                self.handle_mod(&mut nodes);
+                self.handle_mod(&mut nodes)?;
             }
             _ => {
-                //handle_error_parser(CompilationError::InvalidFunc, self);
-                panic!("todo error")
+                return Err(parser_error(CompilationError::InvalidFunc, self));
             }
         }
         Ok(())
@@ -187,8 +188,7 @@ impl Parser {
                 "place".to_string()
             }
             _ => {
-                //handle_error_parser(CompilationError::InvalidDefName, self);
-                panic!("todo error");
+                return Err(parser_error(CompilationError::InvalidDefName, self));
             }
         };
 
@@ -215,8 +215,7 @@ impl Parser {
                             break;
                         }
                         _ => {
-                            //handle_error_parser(CompilationError::InvalidDefPlaceName, self)
-                            panic!("todo error");
+                            return Err(parser_error(CompilationError::InvalidDefPlaceName, self));
                         },
                     }
                 }
@@ -270,14 +269,18 @@ impl Parser {
                                             }
                                             // def name when name = <here>
                                             _ => {
-                                                //handle_error_parser(CompilationError::Invalid2ndIdentWhen,self,)
-                                                panic!("todo error");
+                                                return Err(parser_error(
+                                                    CompilationError::Invalid2ndIdentWhen,
+                                                    self,
+                                                ));
                                         },
                                         }
                                     }
                                     _ => {
-                                        //handle_error_parser(CompilationError::InvalidComparissonTok,self,)
-                                        panic!("todo error");
+                                        return Err(parser_error(
+                                            CompilationError::InvalidComparissonTok,
+                                            self,
+                                        ));
                                 },
                                 }
                             }
@@ -285,8 +288,7 @@ impl Parser {
                                 break;
                             }
                             _ => {
-                                //handle_error_parser(CompilationError::Invalid1stIdentWhen, self);
-                                panic!("todo error");
+                                return Err(parser_error(CompilationError::Invalid1stIdentWhen, self));
                             }
                         }
                     }
@@ -331,27 +333,32 @@ impl Parser {
                                             }
                                             // def a where a = <here>
                                             _ => {
-                                                //handle_error_parser(CompilationError::Invalid2ndIdentDefWhere,self,);
-                                                panic!("todo message")
+                                                return Err(parser_error(
+                                                    CompilationError::Invalid2ndIdentDefWhere,
+                                                    self,
+                                                ));
                                             }
                                         }
                                     }
                                     _ => {
-                                        //handle_error_parser(CompilationError::InvalidAssignementDefWhere,self,);
-                                        panic!("todo message")
+                                        return Err(parser_error(
+                                            CompilationError::InvalidAssignementDefWhere,
+                                            self,
+                                        ));
                                     }
                                 }
                             }
                             _ => {
-                                //handle_error_parser(CompilationError::Invalid1stIdentDefWhere,self,);
-                                panic!("todo message")
+                                return Err(parser_error(
+                                    CompilationError::Invalid1stIdentDefWhere,
+                                    self,
+                                ));
                             }
                         }
                     }
                 }
                 _ => {
-                    //handle_error_parser(CompilationError::InvalidDefOption, self);
-                    panic!("todo message")
+                    return Err(parser_error(CompilationError::InvalidDefOption, self));
                 }
             }
         }
@@ -444,7 +451,7 @@ impl Parser {
                 let w = tok.try_get_soft_keyword();
                 let w = match w {
                     Some(w) => w,
-                    _ => panic!(),
+                    _ => return String::new(),
                 };
                 return w;
             }
@@ -473,10 +480,7 @@ impl Parser {
                         self.remove_till_nl();
                         return Ok(true);
                     }
-                    tok => {
-                        panic!("todo message expected ddd at end found {:?}", tok)
-                        //handle_error_parser(CompilationError::NoDDEndef, self);
-                    }
+                    _ => return Err(parser_error(CompilationError::NoDDEndef, self)),
                 }
             }
             /*- $#var -> -*/
@@ -517,10 +521,10 @@ impl Parser {
                                                 }
                                             }
                                             Token::NL => {
-                                                handle_error_parser(
+                                                return Err(parser_error(
                                                     CompilationError::NLArrowVarName,
                                                     self,
-                                                );
+                                                ));
                                             }
                                             tok => {
                                                 self.ptr_next();
@@ -532,16 +536,18 @@ impl Parser {
                                         }
                                         return Ok(false);
                                     }
-                                    _ => handle_error_parser(
-                                        CompilationError::NotMarkAfterArrowVar,
-                                        self,
-                                    ),
+                                    _ => {
+                                        return Err(parser_error(
+                                            CompilationError::NotMarkAfterArrowVar,
+                                            self,
+                                        ));
+                                    }
                                 }
                             }
-                            _ => handle_error_parser(CompilationError::NotArrow, self),
+                            _ => return Err(parser_error(CompilationError::NotArrow, self)),
                         }
                     }
-                    _ => handle_error_parser(CompilationError::InvalidArrowVarName, self),
+                    _ => return Err(parser_error(CompilationError::InvalidArrowVarName, self)),
                 }
             }
             Token::DEF => {
@@ -571,7 +577,7 @@ impl Parser {
                 // inner include
                 self.ptr_next();
                 let mut nodes = ParsingResult::new(self.file_path.clone());
-                self.handle_include(&mut nodes);
+                self.handle_include(&mut nodes)?;
                 body.append(&mut nodes.nodes);
             }
             Token::MATCH => {
@@ -598,7 +604,7 @@ impl Parser {
                 body.push(node);
             }
             _ => {
-                handle_error_parser(CompilationError::InvalidBodyCommand, self);
+                return Err(parser_error(CompilationError::InvalidBodyCommand, self));
             }
         }
         return Ok(false);
@@ -622,7 +628,7 @@ impl Parser {
                             vars.push(w);
                         }
                         None => {
-                            panic!("todo err message, invalid token in for loop {:?}", tok)
+                            return Err(parser_error(CompilationError::InvalidVar, self));
                         }
                     }
                 }
@@ -635,7 +641,7 @@ impl Parser {
                 Token::IN => {
                     break;
                 }
-                _ => panic!("todo err message, invalid token in for loop"),
+                _ => return Err(parser_error(CompilationError::InvalidVar, self)),
             }
         }
         // in var
@@ -646,14 +652,14 @@ impl Parser {
                 let w = tok.try_get_soft_keyword();
                 match w {
                     Some(w) => w,
-                    None => panic!("todo msg invalid tok in for look"),
+                    None => return Err(parser_error(CompilationError::InvalidVar, self)),
                 }
             }
         };
         self.remove_spaces();
         match self.pop() {
             Token::DD => (),
-            _ => panic!("forgot : at for loop"),
+            _ => return Err(parser_error(CompilationError::NoDDAfterQuotVar, self)),
         };
         self.remove_till_nl();
         let body = self.build_body()?;
@@ -702,7 +708,7 @@ impl Parser {
                             match self.peek() {
                                 Token::BSLASH => {
                                     self.ptr_next();
-                                    option = self.handle_var_options();
+                                    option = self.handle_var_options()?;
                                 }
                                 _ => (),
                             }
@@ -717,7 +723,7 @@ impl Parser {
                         }
                         // $#name
                         _ => {
-                            handle_error_parser(CompilationError::InvalidVar, self);
+                            return Err(parser_error(CompilationError::InvalidVar, self));
                         }
                     }
                 }
@@ -730,8 +736,7 @@ impl Parser {
                     continue;
                 }
                 Token::EOF => {
-                    panic!("eof in body {:#?}", body);
-                    //handle_error_parser(CompilationError::BodyEOF, self),
+                    return Err(parser_error(CompilationError::BodyEOF, self));
                 }
                 Token::NL => {
                     self.ptr_next();

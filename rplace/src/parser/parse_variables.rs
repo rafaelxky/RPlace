@@ -5,7 +5,7 @@ use directories::ProjectDirs;
 use path_clean::PathClean;
 
 use crate::{
-    error_handler::{CompilationError, ParserError, handle_error, handle_error_parser},
+    error_handler::{parser_error, CompilationError, ParserError, handle_error},
     lexer::Token,
     package_manager::file::parse_package_path,
     parser::Parser,
@@ -26,7 +26,7 @@ impl Parser {
             Token::IDENT { str } => {
                 if matches!(self.peek(), Token::BSLASH) {
                     self.ptr_next();
-                    options = self.handle_var_options();
+                    options = self.handle_var_options()?;
                 }
                 self.remove_spaces();
                 return Ok(Value::new_literal_type(str, options));
@@ -34,7 +34,7 @@ impl Parser {
             // ident = "ident" -> quotation handling for multiline values
             Token::DQUOTE => {
                 let mut args = vec![];
-                self.get_dquote_arg_var(&mut options, &mut args, &mut "".to_string());
+                self.get_dquote_arg_var(&mut options, &mut args, &mut "".to_string())?;
                 return Ok(args[0].clone().1);
             }
             // $#var
@@ -42,7 +42,7 @@ impl Parser {
                 Token::IDENT { str } => {
                     if matches!(self.peek(), Token::BSLASH) {
                         self.ptr_next();
-                        options = self.handle_var_options();
+                        options = self.handle_var_options()?;
                     }
                     self.remove_spaces();
                     return Ok(Value::new_var_type(str, options));
@@ -76,13 +76,13 @@ impl Parser {
                 self.ptr_next();
                 str
             }
-            _ => handle_error_parser(CompilationError::Invalid1stPlaceVar, self),
+            _ => return Err(parser_error(CompilationError::Invalid1stPlaceVar, self)),
         };
         self.remove_spaces();
         // =
         match self.peek() {
             Token::EQUALS => self.ptr_next(),
-            _ => panic!("todo message"),
+            _ => return Err(parser_error(CompilationError::InvalidPlaceAssign, self)),
         };
         self.remove_spaces();
         // value
@@ -109,9 +109,7 @@ impl Parser {
                 Token::DD => {
                     return Ok(args);
                 }
-                t => {
-                    panic!("todo message: Unexpected token {:?} in handle vars", t)
-                }
+                _ => return Err(parser_error(CompilationError::InvalidPlaceOption, self)),
             }
         }
     }
@@ -126,7 +124,7 @@ impl Parser {
             self.remove_spaces();
             match self.pop() {
                 Token::LPAREN => (),
-                tok => panic!("todo error message, expected lparen, found {:?}", tok),
+                _ => return Err(parser_error(CompilationError::Invalid2ndPlaceVar, self)),
             };
             vals.push(vec![]);
             loop {
@@ -146,11 +144,14 @@ impl Parser {
                         let name = match val {
                             Value::Literal { value, options } => {
                                 if options.is_some() {
-                                    panic!("todo message")
+                                    return Err(parser_error(
+                                        CompilationError::InvalidVarOption,
+                                        self,
+                                    ));
                                 }
                                 value
                             }
-                            _ => panic!("todo message "),
+                            _ => return Err(parser_error(CompilationError::Invalid2ndPlaceVar, self)),
                         };
                         self.remove_spaces();
                         let val_inner = self.handle_val()?;
@@ -159,20 +160,20 @@ impl Parser {
                             value: val_inner,
                         });
                     }
-                    _ => panic!(),
+                    _ => return Err(parser_error(CompilationError::Invalid2ndPlaceVar, self)),
                 }
                 self.remove_spaces();
                 match self.pop() {
                     Token::COMMA => continue,
                     Token::RPAREN => break,
-                    _ => panic!(),
+                    _ => return Err(parser_error(CompilationError::Invalid2ndPlaceVar, self)),
                 }
             }
             self.remove_spaces();
             match self.pop() {
                 Token::COMMA => continue,
                 Token::RSRQBRACK => break,
-                _ => panic!("todo"),
+                _ => return Err(parser_error(CompilationError::Invalid2ndPlaceVar, self)),
             }
         }
 
@@ -187,18 +188,19 @@ impl Parser {
         options_2: &mut Option<Vec<VarOption>>,
         args: &mut Vec<(String, Value)>,
         from: &mut String,
-    ) {
-        let arg_str = self.get_dquote_var();
+    ) -> Result<()> {
+        let arg_str = self.get_dquote_var()?;
 
         if matches!(self.peek(), Token::BSLASH) {
             self.ptr_next();
-            *options_2 = self.handle_var_options();
+            *options_2 = self.handle_var_options()?;
         }
         self.remove_spaces();
         args.push((
             from.to_string(),
             Value::new_literal_type(arg_str, options_2.clone()),
         ));
+        Ok(())
     }
 
     /// gets the file path from tokens
@@ -206,7 +208,7 @@ impl Parser {
     /// stops at space or :
     /// does not consume :
     /// ex: parent/child.txt
-    pub(super) fn handle_path(&mut self, base_path: String) -> String {
+    pub(super) fn handle_path(&mut self, base_path: String) -> Result<String> {
         let mut path: String = String::new();
         let base_path = base_path;
         self.remove_spaces();
@@ -227,7 +229,7 @@ impl Parser {
                     self.ptr_next();
                     path.push('.');
                 }
-                _ => handle_error_parser(CompilationError::InvalidTokenInPath, self),
+                _ => return Err(parser_error(CompilationError::InvalidTokenInPath, self)),
             }
         }
         if path.starts_with('.') {
@@ -239,7 +241,7 @@ impl Parser {
             let dir = ProjectDirs::from("io", "rplace", "rplace").unwrap();
             let dir = dir.data_dir();
             let dir = dir.join("packages");
-            path = parse_package_path(path, &dir);
+            path = parse_package_path(path, &dir)?;
         }
 
         path = Path::new(&path).clean().to_str().unwrap().to_string();
@@ -247,20 +249,17 @@ impl Parser {
         let root = root.parent().unwrap();
         let root = root.to_str().unwrap();
         if !path.starts_with(&root) {
-            panic!(
-                "todo message: path escapes project root {} is outside of {}",
-                path, root
-            );
+            return Err(parser_error(CompilationError::InvalidTokenInPath, self));
         }
 
-        path
+        Ok(path)
     }
 
     /// handles variable options
     /// reaches here at the ident after \
     /// returns a list of the options
     /// ex: $#var\CAMEL
-    pub(super) fn handle_var_options(&mut self) -> Option<Vec<VarOption>> {
+    pub(super) fn handle_var_options(&mut self) -> Result<Option<Vec<VarOption>>> {
         let mut options: Option<Vec<VarOption>> = None;
         'outer: loop {
             match self.pop() {
@@ -286,12 +285,12 @@ impl Parser {
                                         self.ptr_next();
                                         if let Some(options) = options.as_mut() {
                                             if let Some(last) = options.last_mut() {
-                                                let str = self.get_dquote_var();
+                                                let str = self.get_dquote_var()?;
                                                 last.push_arg(str);
                                             }
                                         }
                                     }
-                                    _ => panic!("todo panic msg {:?}", self.peek()),
+                                    _ => return Err(parser_error(CompilationError::InvalidVarOption, self)),
                                 }
                             }
                             Token::BSLASH => {
@@ -316,22 +315,22 @@ impl Parser {
                             _ => break,
                         }
                     }
-                    None => handle_error_parser(CompilationError::InvalidVarOption, self),
+                    None => return Err(parser_error(CompilationError::InvalidVarOption, self)),
                 },
             }
         }
-        options
+        Ok(options)
     }
 
     // gets here after the first "
     // ends at the second "
-    pub(super) fn get_dquote_var(&mut self) -> String {
+    pub(super) fn get_dquote_var(&mut self) -> Result<String> {
         let mut arg_str = String::new();
         let mut has_new_line = false;
 
         loop {
             if !self.can_pop() {
-                panic!("todo msg. found eof at dqote var")
+                return Err(parser_error(CompilationError::EOFInQuotVar, self));
             }
             match self.peek() {
                 Token::NL => {
@@ -386,6 +385,6 @@ impl Parser {
                 }
             }
         }
-        arg_str
+        Ok(arg_str)
     }
 }

@@ -33,7 +33,13 @@ pub fn for_loop_test() -> Result<()> {
     let code ="//- def a://- for val in var:$#val//- end://- end://- place a where var = [(a),(b),(c)]:";
     let str = parse(code)?;
     assert_eq!(str, "abc");
-
+    Ok(())
+}
+#[test]
+pub fn for_loop_binds_multiple_values() -> Result<()> {
+    let code = "//- def a://- for first,second in pairs:$#first,$#second;//- end://- end://- place a where pairs = [(one,two),(three,four)]:";
+    let str = parse(code)?;
+    assert_eq!(str, "one,two;three,four;");
     Ok(())
 }
 
@@ -52,10 +58,43 @@ pub fn def_place() -> Result<()>{
     Ok(())
 }
 #[test]
+pub fn def_place_override() -> Result<()> {
+    let code = "//- def a:$#var//- end://- def b place a where var = default://- place b where var = override:";
+    let str = parse(code)?;
+    assert_eq!(str, "override");
+    Ok(())
+}
+#[test]
+pub fn def_when_uses_default_overload() -> Result<()> {
+    let code = "//- def a when kind = special:special//- end://- def a:default//- end://- place a:";
+    let str = parse(code)?;
+    assert_eq!(str, "default");
+    Ok(())
+}
+#[test]
 pub fn def_test_var_options() -> Result<()>{
     let code = "//- def a:$#var\\screaming//- end://- place a where var = val:";
     let str = parse(code)?;
     assert_eq!(str, "VAL");
+    Ok(())
+}
+#[test]
+pub fn def_test_var_case_options() -> Result<()> {
+    let cases = [
+        ("snakecase", "helloWorld", "hello_world"),
+        ("camelcase", "hello_world", "helloWorld"),
+        ("pascalcase", "hello_world", "HelloWorld"),
+        ("screaming", "helloWorld", "HELLO_WORLD"),
+    ];
+
+    for (option, input, expected) in cases {
+        let code = format!(
+            "//- def a:$#var\\{}//- end://- place a where var = {}:",
+            option, input
+        );
+        assert_eq!(parse(&code)?, expected, "option {option}");
+    }
+
     Ok(())
 }
 #[test]
