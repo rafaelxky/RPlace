@@ -140,5 +140,38 @@ imports must allow for ./ and not break with the import map so I'd need to store
 //- end:
 
 - todo: [(a=a, b, c)] <- should not be allowed
+- either [(a,b,c),(a,b,c)]
+- or [(a=a, b=b), (a=a, b=b)]
 
 - allow trailing comma ,)],:
+
+- //- tag <regex> = <varname>:
+- matches the regex and gives it a name
+- ex:
+//- tag [A-Za-z] = var: 
+hello world
+- tags hello, then you can create a list for hello and call hello.var
+- /*- &var.val -*/
+
+- add similar for constants and variables defined
+
+- you can then create a list to get its atributes
+- //- list <name> a = b, c = d:
+- then &var.a
+- simple arrays [a,b,c,d] = [(a,b,c,d)]
+or [a=a,b=b] = [(a=a, b=b)]
+for 1d arrays
+- //- def name tag &var = <regex>:
+- //- place name were var = val:
+- //- rplace <regex> = val:
+- replaces matches with the value
+
+- improved imports
+- import * from <name> as X
+- import <thing> from <name>
+- then call //- place X.name
+- //- mod feature:
+- exposes feature to be used
+- maybe have a lib.rplace file to list the available features
+
+- allow for trailing mark after : like :-*/
