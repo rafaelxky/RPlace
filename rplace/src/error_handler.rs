@@ -1,6 +1,7 @@
+use std::fmt::format;
 
 use crate::parser::Parser;
-use anyhow::{anyhow, Error};
+use anyhow::{Error, anyhow};
 
 const YELLOW: &str = "\x1b[33m";
 const RESET: &str = "\x1b[0m";
@@ -35,12 +36,13 @@ pub fn handle_expected_error<S: Into<String>>(
         file.into()
     );
 }
-pub fn get_pretty_err(error_message: &CompilationError, parser: &Parser) ->String{
+pub fn get_pretty_err(error_message: &CompilationError, parser: &Parser) -> String {
     let error_msg = error_message.get_msg(&parser);
     let msg = error_msg.msg;
     let hint = error_msg.hint;
     let example = error_msg.example;
-    format!("\x1b[31mError:\x1b[0m {} \n\n-> {} \n\nFile: {}:{} \n\nHint: {} \n\nExample:\n {}",
+    format!(
+        "\x1b[31mError:\x1b[0m {} \n\n-> {} \n\nFile: {}:{} \n\nHint: {} \n\nExample:\n {}",
         msg,
         parser.get_tok_around_colored(10),
         parser.get_file_path(),
@@ -50,8 +52,8 @@ pub fn get_pretty_err(error_message: &CompilationError, parser: &Parser) ->Strin
     )
 }
 pub fn handle_error_parser(error_message: CompilationError, parser: &Parser) -> ! {
-   let err = get_pretty_err(&error_message, parser);
-   panic!("{}",err);
+    let err = get_pretty_err(&error_message, parser);
+    panic!("{}", err);
 }
 
 pub fn parser_error(error_message: CompilationError, parser: &Parser) -> Error {
@@ -105,6 +107,8 @@ pub enum CompilationError {
     InvalidPlaceOption,
     InvalidVarOption,
     InvalidDeriveOption,
+    ArrayNameMix,
+    WrongArrayType,
 }
 impl CompilationError {
     pub fn get_msg(&self, parser: &Parser) -> ErrorMessage {
@@ -284,21 +288,29 @@ impl CompilationError {
                 format!("//- place {}template{}:", YELLOW, RESET),
             ),
             CompilationError::Invalid2ndPlaceVar => ErrorMessage::new(
-                format!("Invalid value after assignement in where {:?}", parser.peek()),
+                format!(
+                    "Invalid value after assignement in where {:?}",
+                    parser.peek()
+                ),
                 format!(
                     "Make sure the value contains only valid characters and not reserved keywords"
                 ),
                 format!("//- place template where var={}val{}:", YELLOW, RESET),
             ),
             CompilationError::InvalidPlaceAssign => ErrorMessage::new(
-                format!("Invalid assignement token in where {:?}", parser.peek()), 
-                format!("Add or replace your token for = in the variable assignement"), 
-                format!("//- place name where var{}={}val",YELLOW,RESET)
+                format!("Invalid assignement token in where {:?}", parser.peek()),
+                format!("Add or replace your token for = in the variable assignement"),
+                format!("//- place name where var{}={}val", YELLOW, RESET),
             ),
             CompilationError::Invalid1stPlaceVar => ErrorMessage::new(
-                format!("Invalid variable name before assignement in place where {:?}", parser.peek()), 
-                format!("Make sure the value contains only valid characters and not reserved keywords"), 
-                format!("//- palce template where {}var{}=val:",YELLOW,RESET)
+                format!(
+                    "Invalid variable name before assignement in place where {:?}",
+                    parser.peek()
+                ),
+                format!(
+                    "Make sure the value contains only valid characters and not reserved keywords"
+                ),
+                format!("//- palce template where {}var{}=val:", YELLOW, RESET),
             ),
             Self::EOFInQuotVar => ErrorMessage::new(
                 format!("Found EOF inside of quotation variable"),
@@ -306,25 +318,47 @@ impl CompilationError {
                 format!("//- place template where var=\"{}val{}\"", YELLOW, RESET),
             ),
             Self::NoDDAfterQuotVar => ErrorMessage::new(
-                format!("Invalid token after quote variable in place where {:?}",parser.peek()), 
-                format!("Add : or , after quote variable"), 
-                format!("//- place name where var=\"val\"{}:{}",YELLOW,RESET)
+                format!(
+                    "Invalid token after quote variable in place where {:?}",
+                    parser.peek()
+                ),
+                format!("Add : or , after quote variable"),
+                format!("//- place name where var=\"val\"{}:{}", YELLOW, RESET),
             ),
             Self::InvalidPlaceOption => ErrorMessage::new(
-                format!("Invalid option for place {:?}",parser.peek()), 
-                format!("Check documentation for place options or add : at the end"), 
-                format!("//- place template {}where{} var=val:",YELLOW,RESET)
+                format!("Invalid option for place {:?}", parser.peek()),
+                format!("Check documentation for place options or add : at the end"),
+                format!("//- place template {}where{} var=val:", YELLOW, RESET),
             ),
             Self::InvalidVarOption => ErrorMessage::new(
-                format!("Invalid variable option {:?}", parser.peek()), 
-                format!("Check documentation to see valid variable options"), 
-                format!("//- derive to_derive.txt where var=\"[Vvar]\"\\{}regex{}", YELLOW,RESET)
+                format!("Invalid variable option {:?}", parser.peek()),
+                format!("Check documentation to see valid variable options"),
+                format!(
+                    "//- derive to_derive.txt where var=\"[Vvar]\"\\{}regex{}",
+                    YELLOW, RESET
+                ),
             ),
             CompilationError::InvalidDeriveOption => ErrorMessage::new(
                 format!("Invalid options for derive {:?}", parser.peek()),
-                format!("Check documentation to see valid options for derive or addd : at the end"), 
-                format!("//- derive to_derive.txt where var=\"var\"{}:{}", YELLOW,RESET)
-            )
+                format!("Check documentation to see valid options for derive or addd : at the end"),
+                format!(
+                    "//- derive to_derive.txt where var=\"var\"{}:{}",
+                    YELLOW, RESET
+                ),
+            ),
+            CompilationError::ArrayNameMix => ErrorMessage::new(
+                format!("Cannot mix named and unamed variables in arrays"),
+                format!("Check your parameters"),
+                format!(
+                    "//- place template where array =  {}[a,b,var=val]{} <- mixed named and unamed variables",
+                    YELLOW, RESET
+                ),
+            ),
+            // todo message
+            CompilationError::WrongArrayType => ErrorMessage::new(
+                format!("Wrong array type"), 
+                format!("Simplified array expression cannot contain parentesis direcly inside"),
+                 format!("Todo here!")),
         }
     }
     #[allow(dead_code)]

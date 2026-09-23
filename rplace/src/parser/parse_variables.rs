@@ -1,11 +1,11 @@
-use std::path::Path;
+use std::{char::ToUppercase, path::Path};
 
 use anyhow::Result;
 use directories::ProjectDirs;
 use path_clean::PathClean;
 
 use crate::{
-    error_handler::{parser_error, CompilationError, ParserError, handle_error},
+    error_handler::{CompilationError, ParserError, handle_error, parser_error},
     lexer::Token,
     package_manager::file::parse_package_path,
     parser::Parser,
@@ -117,22 +117,55 @@ impl Parser {
     // reaches here after [
     // ends at ] (consumes it)
     // ex: [(a,b),(c,d)]
+
     pub(super) fn handle_array_values(&mut self) -> Result<Value> {
+        enum ArrayType {
+            REGULAR,
+            SQUARE,
+        }
         let mut vals: Vec<Vec<ArrayValue>> = vec![];
         let names: Vec<Vec<Option<String>>> = vec![];
+        self.remove_spaces();
+        let arr_type = match self.peek() {
+            Token::LPAREN => ArrayType::REGULAR,
+            _ => ArrayType::SQUARE,
+        };
         loop {
+            // todo: test this 
             self.remove_spaces();
-            match self.pop() {
-                Token::LPAREN => (),
-                _ => return Err(parser_error(CompilationError::Invalid2ndPlaceVar, self)),
+            match self.peek() {
+                Token::LPAREN => match arr_type {
+                    ArrayType::REGULAR => {
+                        self.pop();
+                    }
+                    ArrayType::SQUARE => {
+                        return Err(parser_error(CompilationError::WrongArrayType, self));
+                    }
+                },
+                _ => match arr_type {
+                    ArrayType::REGULAR => {
+                        return Err(parser_error(CompilationError::WrongArrayType, self));
+                    }
+                    ArrayType::SQUARE => {}
+                },
             };
             vals.push(vec![]);
+            let mut has_used_names: Option<bool> = None;
+            // [(
             loop {
                 let val = self.handle_val()?;
                 let len = vals.len() - 1;
                 self.remove_spaces();
                 match self.pop() {
                     Token::COMMA => {
+                        match has_used_names {
+                            Some(true) => {
+                                return Err(parser_error(CompilationError::ArrayNameMix, self));
+                            }
+                            _ => {
+                                has_used_names = Some(false);
+                            }
+                        }
                         vals[len].push(ArrayValue::Value(val));
                         continue;
                     }
@@ -140,6 +173,7 @@ impl Parser {
                         vals[len].push(ArrayValue::Value(val));
                         break;
                     }
+
                     Token::EQUALS => {
                         let name = match val {
                             Value::Literal { value, options } => {
@@ -149,9 +183,25 @@ impl Parser {
                                         self,
                                     ));
                                 }
+                                match has_used_names {
+                                    Some(false) => {
+                                        return Err(parser_error(
+                                            CompilationError::ArrayNameMix,
+                                            self,
+                                        ));
+                                    }
+                                    _ => {
+                                        has_used_names = Some(true);
+                                    }
+                                };
                                 value
                             }
-                            _ => return Err(parser_error(CompilationError::Invalid2ndPlaceVar, self)),
+                            _ => {
+                                return Err(parser_error(
+                                    CompilationError::Invalid2ndPlaceVar,
+                                    self,
+                                ));
+                            }
                         };
                         self.remove_spaces();
                         let val_inner = self.handle_val()?;
@@ -290,7 +340,12 @@ impl Parser {
                                             }
                                         }
                                     }
-                                    _ => return Err(parser_error(CompilationError::InvalidVarOption, self)),
+                                    _ => {
+                                        return Err(parser_error(
+                                            CompilationError::InvalidVarOption,
+                                            self,
+                                        ));
+                                    }
                                 }
                             }
                             Token::BSLASH => {
