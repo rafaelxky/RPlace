@@ -1,5 +1,4 @@
-use std::{char::ToUppercase, path::Path};
-
+use std::{path::Path};
 use anyhow::Result;
 use directories::ProjectDirs;
 use path_clean::PathClean;
@@ -18,6 +17,7 @@ impl Parser {
     /// single word values
     /// double quote values
     /// multiline quote values
+    /// arrays
     pub(super) fn handle_val(&mut self) -> Result<Value> {
         let mut options = None;
         self.remove_spaces();
@@ -117,7 +117,6 @@ impl Parser {
     // reaches here after [
     // ends at ] (consumes it)
     // ex: [(a,b),(c,d)]
-
     pub(super) fn handle_array_values(&mut self) -> Result<Value> {
         enum ArrayType {
             REGULAR,
@@ -130,10 +129,11 @@ impl Parser {
             Token::LPAREN => ArrayType::REGULAR,
             _ => ArrayType::SQUARE,
         };
-        loop {
-            // todo: test this 
+        'outer: loop {
+            // todo: test this
             self.remove_spaces();
             match self.peek() {
+                // allow empty []
                 Token::LPAREN => match arr_type {
                     ArrayType::REGULAR => {
                         self.pop();
@@ -152,7 +152,7 @@ impl Parser {
             vals.push(vec![]);
             let mut has_used_names: Option<bool> = None;
             // [(
-            loop {
+            'inner: loop {
                 let val = self.handle_val()?;
                 let len = vals.len() - 1;
                 self.remove_spaces();
@@ -166,15 +166,24 @@ impl Parser {
                                 has_used_names = Some(false);
                             }
                         }
-                        vals[len].push(ArrayValue::Value(val));
+                        match arr_type {
+                            ArrayType::REGULAR => {
+                                vals[len].push(ArrayValue::Value(val));
+                            }
+                            ArrayType::SQUARE => {
+                                vals[len].push(ArrayValue::Value(val));
+                                vals.push(vec![]);
+                            }
+                        }
                         continue;
                     }
                     Token::RPAREN => {
                         vals[len].push(ArrayValue::Value(val));
-                        break;
+                        break 'inner;
                     }
 
                     Token::EQUALS => {
+                        // varname can only be a literal
                         let name = match val {
                             Value::Literal { value, options } => {
                                 if options.is_some() {
@@ -198,7 +207,7 @@ impl Parser {
                             }
                             _ => {
                                 return Err(parser_error(
-                                    CompilationError::Invalid2ndPlaceVar,
+                                    CompilationError::Invalid1stPlaceVar,
                                     self,
                                 ));
                             }
@@ -210,19 +219,29 @@ impl Parser {
                             value: val_inner,
                         });
                     }
+                    Token::RSRQBRACK => match arr_type {
+                        ArrayType::REGULAR => {
+                            return Err(parser_error(CompilationError::Invalid2ndPlaceVar, self));
+                        }
+                        ArrayType::SQUARE => {
+                            vals[len].push(ArrayValue::Value(val));
+                            break 'outer;
+                        }
+                    },
+                    // hits here because the final ] is poped if the array is square instead of regular
                     _ => return Err(parser_error(CompilationError::Invalid2ndPlaceVar, self)),
                 }
                 self.remove_spaces();
                 match self.pop() {
                     Token::COMMA => continue,
-                    Token::RPAREN => break,
+                    Token::RPAREN => break 'inner,
                     _ => return Err(parser_error(CompilationError::Invalid2ndPlaceVar, self)),
                 }
             }
             self.remove_spaces();
             match self.pop() {
                 Token::COMMA => continue,
-                Token::RSRQBRACK => break,
+                Token::RSRQBRACK => break 'outer,
                 _ => return Err(parser_error(CompilationError::Invalid2ndPlaceVar, self)),
             }
         }

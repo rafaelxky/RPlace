@@ -57,7 +57,7 @@ impl ArrayValue {
 }
 #[derive(Debug, Clone)]
 pub enum Value {
-    // "var"
+    // "var" or simply var
     Literal {
         value: String,
         options: Option<Vec<VarOption>>,
