@@ -66,6 +66,14 @@ pub struct /*- $#struct_name -> -*/ Vec2
     $#c
 //- end 
 - this will place the respective values of a, b and c
+- you can assign names to the variables in the arrays
+- ex: [(a=b, c=d, e=f),(g=h,i=j)]
+- you can either have named or unamed variables but not both in the same parentesis
+- ex: 
+- [(a,b,c=d)] is not allowed
+- [(a,b,c), (a=a,b=b,c=c)] is allowed
+- you can also use the simplified array
+- ex: [a,b,c] = [(a),(b),(c)]
 
 ## parent variables
 - you can use parent variables inside place
@@ -219,7 +227,7 @@ this will take regular text and transform it into a template acording to rules
 - allow_lua -> allows lua code (default: off)
 - allow_import -> allows code import from other files(default: true)
 
-# file config variables
+# file config global variables
 - you can configure a file to change how the compiler interacts with it by setting variables 
 - next up is a list of what you can do:
 - //- $#output = "out.txt":
