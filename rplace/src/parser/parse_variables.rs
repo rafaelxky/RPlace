@@ -1,7 +1,7 @@
-use std::{path::Path};
 use anyhow::Result;
 use directories::ProjectDirs;
 use path_clean::PathClean;
+use std::path::Path;
 
 use crate::{
     error_handler::{CompilationError, ParserError, handle_error, parser_error},
@@ -214,10 +214,21 @@ impl Parser {
                         };
                         self.remove_spaces();
                         let val_inner = self.handle_val()?;
-                        vals[len].push(ArrayValue::Named {
-                            name,
-                            value: val_inner,
-                        });
+                        match arr_type {
+                            ArrayType::REGULAR => {
+                                vals[len].push(ArrayValue::Named {
+                                    name,
+                                    value: val_inner,
+                                });
+                            }
+                            ArrayType::SQUARE => {
+                                vals[len].push(ArrayValue::Named {
+                                    name,
+                                    value: val_inner,
+                                });
+                                vals.push(vec![]);
+                            }
+                        }
                     }
                     Token::RSRQBRACK => match arr_type {
                         ArrayType::REGULAR => {

@@ -158,8 +158,8 @@ hello world
 - you can then create a list to get its atributes
 - //- list <name> a = b, c = d:
 - then &var.a
-- simple arrays [a,b,c,d] = [(a,b,c,d)]
-or [a=a,b=b] = [(a=a, b=b)]
+- simple arrays [a,b,c,d] = [(a,b,c,d)] X
+or [a=a,b=b] = [(a=a, b=b)] X
 for 1d arrays
 - //- def name tag &var = <regex>:
 - //- place name were var = val:
@@ -175,3 +175,11 @@ for 1d arrays
 - maybe have a lib.rplace file to list the available features
 
 - allow for trailing mark after : like :-*/
+
+- [(a,b),c,d,e] should be allowed, wich would be equivalent to [(a,b),(c),(d),(e)] 
+so by default it should group variables as such
+
+- [a=,a=b,a=c] is not working, fix it and write tests for it
+- maybe I shouldnt allow it since it makes no sense to do so
+-  [a),b,c,d] work but is not supposed to
+- test [a=a, b,c] should not be allowed
