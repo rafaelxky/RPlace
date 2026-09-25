@@ -183,3 +183,9 @@ so by default it should group variables as such
 - maybe I shouldnt allow it since it makes no sense to do so
 -  [a),b,c,d] work but is not supposed to
 - test [a=a, b,c] should not be allowed
+- arrays need to be reworked
+- object variables user.name so I can use in arrays as well like
+arr=[(user=(name=val,age=val),...),...]
+then access //- for user in array:
+$#user.name
+$#user.age
