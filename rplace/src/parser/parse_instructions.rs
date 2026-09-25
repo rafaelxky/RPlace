@@ -88,7 +88,10 @@ impl Parser {
     }
 
     // create filepath place defname:
-    pub(super) fn handle_create(&mut self, nodes: &mut ParsingResult) -> Result<()>{
+    // reaches here after 
+    // todo: allow create with content other than place
+    // todo: allow //- create $#path
+    pub(super) fn handle_create(&mut self) -> Result<Node>{
         let path: String = self.handle_path(self.output_src.clone())?;
         let starting_line = self.get_line();
         // filepath
@@ -99,12 +102,9 @@ impl Parser {
         match self.peek() {
             Token::DD => {
                 self.ptr_next();
-                nodes.push(Node::CREATE {
-                    path,
-                    content: None,
-                });
+                let node = Node::CREATE { path, content: None };
                 self.remove_till_nl();
-                return Ok(());
+                return Ok(node);
             }
             Token::PLACE => {
                 self.ptr_next();
@@ -113,8 +113,7 @@ impl Parser {
                 self.handle_place(&mut temp_nodes)?;
                 //let content = Some(Box::new(Node::BODY { data: temp_nodes, line: starting_line }))
                 let node = Node::new_create(path, temp_nodes.nodes, starting_line);
-                nodes.push(node);
-                return Ok(());
+                return Ok(node);
             }
             _ => return Err(parser_error(CompilationError::InvalidAfterFilePath, self)),
         }

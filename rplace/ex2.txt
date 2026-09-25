@@ -1,9 +1,8 @@
-//- $#output = "out.txt":
-
 //- def a:
-    //- for a in array:
-        $#a
-    //- end:
+    //- create $#file_name place b:
+//- end:
+//- def b:
+
 //- end:
 
-//- place a where array = [a,b,c,d]:
+//- place a:

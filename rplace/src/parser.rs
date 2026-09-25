@@ -144,7 +144,8 @@ impl Parser {
             }
             Token::CREATE => {
                 self.ptr_next();
-                self.handle_create(&mut nodes)?;
+                let node = self.handle_create()?;
+                nodes.push(node);
             }
             Token::DERIVE => {
                 self.ptr_next();
@@ -603,6 +604,16 @@ impl Parser {
                 let node = self.handle_for()?;
                 body.push(node);
             }
+            Token::CREATE => {
+                self.ptr_next();
+                body.push(Node::DATA {
+                    data: body_str.to_string(),
+                    line: self.line,
+                });
+                *body_str = String::new();
+                let node = self.handle_create()?;
+                body.push(node);
+            },
             _ => {
                 return Err(parser_error(CompilationError::InvalidBodyCommand, self));
             }
