@@ -226,3 +226,5 @@ or rplace run --json {a:b, c:d}
 - arrays f = []
 - arrays //-for elem in f: or f[id]
 - arrays array[v]
+
+- allow for finite ammount of elements like an enum
