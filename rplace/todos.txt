@@ -14,11 +14,11 @@ $#var/UPPER
 $#var/LOWER
 $#var/NORMALIZE
 trow if not to standard
-$#var/CAMEL
-$#var/PASCAL
-$#var/KEBAB
+$#var/CAMEL X
+$#var/PASCAL X
+$#var/KEBAB X
 $#var/SNAKE X
-$#var/SCREAMING
+$#var/SCREAMING X
 chaining
 $#var/UPPERFIRST/UPPERLAST
 
@@ -46,18 +46,18 @@ ex: //- def a when A/UPPERFIRST = Name:
 - inline conditions
 - loops / for each in place, def and inline 
 ex: for item in list
-//- place a were a=[a,b,c]:
+//- place a were a=[a,b,c]: X 
 - better scope for variables
 - global variables
 - assertions ex: A = B or else trows
-- regex assertions and modifiers ex:
-$#var/UPPER:[A-C]
+- regex assertions and modifiers ex: X
+$#var/UPPER:[A-C] 
 - def as variable
 - namespaces
 - selective include and alias
 - debug / tracing / dump vars / defs 
-- inline optionals ex: $#var? if none, then "" 
-same for place ex: //- place a where A=B?
+- inline optionals ex: $#var? if none, then ""  X
+same for place ex: //- place a where A=$#B?
 - file creation options  
 - rules for error output
 - sujestions for typos using Levenshtein distance
@@ -84,8 +84,8 @@ and it would be able to translate to multiple languages X
 - if else
 - implement any / _ for match
 
-- array example
-//- for (var, type) in collection var: X
+- array example X
+//- for (var, type) in collection var: X 
     $#var+: $#type X
 //- end: X
 //- place a where arr=(a,b),(c,d),(e,f), var=val: X
