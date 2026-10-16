@@ -1,4 +1,5 @@
-//- $#output = "out.txt":
+
+/- $#output = "out.txt":
 //- def dto:
 pub struct $#name\pascalcase{
 

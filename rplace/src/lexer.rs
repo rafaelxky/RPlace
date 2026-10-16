@@ -75,7 +75,7 @@ impl Token {
             Token::FOR => "for",
             Token::IN => "in",
             Token::MOD => "mod",
-            Token::PIPE => "pipe",
+            Token::PIPE => "here",
         }
         .to_string();
     }
@@ -95,7 +95,7 @@ impl Token {
             Token::FOR => "for",
             Token::IN => "in",
             Token::MOD => "mod",
-            Token::PIPE => "pipe",
+            Token::PIPE => "here",
             _ => "",
         };
         if res.is_empty() {
@@ -404,7 +404,7 @@ impl Lexer {
                     tokens.push(Token::MOD);
                     continue;
                 }
-                "pipe" => {
+                "here" => {
                     tokens.push(Token::PIPE);
                     continue;
                 }

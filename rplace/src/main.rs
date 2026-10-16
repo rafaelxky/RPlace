@@ -1,4 +1,4 @@
-use crate::config::config::{CONFIG, CompilerConfig, reload_config};
+use crate::config::config::{CONFIG, reload_config};
 use crate::constants::PROJECT_FILE;
 use crate::package_manager::auth::read_tok;
 use crate::package_manager::auth::save_tok;
@@ -15,10 +15,11 @@ use crate::package_manager::web::fetch::{
 };
 use crate::package_manager::web::structs::ResponsePackageData;
 use crate::package_manager::web::user::create_user;
-use crate::run::run_options::parse_get_all_paths;
+use crate::run::run_options::{parse_get_all_paths, run_pipe};
 use crate::run::run_options::run_parse;
 use crate::term::terminal_handler::CliArgs;
 use crate::term::terminal_handler::handle_args;
+use crate::config::config::CompilerConfig;
 use anyhow::Result;
 use directories::ProjectDirs;
 use std::process::{Command, exit};
@@ -40,17 +41,17 @@ pub mod structs;
 pub mod term;
 pub mod writer;
 
-use rplace::run::run_options::run_pipe;
-
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = handle_args();
     match args {
         CliArgs::Pipe { target, command } => {
-            let output = Command::new(command).output()?.stdout;
-            let str = str::from_utf8(&output)?;
+            //let output = Command::new(command).output()?.stdout;
+            //let str = str::from_utf8(&output)?;
+            let str = &command;
             let config: CompilerConfig = CONFIG.clone().read().unwrap().clone();
-            let output = run_pipe(target, str, config);
+            let output = run_pipe(target, str, config)?;
+            output.write();
             Ok(())
         }
         CliArgs::New { project_name } => {
