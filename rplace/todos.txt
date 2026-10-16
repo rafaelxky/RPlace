@@ -203,3 +203,6 @@ better yet like so
 can be shortened to 
 //- pipe:
 wich will just put the stuff there as is
+can be ran rplace pipe file [command] 
+or could be rplace run --args [a,b,c,d]
+or rplace run --json {a:b, c:d}
