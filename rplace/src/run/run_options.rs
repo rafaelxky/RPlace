@@ -4,7 +4,7 @@ use std::process::exit;
 use std::sync::{Arc, RwLock};
 
 use crate::config::config::CompilerConfig;
-use crate::data_stream::{DataSouce, get_data_stream};
+use crate::data_stream::{DataSouce, DataStream, FileDataStream, get_data_stream};
 use crate::lexer::Lexer;
 use crate::lua::lua_call_map::LuaCallMap;
 use crate::options::var_options::VarOptionsMap;
@@ -15,7 +15,7 @@ use crate::structs::FileConfig;
 use crate::term::terminal_handler::ParseArgs;
 use crate::writer::writer::Writer;
 use crate::writer::writer_structs::WriterResult;
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 
 pub fn parse_get_all_paths(data: PackageData, config: CompilerConfig) -> Result<Vec<String>>{
     let project_src = data.package.root;
@@ -54,7 +54,23 @@ pub fn parse_get_all_paths(data: PackageData, config: CompilerConfig) -> Result<
     }
     return Ok(paths_outer);
 }
-
+pub fn run_pipe(path: String, piped: &str,config: CompilerConfig) -> Result<OutputWriter>{
+    let mut stream = FileDataStream::new(path.to_string());
+    let (data, path) = stream.next().ok_or_else(|| anyhow!("No such file {}",path))?;
+     let lexer = Lexer::new(path.clone(), data);
+        let tokens = lexer.parse();
+        let parser = Parser::new(tokens, path.to_string(), path.to_string());
+        let nodes = parser.parse()?;
+        
+    let config = Arc::new(config);
+    let lua_map = LuaCallMap::load(config.clone());
+    let var_options_map = Arc::new(VarOptionsMap::new(config.clone(), lua_map));
+    let writer = Writer::new(nodes, path.to_string(), path.to_string(), config, var_options_map);
+    let (replaced, config) = writer.replace_pipe(piped)?;
+    let file = OpenOptions::new().write(true).open(path)?;
+    let output = OutputWriter::new(replaced, file, config);
+    return Ok(output);
+}
 pub fn run_parse(args: ParseArgs, config: CompilerConfig, _package_data: Option<PackageData>) -> Result<Vec<OutputWriter>> {
     let (mut stream, origin) = get_data_stream(args.origin.as_ref().unwrap());
     let project_src = args.origin.unwrap();

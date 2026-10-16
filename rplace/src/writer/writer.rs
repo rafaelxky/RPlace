@@ -199,6 +199,28 @@ impl Writer {
         self.initial_sweap(&mut def_map, &mut to_parse, &mut mod_list)?;
         return Ok((to_parse,mod_list));
     }
+    pub fn replace_pipe(self, piped: &str) -> Result<(WriterResult,FileConfig)>{
+        let mut result = WriterResult::new();
+        let nodes = &self.nodes;
+        let mut text = String::new();
+        for node in nodes{
+            match node {
+                Node::PIPE => {
+                    text.push_str(piped);
+                }
+                Node::BODY { data, line:_ } => {
+                    Self::handle_raw_text(&mut text, data);
+                },
+                Node::DATA { data, line:_ } => {
+                    text.push_str(&data);
+                },
+                _ => {}
+            }
+        }
+
+        result.push_elements(text, self.file_path);
+        Ok((result, self.file_config))
+    }
     pub fn replace(mut self) -> Result<(WriterResult, FileConfig)> {
         let mut result = WriterResult::new();
 

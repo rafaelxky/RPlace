@@ -178,7 +178,8 @@ pub enum Node {
     },
     MOD {
         path: String,
-    }
+    },
+    PIPE,
 }
 impl Node {
     pub fn new_create(path: String, content: Vec<Node>, starting_line: usize) -> Node {

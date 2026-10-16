@@ -1,3 +1,5 @@
+use anyhow::{Error, Result};
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     IDENT { str: String },
@@ -34,6 +36,7 @@ pub enum Token {
     FOR,
     IN,
     MOD,
+    PIPE,
 }
 impl Token {
     pub fn val(&self) -> String {
@@ -72,6 +75,7 @@ impl Token {
             Token::FOR => "for",
             Token::IN => "in",
             Token::MOD => "mod",
+            Token::PIPE => "pipe",
         }
         .to_string();
     }
@@ -91,12 +95,19 @@ impl Token {
             Token::FOR => "for",
             Token::IN => "in",
             Token::MOD => "mod",
+            Token::PIPE => "pipe",
             _ => "",
         };
         if res.is_empty() {
             return None;
         } else {
             return Some(res.to_string());
+        }
+    }
+    pub fn expect_dd_or_else(&self, predicate: fn()->Error) -> Result<()>{
+        match self {
+            Token::DD => return Ok(()),
+            _ => return Err(predicate())
         }
     }
 }
@@ -391,6 +402,10 @@ impl Lexer {
                 }
                 "mod" => {
                     tokens.push(Token::MOD);
+                    continue;
+                }
+                "pipe" => {
+                    tokens.push(Token::PIPE);
                     continue;
                 }
                 _ => {

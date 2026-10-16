@@ -12,6 +12,7 @@ use crate::{
 
 pub mod parse_instructions;
 pub mod parse_variables;
+pub mod pipe;
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -162,6 +163,10 @@ impl Parser {
             Token::MOD => {
                 self.ptr_next();
                 self.handle_mod(&mut nodes)?;
+            }
+            Token::PIPE => {
+                self.ptr_next();
+                self.handle_pipe(&mut nodes)?;
             }
             _ => {
                 return Err(parser_error(CompilationError::InvalidFunc, self));

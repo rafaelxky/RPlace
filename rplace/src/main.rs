@@ -17,11 +17,11 @@ use crate::package_manager::web::structs::ResponsePackageData;
 use crate::package_manager::web::user::create_user;
 use crate::run::run_options::parse_get_all_paths;
 use crate::run::run_options::run_parse;
+use crate::term::terminal_handler::CliArgs;
 use crate::term::terminal_handler::handle_args;
-use crate::term::terminal_handler::{CliArgs};
 use anyhow::Result;
 use directories::ProjectDirs;
-use std::process::exit;
+use std::process::{Command, exit};
 
 pub mod config;
 pub mod constants;
@@ -40,10 +40,19 @@ pub mod structs;
 pub mod term;
 pub mod writer;
 
+use rplace::run::run_options::run_pipe;
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = handle_args();
     match args {
+        CliArgs::Pipe { target, command } => {
+            let output = Command::new(command).output()?.stdout;
+            let str = str::from_utf8(&output)?;
+            let config: CompilerConfig = CONFIG.clone().read().unwrap().clone();
+            let output = run_pipe(target, str, config);
+            Ok(())
+        }
         CliArgs::New { project_name } => {
             create_project(project_name)?;
             Ok(())
@@ -61,7 +70,7 @@ async fn main() -> Result<()> {
                 Ok(d) => {
                     load_all_package_files(&config.package_source, &d).await?;
                     run_parse(args, config, Some(d))
-                },
+                }
                 _ => run_parse(args, config, None),
             }?;
             if stops_at_parser {
