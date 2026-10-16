@@ -233,7 +233,7 @@ this will take regular text and transform it into a template acording to rules
 - //- $#output = "out.txt":
 - Sets the output path for the file
 
-# comand line arguments / CLI
+# comand line arguments (args, cli)
 - replace reload
 - reloads the config file with the default values
 - rplace run <origin> <target>
@@ -241,6 +241,16 @@ this will take regular text and transform it into a template acording to rules
 - target can be overriten by the file config variable $#output
 - replace new <project_name> 
 - creates a new project config "rplace.toml" file
+- rplace pipe <target> <text> 
+- takes the target file and replaces the //- here: tag with the <text>
+
+# piping / here command
+- the here command provides a spot to place arguments passed by the CLI
+- //- here:
+- when you run rplace pipe <target> <text>
+- <here> will be replaced by <text>
+- this is meant to be used like so:
+- rplace pipe file.txt "$(echo "hello world")"
 
 # parse instruction
 - //- parse file.txt:
