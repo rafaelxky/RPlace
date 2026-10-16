@@ -191,7 +191,7 @@ $#user.name
 $#user.age
 
 - here tags for multiple purposes
-ex: //- here main: 
+ex: //- here main: X
 then run rplace pipe file <command>
 wich will place the output in the taged place
 better yet like so
@@ -200,9 +200,15 @@ better yet like so
     the rest is ignored
     you can access the context with $#piped
 //-end:
-can be shortened to 
-//- pipe:
+can be shortened to
+//- pipe: X
 wich will just put the stuff there as is
 can be ran rplace pipe file [command] 
 or could be rplace run --args [a,b,c,d]
 or rplace run --json {a:b, c:d}
+
+- //- if var:
+    ...
+- //- else: 
+    ...
+- //- end:

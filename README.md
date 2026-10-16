@@ -251,6 +251,7 @@ this will take regular text and transform it into a template acording to rules
 - <here> will be replaced by <text>
 - this is meant to be used like so:
 - rplace pipe file.txt "$(echo "hello world")"
+- its meant for quick replacement
 
 # parse instruction
 - //- parse file.txt:
