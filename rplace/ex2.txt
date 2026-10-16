@@ -1,8 +1,9 @@
+//- $#output = "out3.txt":
 //- def a:
-    //- create $#file_name place b:
+    //- for f in field:
+        $#f
+        $#f.a
+    //- end:
 //- end:
-//- def b:
 
-//- end:
-
-//- place a:
+//- place a where field = [(f=(a,b,c),b=(a,b,c)),(f=b)]:

@@ -212,3 +212,17 @@ or rplace run --json {a:b, c:d}
 - //- else: 
     ...
 - //- end:
+
+- var.param
+
+- I need a way to delete newlines 
+- //- !n :
+- //- !n < :
+- kinda like this, deletes the following newlines
+
+- structs s = ()
+- structs s.elem
+- structs hashmap<k,v>
+- arrays f = []
+- arrays //-for elem in f: or f[id]
+- arrays array[v]
