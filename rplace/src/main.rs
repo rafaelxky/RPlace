@@ -22,7 +22,7 @@ use crate::term::terminal_handler::handle_args;
 use crate::config::config::CompilerConfig;
 use anyhow::Result;
 use directories::ProjectDirs;
-use std::process::{Command, exit};
+use std::process::{exit};
 
 pub mod config;
 pub mod constants;
@@ -46,8 +46,6 @@ async fn main() -> Result<()> {
     let args = handle_args();
     match args {
         CliArgs::Pipe { target, command } => {
-            //let output = Command::new(command).output()?.stdout;
-            //let str = str::from_utf8(&output)?;
             let str = &command;
             let config: CompilerConfig = CONFIG.clone().read().unwrap().clone();
             let output = run_pipe(target, str, config)?;
