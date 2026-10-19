@@ -121,7 +121,8 @@ impl Writer {
                             self.file_config.set_val(&var[0], value.clone());
                         },
                         Value::Var { value:_, options:_ } => panic!("todo msg"),
-                        Value::Array { values: _, names: _ } => panic!("todo msg"),
+                        Value::Array { .. } => todo!(),
+                        Value::Struct { .. } => todo!(),
                     }
                     continue;
                 }
@@ -514,41 +515,54 @@ impl Writer {
         
     }
 
-    fn resolve_var(&self, var: &Var, value: &Value, args_map: &HashMap<String, ResValue>, name: &String) -> (String, ResValue){
+    fn resolve_var(
+        &self,
+        var: &Var,
+        value: &Value,
+        args_map: &HashMap<String, ResValue>,
+    ) -> (String, ResValue) {
+        (var.name.clone(), self.resolve_value(value, args_map))
+    }
+
+    fn resolve_value(&self, value: &Value, args_map: &HashMap<String, ResValue>) -> ResValue {
         match value {
-            Value::Literal{value,options: _} => {
-                //args_map.insert(var.name.clone(), ResValue::new_val(value.to_string()));
-                return (var.name.clone(),ResValue::new_val(value.to_string()));
+            Value::Literal { value, options: _ } => ResValue::new_val(value.clone()),
+            Value::Var { value, options: _ } => args_map
+                .get(value)
+                .cloned()
+                .unwrap_or_else(|| panic!("No value found for <var> type {:?} line ", value)),
+            Value::Array { arr } => {
+                let rows = arr
+                    .values
+                    .iter()
+                    .map(|value| match value {
+                        Value::Struct { str } => self.resolve_struct(str, args_map),
+                        value => vec![self.resolve_value(value, args_map)],
+                    })
+                    .collect();
+                ResValue::new_array(rows)
             }
-            Value::Var{value, options: _} => {
-                let val = args_map.get(value);
-                match val {
-                    Some(val) => {
-                        return (var.name.clone(), val.clone());
-                    },
-                    None => {
-                        panic!("No value found for <var> type {:?} line ", value);
-                    },
-                }
-            },
-            Value::Array { values, names: _ } => {
-                // todo: resolve array values
-                let resolved_array_values = values.iter().map(|v|{
-                    return v.iter().map(|val|{
-                        match val {
-                            ArrayValue::Value(value) => {
-                                return self.resolve_var(var, value, args_map, name).1;
-                            },
-                            ArrayValue::Named { name, value } => {
-                                let val = self.resolve_var(var, value, args_map, name).1;
-                                return ResValue::new_named_array_value(name, val);
-                            },
-                        }
-                    }).collect();
-                }).collect();
-                return (var.name.clone(), ResValue::new_array(resolved_array_values));
-            },
+            Value::Struct { str } => ResValue::new_array(vec![self.resolve_struct(str, args_map)]),
         }
+    }
+
+    fn resolve_struct(
+        &self,
+        structure: &StructType,
+        args_map: &HashMap<String, ResValue>,
+    ) -> Vec<ResValue> {
+        structure
+            .values()
+            .iter()
+            .enumerate()
+            .map(|(index, value)| {
+                let resolved = self.resolve_value(value, args_map);
+                match structure.names().and_then(|names| names.get(index)) {
+                    Some(name) => ResValue::new_named_array_value(name.clone(), resolved),
+                    None => resolved,
+                }
+            })
+            .collect()
     }
 
     fn handle_place(
@@ -568,8 +582,8 @@ impl Writer {
             // maybe the best is to clone the hashmap 
             if !args_map.contains_key(&arg.0.name.clone()) {
                 // resolve variables
-                let (name,val) = self.resolve_var(&arg.0, &arg.1, args_map, name);
-                args_map.insert(name, val);
+                let (name,val) = self.resolve_var(&arg.0, &arg.1, args_map);
+                 args_map.insert(name, val);
             }
         });
 

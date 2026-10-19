@@ -8,7 +8,7 @@ use crate::{
     lexer::Token,
     package_manager::file::parse_package_path,
     parser::Parser,
-    structs::{ArrayValue, Value, Var, VarOption},
+    structs::{Value, Var, VarOption},
 };
 
 impl Parser {
@@ -118,148 +118,94 @@ impl Parser {
     // ends at ] (consumes it)
     // ex: [(a,b),(c,d)]
     pub(super) fn handle_array_values(&mut self) -> Result<Value> {
-        enum ArrayType {
-            REGULAR,
-            SQUARE,
-        }
-        let mut vals: Vec<Vec<ArrayValue>> = vec![];
-        let names: Vec<Vec<Option<String>>> = vec![];
-        self.remove_spaces();
-        let arr_type = match self.peek() {
-            Token::LPAREN => ArrayType::REGULAR,
-            _ => ArrayType::SQUARE,
-        };
-        'outer: loop {
-            // todo: test this
+        let mut values = Vec::new();
+        loop {
             self.remove_spaces();
-            match self.peek() {
-                // allow empty []
-                Token::LPAREN => match arr_type {
-                    ArrayType::REGULAR => {
-                        self.pop();
-                    }
-                    ArrayType::SQUARE => {
-                        return Err(parser_error(CompilationError::WrongArrayType, self));
-                    }
-                },
-                _ => match arr_type {
-                    ArrayType::REGULAR => {
-                        return Err(parser_error(CompilationError::WrongArrayType, self));
-                    }
-                    ArrayType::SQUARE => {}
-                },
-            };
-            vals.push(vec![]);
-            let mut has_used_names: Option<bool> = None;
-            // [(
-            'inner: loop {
-                let val = self.handle_val()?;
-                let len = vals.len() - 1;
-                self.remove_spaces();
-                match self.pop() {
-                    Token::COMMA => {
-                        match has_used_names {
-                            Some(true) => {
-                                return Err(parser_error(CompilationError::ArrayNameMix, self));
-                            }
-                            _ => {
-                                has_used_names = Some(false);
-                            }
-                        }
-                        match arr_type {
-                            ArrayType::REGULAR => {
-                                vals[len].push(ArrayValue::Value(val));
-                            }
-                            ArrayType::SQUARE => {
-                                vals[len].push(ArrayValue::Value(val));
-                                vals.push(vec![]);
-                            }
-                        }
-                        continue;
-                    }
-                    Token::RPAREN => {
-                        vals[len].push(ArrayValue::Value(val));
-                        break 'inner;
-                    }
-
-                    Token::EQUALS => {
-                        // varname can only be a literal
-                        let name = match val {
-                            Value::Literal { value, options } => {
-                                if options.is_some() {
-                                    return Err(parser_error(
-                                        CompilationError::InvalidVarOption,
-                                        self,
-                                    ));
-                                }
-                                match has_used_names {
-                                    Some(false) => {
-                                        return Err(parser_error(
-                                            CompilationError::ArrayNameMix,
-                                            self,
-                                        ));
-                                    }
-                                    _ => {
-                                        has_used_names = Some(true);
-                                    }
-                                };
-                                value
-                            }
-                            _ => {
-                                return Err(parser_error(
-                                    CompilationError::Invalid1stPlaceVar,
-                                    self,
-                                ));
-                            }
-                        };
-                        self.remove_spaces();
-                        let val_inner = self.handle_val()?;
-                        match arr_type {
-                            ArrayType::REGULAR => {
-                                vals[len].push(ArrayValue::Named {
-                                    name,
-                                    value: val_inner,
-                                });
-                            }
-                            ArrayType::SQUARE => {
-                                vals[len].push(ArrayValue::Named {
-                                    name,
-                                    value: val_inner,
-                                });
-                                vals.push(vec![]);
-                            }
-                        }
-                    }
-                    Token::RSRQBRACK => match arr_type {
-                        ArrayType::REGULAR => {
-                            return Err(parser_error(CompilationError::Invalid2ndPlaceVar, self));
-                        }
-                        ArrayType::SQUARE => {
-                            vals[len].push(ArrayValue::Value(val));
-                            break 'outer;
-                        }
-                    },
-                    // hits here because the final ] is poped if the array is square instead of regular
-                    _ => return Err(parser_error(CompilationError::Invalid2ndPlaceVar, self)),
-                }
-                self.remove_spaces();
-                match self.pop() {
-                    Token::COMMA => continue,
-                    Token::RPAREN => break 'inner,
-                    _ => return Err(parser_error(CompilationError::Invalid2ndPlaceVar, self)),
-                }
+            if matches!(self.peek(), Token::RSRQBRACK) && values.is_empty() {
+                self.ptr_next();
+                break;
             }
+
+            let value = if matches!(self.peek(), Token::LPAREN) {
+                self.ptr_next();
+                self.handle_struct_values()?
+            } else {
+                self.handle_val()?
+            };
+
             self.remove_spaces();
             match self.pop() {
-                Token::COMMA => continue,
-                Token::RSRQBRACK => break 'outer,
+                Token::COMMA => values.push(value),
+                Token::RSRQBRACK => {
+                    values.push(value);
+                    break;
+                }
                 _ => return Err(parser_error(CompilationError::Invalid2ndPlaceVar, self)),
             }
         }
 
-        // todo: names
-        // [(name=val, name2=val2)]
-        return Ok(Value::new_value_array_type(vals, names));
+        Ok(Value::new_value_array_type(values))
+    }
+
+    fn handle_struct_values(&mut self) -> Result<Value> {
+        let mut values = Vec::new();
+        let mut names = Vec::new();
+        let mut has_used_names: Option<bool> = None;
+
+        loop {
+            let value = self.handle_val()?;
+            self.remove_spaces();
+            let (field_name, value, delimiter) = match self.pop() {
+                Token::EQUALS => {
+                    let field_name = match value {
+                        Value::Literal { value, options } => {
+                            if options.is_some() {
+                                return Err(parser_error(
+                                    CompilationError::InvalidVarOption,
+                                    self,
+                                ));
+                            }
+                            value
+                        }
+                        _ => {
+                            return Err(parser_error(
+                                CompilationError::Invalid1stPlaceVar,
+                                self,
+                            ));
+                        }
+                    };
+                    let value = self.handle_val()?;
+                    self.remove_spaces();
+                    (Some(field_name), value, self.pop())
+                }
+                delimiter @ (Token::COMMA | Token::RPAREN) => (None, value, delimiter),
+                _ => return Err(parser_error(CompilationError::Invalid2ndPlaceVar, self)),
+            };
+
+            match (has_used_names, field_name.as_ref()) {
+                (Some(true), None) | (Some(false), Some(_)) => {
+                    return Err(parser_error(CompilationError::ArrayNameMix, self));
+                }
+                (None, Some(_)) => has_used_names = Some(true),
+                (None, None) => has_used_names = Some(false),
+                _ => {}
+            }
+            if let Some(field_name) = field_name {
+                names.push(field_name);
+            }
+            values.push(value);
+
+            match delimiter {
+                Token::COMMA => continue,
+                Token::RPAREN => break,
+                _ => return Err(parser_error(CompilationError::Invalid2ndPlaceVar, self)),
+            }
+        }
+
+        Ok(Value::new_struct_type(
+            values,
+            has_used_names.map(|_| names),
+        ))
     }
 
     /// gets here right after " in arg

@@ -1,9 +1,14 @@
 //- $#output = "out3.txt":
-//- def a:
-    //- for f in field:
-        $#f
-        $#f.a
+//- def demo:
+Mixed array:
+    //- for item in mixed:
+        $#item
+    //- end:
+
+Struct rows:
+    //- for first,second in pairs:
+        $#first, $#second
     //- end:
 //- end:
 
-//- place a where field = [(f=(a,b,c),b=(a,b,c)),(f=b)]:
+//- place demo where mixed = [a, (b, c), d], pairs = [(one, two), (three, four)]:

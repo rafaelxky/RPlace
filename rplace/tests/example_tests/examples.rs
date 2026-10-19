@@ -42,6 +42,13 @@ pub fn for_loop_binds_multiple_values() -> Result<()> {
     assert_eq!(str, "one,two;three,four;");
     Ok(())
 }
+#[test]
+pub fn array_can_mix_values_and_structs() -> Result<()> {
+    let code = "//- def a://- for val in values:$#val//- end://- end://- place a where values = [a,(b,c)]:";
+    let str = parse(code)?;
+    assert_eq!(str, "ab");
+    Ok(())
+}
 
 #[test]
 pub fn def_test() -> Result<()>{

@@ -43,19 +43,6 @@ impl Condition {
     }
 }
 #[derive(Debug, Clone)]
-pub enum ArrayValue {
-    Value(Value),
-    Named{
-        name: String,
-        value:Value,
-    }
-}
-impl ArrayValue {
-    pub fn from_value(value: Value) -> Self{
-        Self::Value(value)
-    }
-}
-#[derive(Debug, Clone)]
 pub enum Value {
     // "var" or simply var
     Literal {
@@ -69,8 +56,39 @@ pub enum Value {
     },
     // [(a,b), (c,d)]
     Array {
-        values: Vec<Vec<ArrayValue>>,
-        names: Vec<Vec<Option<String>>>,
+        arr: ArrayType,
+        //values: Vec<Vec<ArrayValue>>,
+        //names: Vec<Vec<Option<String>>>,
+    },
+    Struct {
+        str: StructType,
+    }
+}
+#[derive(Debug, Clone)]
+pub struct StructType{
+    values: Vec<Value>,
+    names: Option<Vec<String>>,
+}
+impl StructType {
+    pub fn new(values: Vec<Value>, names: Option<Vec<String>>) -> Self{
+        Self { values, names }
+    }
+
+    pub fn values(&self) -> &[Value] {
+        &self.values
+    }
+
+    pub fn names(&self) -> Option<&[String]> {
+        self.names.as_deref()
+    }
+}
+#[derive(Debug, Clone)]
+pub struct ArrayType{
+    pub values: Vec<Value>,
+}
+impl ArrayType {
+    pub fn new(values: Vec<Value>) -> Self{
+        Self { values }
     }
 }
 impl Value {
@@ -86,8 +104,13 @@ impl Value {
             options,
         };
     }
-    pub fn new_value_array_type(values: Vec<Vec<ArrayValue>>, names: Vec<Vec<Option<String>>>) -> Value {
-        return Value::Array { values, names};
+    pub fn new_value_array_type(values: Vec<Value>) -> Value {
+        let arr = ArrayType::new(values);
+        return Value::Array { arr };
+    }
+    pub fn new_struct_type(values: Vec<Value>, names: Option<Vec<String>>) -> Value{
+        let str = StructType::new(values, names);
+        return Value::Struct { str };
     }
 }
 #[derive(Debug, Clone)]
