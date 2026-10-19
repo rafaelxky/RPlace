@@ -55,12 +55,8 @@ pub struct /*- $#struct_name -> -*/ Vec2
 - ex: [(a,b,c),(d,f,g)]
 - array variables can be nested
 - ex: [([(a,b,c)],b,c),([(a),(b),(c)],b,c)]
-- the array is marked by square brackets []
-- each element is marked by parentesis ()
-- the inner elements separated by commas ,
-- ex: array = [(a,b,c),(a,b,c)]
-- 
-//- for a,b,c in array:
+- anything inside [] is an array and anything inside () is a struct
+- ex: //- for a,b,c in array:
     $#a 
     $#b
     $#c
@@ -69,11 +65,16 @@ pub struct /*- $#struct_name -> -*/ Vec2
 - you can assign names to the variables in the arrays
 - ex: [(a=b, c=d, e=f),(g=h,i=j)]
 - you can either have named or unamed variables but not both in the same parentesis
-- ex: 
 - [(a,b,c=d)] is not allowed
-- [(a,b,c), (a=a,b=b,c=c)] is allowed
-- you can also use the simplified array
-- ex: [a,b,c] = [(a),(b),(c)]
+- array elements are accessed sequentially
+- struct elements are accessed at the same time and can be named
+- ex: //- for elem1,elem2 in array: 
+- elem1 and elem2 are struct elements
+- ex: //- for val in array:
+- here val can be part of an array or first element of struct
+- ex: //- place ex where arr = [a,(a,b),(name=valueA, name2=valueB), b, [a,b,c]]
+- this is an example mix of structs and arrays
+
 
 ## parent variables
 - you can use parent variables inside place
