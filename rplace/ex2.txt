@@ -11,4 +11,4 @@ Struct rows:
     //- end:
 //- end:
 
-//- place demo where mixed = [a, (b, c), d], pairs = [(one, two), (three, four)]:
+//- place demo where mixed = [a, (b, c), d], pairs = [(first=one, second=two), (three, four)]:
