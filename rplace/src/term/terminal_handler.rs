@@ -5,41 +5,77 @@ use clap::{CommandFactory, Parser, Subcommand,error::ErrorKind};
 
 #[derive(Subcommand, Debug)]
 pub enum SubCommand {
+    /// Create a new RPlace project.
     New {
+        /// Name to use for the new project.
+        #[arg(value_name = "PROJECT_NAME", help = "Name to use for the new project.")]
         project_name: String,
     },
+    /// Parse and render an RPlace source file.
     Run {
+        /// Source file or project to process; defaults to rplace.toml when available.
+        #[arg(value_name = "ORIGIN", help = "Source file or project to process; defaults to rplace.toml when available.")]
         origin: Option<String>,
+        /// Output file; defaults to the configured output or the source file.
+        #[arg(value_name = "TARGET", help = "Output file; defaults to the configured output or the source file.")]
         target: Option<String>,
-        #[arg(short = 'p')]
+        /// Parse and print the syntax tree without rendering output.
+        #[arg(short = 'p', long = "parse-only", help = "Parse and print the syntax tree without rendering output.")]
         stops_at_parser: bool,
     },
+    /// Reload the global RPlace configuration.
     Reload,
+    /// Manage packages and package dependencies.
     Package {
         #[command(subcommand)]
         command: PackageSubcommand,
     },
-    Pipe{
+    /// Render piped text using a source file as its template.
+    Pipe {
+        /// Template source file.
+        #[arg(value_name = "TARGET", help = "Template source file.")]
         target: String,
+        /// Text to pass into the template.
+        #[arg(value_name = "TEXT", help = "Text to pass into the template.")]
         command: String,
     }
 }
 #[derive(Subcommand, Debug)]
 pub enum PackageSubcommand {
+    /// Log in to the configured package service.
     Login {
+        /// Account email address.
+        #[arg(value_name = "EMAIL", help = "Account email address.")]
         email: String,
+        /// Account password.
+        #[arg(value_name = "PASSWORD", help = "Account password.")]
         password: String,
     },
+    /// Create a user on the configured package service.
     CreateUser {
+        /// Username for the new account.
+        #[arg(value_name = "USERNAME", help = "Username for the new account.")]
         username: String,
+        /// Email address for the new account.
+        #[arg(value_name = "EMAIL", help = "Email address for the new account.")]
         email: String,
+        /// Password for the new account.
+        #[arg(value_name = "PASSWORD", help = "Password for the new account.")]
         password: String,
     },
+    /// Upload the current project to the package service.
     Push {},
+    /// Create a package using the current project metadata.
     New{},
+    /// Publish a new version of the current package.
     CreateVersion{},
+    /// Add a package dependency to the current project.
     Add {
+        /// Name of the package to add.
+        #[arg(value_name = "PACKAGE", help = "Name of the package to add.")]
         dependency_name: String,
+        /// Optional version constraint for the dependency.
+        #[arg(value_name = "VERSION", help = "Optional version constraint for the dependency.")]
         dependency_version: Option<String>,
     }
 }
@@ -79,6 +115,11 @@ pub struct ParseArgs {
 }
 
 #[derive(Parser, Debug)]
+#[command(
+    name = "rplace",
+    about = "Parse and render RPlace templates and manage RPlace projects.",
+    version
+)]
 pub struct Args {
     #[command(subcommand)]
     pub command: Option<SubCommand>,
