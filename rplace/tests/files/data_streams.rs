@@ -93,7 +93,7 @@ pub fn test_folder_file_data_stream() -> Result<()> {
 }
 
 pub fn setup_package(path: &str, code: &str) -> Result<String> {
-    let path = save_package_file_raw("","",path, code)?;
+    let path = save_package_file_raw("", "", path, code)?;
     Ok(path)
 }
 
@@ -103,11 +103,13 @@ pub fn package_paths_cannot_escape_package_directory() -> Result<()> {
 
     assert!(parse_package_path("package/../outside.txt".to_string(), &base_dir).is_err());
     assert!(parse_package_path("/outside.txt".to_string(), &base_dir).is_err());
-    assert!(parse_package_path(
-        "/tmp/rplace-package-other/outside.txt".to_string(),
-        &base_dir,
-    )
-    .is_err());
+    assert!(
+        parse_package_path(
+            "/tmp/rplace-package-other/outside.txt".to_string(),
+            &base_dir,
+        )
+        .is_err()
+    );
 
     let safe_path = parse_package_path("package/src/main.rs".to_string(), &base_dir)?;
     assert_eq!(safe_path, "/tmp/rplace-package/src/main.rs");

@@ -2,9 +2,7 @@ use std::{fs, path::Path, process::exit};
 
 use anyhow::Result;
 
-use crate::{
-    package_manager::{web::create::upload_file},
-};
+use crate::package_manager::web::create::upload_file;
 
 pub async fn upload_files(
     paths: Vec<String>,

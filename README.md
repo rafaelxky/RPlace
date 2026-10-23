@@ -225,6 +225,15 @@ this will take regular text and transform it into a template acording to rules
 ## inline lua options
 - you can use inline lua to manipulate variables
 - ex: $#var\lua::"return args[1]..\" world \""
+- Lua is provided by an optional runtime module rather than being linked into the RPlace executable.
+- Build all packages with `cargo build --workspace --release`; `./build.sh` also installs the executable and both runtime modules on Linux.
+- On Linux, the default directory is `~/.local/share/rplace/addons`. The module loads `.lua` add-ons from the same directory.
+- Set `allow_lua` to `true` in RPlace's `config.json` to enable Lua execution.
+
+## regex derive option
+- Regex matching is also provided by an optional runtime module.
+- The workspace build compiles the regex module, and `./build.sh` installs it on Linux.
+- The module is loaded when a derive declaration uses the `\regex` option.
 
 # config
 - the config.json has some program specifications

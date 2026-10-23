@@ -1,27 +1,48 @@
 use anyhow::{Ok, Result};
-use rplace::lexer::{Lexer, Token::{self, BSLASH, COMMA, DD, DOT, DQUOTE, EOF, EQUALS, GLOBAL, LPAREN, LSRQBRACK, NL, PLUS, QD, QUESTION, RARROW, RPAREN, RSRQBRACK}};
+use rplace::lexer::{
+    Lexer,
+    Token::{
+        self, BSLASH, COMMA, DD, DOT, DQUOTE, EOF, EQUALS, GLOBAL, LPAREN, LSRQBRACK, NL, PLUS, QD,
+        QUESTION, RARROW, RPAREN, RSRQBRACK,
+    },
+};
 
 pub const FILE_PATH: &str = "example_file.txt";
 
 #[test]
-pub fn test_ident() -> Result<()>{
+pub fn test_ident() -> Result<()> {
     const TEXT: &str = "hello world";
     let lexer = Lexer::new(FILE_PATH, TEXT.to_string());
-    let toks= lexer.parse().tokens;
+    let toks = lexer.parse().tokens;
     assert_eq!(toks.len(), 4);
-    assert_eq!(toks[0], Token::IDENT { str: "hello".to_string() });
+    assert_eq!(
+        toks[0],
+        Token::IDENT {
+            str: "hello".to_string()
+        }
+    );
     assert_eq!(toks[1], Token::SPACE);
-    assert_eq!(toks[2], Token::IDENT { str: "world".to_string() });
+    assert_eq!(
+        toks[2],
+        Token::IDENT {
+            str: "world".to_string()
+        }
+    );
     assert_eq!(toks[3], Token::EOF);
     Ok(())
 }
 #[test]
-pub fn test_ident_underscore() -> Result<()>{
+pub fn test_ident_underscore() -> Result<()> {
     const TEXT: &str = "hello_world";
     let lexer = Lexer::new(FILE_PATH, TEXT.to_string());
-    let toks= lexer.parse().tokens;
+    let toks = lexer.parse().tokens;
     assert_eq!(toks.len(), 2);
-    assert_eq!(toks[0], Token::IDENT { str: "hello_world".to_string() });
+    assert_eq!(
+        toks[0],
+        Token::IDENT {
+            str: "hello_world".to_string()
+        }
+    );
     assert_eq!(toks[1], Token::EOF);
     Ok(())
 }
@@ -66,7 +87,7 @@ fn handles_trailing_variable_prefixes() {
 }
 
 #[test]
-pub fn test_many_words() -> Result<()>{
+pub fn test_many_words() -> Result<()> {
     const EXPECTED_LEN: usize = 2;
     let def = Lexer::new(FILE_PATH, "def".to_string()).parse().tokens;
     let end = Lexer::new(FILE_PATH, "end".to_string()).parse().tokens;
@@ -104,7 +125,7 @@ pub fn test_many_words() -> Result<()>{
     Ok(())
 }
 #[test]
-pub fn test_mark() -> Result<()>{ 
+pub fn test_mark() -> Result<()> {
     const EXPECTED_LEN: usize = 2;
     let mark_a = Lexer::new(FILE_PATH, "//-".to_string()).parse().tokens;
     let mark_b = Lexer::new(FILE_PATH, "/*-".to_string()).parse().tokens;
@@ -114,14 +135,34 @@ pub fn test_mark() -> Result<()>{
     assert_eq!(mark_b.len(), EXPECTED_LEN);
     assert_eq!(mark_c.len(), EXPECTED_LEN);
     assert_eq!(mark_d.len(), EXPECTED_LEN);
-    assert_eq!(mark_a[0], Token::MARK { kind: "//-".to_string() });
-    assert_eq!(mark_b[0], Token::MARK { kind: "/*-".to_string() });
-    assert_eq!(mark_c[0], Token::MARK { kind: "*///-".to_string() });
-    assert_eq!(mark_d[0], Token::MARK { kind: "-*/".to_string() });
+    assert_eq!(
+        mark_a[0],
+        Token::MARK {
+            kind: "//-".to_string()
+        }
+    );
+    assert_eq!(
+        mark_b[0],
+        Token::MARK {
+            kind: "/*-".to_string()
+        }
+    );
+    assert_eq!(
+        mark_c[0],
+        Token::MARK {
+            kind: "*///-".to_string()
+        }
+    );
+    assert_eq!(
+        mark_d[0],
+        Token::MARK {
+            kind: "-*/".to_string()
+        }
+    );
     Ok(())
 }
 #[test]
-pub fn test_special() -> Result<()>{
+pub fn test_special() -> Result<()> {
     const EXPECTED_LEN: usize = 2;
     let dd = Lexer::new(FILE_PATH, ":".to_string()).parse().tokens;
     let nl = Lexer::new(FILE_PATH, "\n".to_string()).parse().tokens;
@@ -174,42 +215,122 @@ pub fn test_special() -> Result<()>{
     Ok(())
 }
 #[test]
-pub fn test_continuity() -> Result<()>{
+pub fn test_continuity() -> Result<()> {
     const EXPECTED_LEN: usize = 32;
-    let text: &str = "a:b\nc=d,e[f]g\"h->i+j\\k::l(m)n.o?p"; 
+    let text: &str = "a:b\nc=d,e[f]g\"h->i+j\\k::l(m)n.o?p";
     let toks = Lexer::new(FILE_PATH, text.to_string()).parse().tokens;
     assert_eq!(toks.len(), EXPECTED_LEN);
-    assert_eq!(toks[0], Token::IDENT { str: "a".to_string() });
+    assert_eq!(
+        toks[0],
+        Token::IDENT {
+            str: "a".to_string()
+        }
+    );
     assert_eq!(toks[1], DD);
-    assert_eq!(toks[2], Token::IDENT { str: "b".to_string() });
+    assert_eq!(
+        toks[2],
+        Token::IDENT {
+            str: "b".to_string()
+        }
+    );
     assert_eq!(toks[3], NL);
-    assert_eq!(toks[4], Token::IDENT { str: "c".to_string() });
+    assert_eq!(
+        toks[4],
+        Token::IDENT {
+            str: "c".to_string()
+        }
+    );
     assert_eq!(toks[5], EQUALS);
-    assert_eq!(toks[6], Token::IDENT { str: "d".to_string() });
+    assert_eq!(
+        toks[6],
+        Token::IDENT {
+            str: "d".to_string()
+        }
+    );
     assert_eq!(toks[7], COMMA);
-    assert_eq!(toks[8], Token::IDENT { str: "e".to_string() });
+    assert_eq!(
+        toks[8],
+        Token::IDENT {
+            str: "e".to_string()
+        }
+    );
     assert_eq!(toks[9], LSRQBRACK);
-    assert_eq!(toks[10], Token::IDENT { str: "f".to_string() });
+    assert_eq!(
+        toks[10],
+        Token::IDENT {
+            str: "f".to_string()
+        }
+    );
     assert_eq!(toks[11], RSRQBRACK);
-    assert_eq!(toks[12], Token::IDENT { str: "g".to_string() });
+    assert_eq!(
+        toks[12],
+        Token::IDENT {
+            str: "g".to_string()
+        }
+    );
     assert_eq!(toks[13], DQUOTE);
-    assert_eq!(toks[14], Token::IDENT { str: "h".to_string() });
+    assert_eq!(
+        toks[14],
+        Token::IDENT {
+            str: "h".to_string()
+        }
+    );
     assert_eq!(toks[15], RARROW);
-    assert_eq!(toks[16], Token::IDENT { str: "i".to_string() });
+    assert_eq!(
+        toks[16],
+        Token::IDENT {
+            str: "i".to_string()
+        }
+    );
     assert_eq!(toks[17], PLUS);
-    assert_eq!(toks[18], Token::IDENT { str: "j".to_string() });
+    assert_eq!(
+        toks[18],
+        Token::IDENT {
+            str: "j".to_string()
+        }
+    );
     assert_eq!(toks[19], BSLASH);
-    assert_eq!(toks[20], Token::IDENT { str: "k".to_string() });
+    assert_eq!(
+        toks[20],
+        Token::IDENT {
+            str: "k".to_string()
+        }
+    );
     assert_eq!(toks[21], QD);
-    assert_eq!(toks[22], Token::IDENT { str: "l".to_string() });
+    assert_eq!(
+        toks[22],
+        Token::IDENT {
+            str: "l".to_string()
+        }
+    );
     assert_eq!(toks[23], LPAREN);
-    assert_eq!(toks[24], Token::IDENT { str: "m".to_string() });
+    assert_eq!(
+        toks[24],
+        Token::IDENT {
+            str: "m".to_string()
+        }
+    );
     assert_eq!(toks[25], RPAREN);
-    assert_eq!(toks[26], Token::IDENT { str: "n".to_string() });
+    assert_eq!(
+        toks[26],
+        Token::IDENT {
+            str: "n".to_string()
+        }
+    );
     assert_eq!(toks[27], DOT);
-    assert_eq!(toks[28], Token::IDENT { str: "o".to_string() });
+    assert_eq!(
+        toks[28],
+        Token::IDENT {
+            str: "o".to_string()
+        }
+    );
     assert_eq!(toks[29], QUESTION);
-    assert_eq!(toks[30], Token::IDENT { str: "p".to_string() });
+    assert_eq!(
+        toks[30],
+        Token::IDENT {
+            str: "p".to_string()
+        }
+    );
     assert_eq!(toks[31], EOF);
     Ok(())
 }

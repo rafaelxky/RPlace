@@ -26,7 +26,7 @@ pub async fn create_user(
         ))
         .send()
         .await?;
-    
+
     if !response.status().is_success() {
         let body: String = response.text().await?;
         return Err(anyhow!(body));

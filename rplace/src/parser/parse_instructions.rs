@@ -1,7 +1,7 @@
 use anyhow::{Ok, Result};
 
 use crate::{
-    error_handler::{parser_error, CompilationError},
+    error_handler::{CompilationError, parser_error},
     lexer::Token,
     parser::Parser,
     structs::{MatchArm, Node, ParsingResult, Value, Var},
@@ -11,7 +11,7 @@ impl Parser {
     // gets here after //- $#
     // currently only handles global variable set for stuff like file config
     // ex: //- $#var = val:
-    pub(super) fn handle_set_variable(&mut self) -> Result<(Vec<String>,Value)>{
+    pub(super) fn handle_set_variable(&mut self) -> Result<(Vec<String>, Value)> {
         let mut var = vec![];
         // a.b.c.d
         loop {
@@ -30,7 +30,12 @@ impl Parser {
         self.remove_spaces();
         match self.pop() {
             Token::EQUALS => {}
-            _ => return Err(parser_error(CompilationError::InvalidAssignementDefWhere, self)),
+            _ => {
+                return Err(parser_error(
+                    CompilationError::InvalidAssignementDefWhere,
+                    self,
+                ));
+            }
         }
         self.remove_spaces();
 
@@ -42,7 +47,7 @@ impl Parser {
         }
 
         //nodes.push(Node::SETVARIABLE { var: var, val: val });
-        Ok((var,val))
+        Ok((var, val))
     }
     /// //- parse file.txt:
     pub(super) fn handle_parse_instr(&mut self, nodes: &mut ParsingResult) -> Result<()> {
@@ -57,7 +62,7 @@ impl Parser {
     }
 
     // //- derive file.txt:
-    pub(super) fn handle_derive(&mut self, nodes: &mut ParsingResult) -> Result<()>{
+    pub(super) fn handle_derive(&mut self, nodes: &mut ParsingResult) -> Result<()> {
         self.remove_spaces();
         let path = match self.peek() {
             Token::IDENT { str: _ } => self.handle_path(self.project_src.clone())?,
@@ -89,10 +94,10 @@ impl Parser {
     }
 
     // create filepath place defname:
-    // reaches here after 
+    // reaches here after
     // todo: allow create with content other than place
     // todo: allow //- create $#path
-    pub(super) fn handle_create(&mut self) -> Result<Node>{
+    pub(super) fn handle_create(&mut self) -> Result<Node> {
         let path: String = self.handle_path(self.output_src.clone())?;
         let starting_line = self.get_line();
         // filepath
@@ -103,7 +108,10 @@ impl Parser {
         match self.peek() {
             Token::DD => {
                 self.ptr_next();
-                let node = Node::CREATE { path, content: None };
+                let node = Node::CREATE {
+                    path,
+                    content: None,
+                };
                 self.remove_till_nl();
                 return Ok(node);
             }
@@ -120,7 +128,7 @@ impl Parser {
         }
     }
 
-    pub(super) fn handle_place(&mut self, nodes: &mut ParsingResult) -> Result<()>{
+    pub(super) fn handle_place(&mut self, nodes: &mut ParsingResult) -> Result<()> {
         // reaches here as //- place
         self.remove_spaces();
 
@@ -237,7 +245,10 @@ impl Parser {
         let path = match self.peek() {
             Token::IDENT { str: _ } => self.handle_path(self.project_src.clone())?,
             _ => {
-                return Err(parser_error(CompilationError::InvalidTokenInIncludePath, self));
+                return Err(parser_error(
+                    CompilationError::InvalidTokenInIncludePath,
+                    self,
+                ));
             }
         };
 
@@ -259,7 +270,7 @@ impl Parser {
     }
 
     // //- mod file.txt:
-    pub (super) fn handle_mod(&mut self, nodes: &mut ParsingResult) -> Result<()> {
+    pub(super) fn handle_mod(&mut self, nodes: &mut ParsingResult) -> Result<()> {
         self.remove_spaces();
         let path = self.handle_path(self.file_path.clone())?;
         self.remove_spaces();
@@ -269,6 +280,5 @@ impl Parser {
         }
         nodes.push(Node::MOD { path });
         Ok(())
-    }   
-
+    }
 }

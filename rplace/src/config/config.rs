@@ -1,19 +1,26 @@
 use std::{
-    fs::{self, File}, io::{BufReader, BufWriter}, path::{Path, PathBuf}, sync::{Arc, LazyLock, RwLock},
+    fs::{self, File},
+    io::{BufReader, BufWriter},
+    path::{Path, PathBuf},
+    sync::{Arc, LazyLock, RwLock},
 };
 
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PackageManagerCompilerConfig{
+pub struct PackageManagerCompilerConfig {
     pub allow_lua: Option<bool>,
     pub allow_import: Option<bool>,
     pub package_source: Option<String>,
 }
 impl PackageManagerCompilerConfig {
-    pub fn new() -> Self{
-        Self { allow_lua: None, allow_import: None, package_source: None }
+    pub fn new() -> Self {
+        Self {
+            allow_lua: None,
+            allow_import: None,
+            package_source: None,
+        }
     }
 }
 
@@ -77,7 +84,7 @@ pub static CONFIG: LazyLock<Arc<RwLock<CompilerConfig>>> = LazyLock::new(|| {
     return Arc::new(RwLock::new(config));
 });
 
-pub fn reload_config(path: PathBuf) -> CompilerConfig{
+pub fn reload_config(path: PathBuf) -> CompilerConfig {
     let config = path;
     let conf = CompilerConfig::default();
 

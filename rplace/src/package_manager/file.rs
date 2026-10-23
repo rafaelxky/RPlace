@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use directories::ProjectDirs;
 use path_clean::PathClean;
 use reqwest::{Client, StatusCode};
@@ -36,7 +36,6 @@ pub async fn load_all_package_files(
     package_source: &str,
     package_data: &PackageData,
 ) -> Result<()> {
-
     let client = Client::new();
     let response = client.get(package_source).send().await;
     if response.is_err() || response.unwrap().status() != StatusCode::OK {

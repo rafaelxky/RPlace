@@ -245,3 +245,9 @@ $#tag.propertyA
 - reduce the dependency on 
 - for example allow //- for elem in arr: outside of def
 - allow $#var and $g#var outside of def
+
+- allow mathematical checks and mathematical operations
+- allow array length checks
+
+- git template dependencies
+- program addons and api

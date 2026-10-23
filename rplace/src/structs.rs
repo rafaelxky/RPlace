@@ -220,10 +220,7 @@ pub enum Node {
 #[derive(Debug, Clone)]
 pub enum ForSource {
     Variable(String),
-    Range {
-        start: RangeBound,
-        end: RangeBound,
-    },
+    Range { start: RangeBound, end: RangeBound },
 }
 #[derive(Debug, Clone)]
 pub enum RangeBound {

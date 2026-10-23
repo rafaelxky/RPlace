@@ -3,12 +3,7 @@ use rplace::{lexer::Lexer, parser::Parser, structs::Node};
 
 fn parse_invalid(code: &str) -> Result<String> {
     let tokens = Lexer::new("invalid.txt", code.to_string()).parse();
-    let result = Parser::new(
-        tokens,
-        "invalid.txt".to_string(),
-        "output.txt".to_string(),
-    )
-    .parse();
+    let result = Parser::new(tokens, "invalid.txt".to_string(), "output.txt".to_string()).parse();
 
     match result {
         Ok(_) => panic!("expected parser to reject {code:?}"),
@@ -46,11 +41,7 @@ fn rejects_unterminated_quoted_value() -> Result<()> {
 
 #[test]
 fn parses_global_variable_as_a_template_node() -> Result<()> {
-    let tokens = Lexer::new(
-        "global.txt",
-        "//- $#var = val:\n$g#var".to_string(),
-    )
-    .parse();
+    let tokens = Lexer::new("global.txt", "//- $#var = val:\n$g#var".to_string()).parse();
     let result = Parser::new(tokens, "global.txt".to_string(), "output.txt".to_string()).parse()?;
 
     assert!(matches!(

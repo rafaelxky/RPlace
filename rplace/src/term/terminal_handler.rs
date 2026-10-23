@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use crate::constants::PROJECT_FILE;
-use clap::{CommandFactory, Parser, Subcommand,error::ErrorKind};
+use clap::{CommandFactory, Parser, Subcommand, error::ErrorKind};
 
 #[derive(Subcommand, Debug)]
 pub enum SubCommand {
@@ -14,16 +14,31 @@ pub enum SubCommand {
     /// Parse and render an RPlace source file.
     Run {
         /// Source file or project to process; defaults to rplace.toml when available.
-        #[arg(value_name = "ORIGIN", help = "Source file or project to process; defaults to rplace.toml when available.")]
+        #[arg(
+            value_name = "ORIGIN",
+            help = "Source file or project to process; defaults to rplace.toml when available."
+        )]
         origin: Option<String>,
         /// Output file; defaults to the configured output or the source file.
-        #[arg(value_name = "TARGET", help = "Output file; defaults to the configured output or the source file.")]
+        #[arg(
+            value_name = "TARGET",
+            help = "Output file; defaults to the configured output or the source file."
+        )]
         target: Option<String>,
         /// Render an inline template instead of reading a source file.
-        #[arg(short = 'e', long = "eval", value_name = "TEMPLATE", conflicts_with = "origin")]
+        #[arg(
+            short = 'e',
+            long = "eval",
+            value_name = "TEMPLATE",
+            conflicts_with = "origin"
+        )]
         expression: Option<String>,
         /// Parse and print the syntax tree without rendering output.
-        #[arg(short = 'p', long = "parse-only", help = "Parse and print the syntax tree without rendering output.")]
+        #[arg(
+            short = 'p',
+            long = "parse-only",
+            help = "Parse and print the syntax tree without rendering output."
+        )]
         stops_at_parser: bool,
         /// Set a global template value; may be passed more than once.
         #[arg(short = 'D', long = "var", value_name = "KEY=VALUE", value_parser = parse_global_value, action = clap::ArgAction::Append)]
@@ -44,7 +59,7 @@ pub enum SubCommand {
         /// Text to pass into the template.
         #[arg(value_name = "TEXT", help = "Text to pass into the template.")]
         command: String,
-    }
+    },
 }
 #[derive(Subcommand, Debug)]
 pub enum PackageSubcommand {
@@ -72,18 +87,21 @@ pub enum PackageSubcommand {
     /// Upload the current project to the package service.
     Push {},
     /// Create a package using the current project metadata.
-    New{},
+    New {},
     /// Publish a new version of the current package.
-    CreateVersion{},
+    CreateVersion {},
     /// Add a package dependency to the current project.
     Add {
         /// Name of the package to add.
         #[arg(value_name = "PACKAGE", help = "Name of the package to add.")]
         dependency_name: String,
         /// Optional version constraint for the dependency.
-        #[arg(value_name = "VERSION", help = "Optional version constraint for the dependency.")]
+        #[arg(
+            value_name = "VERSION",
+            help = "Optional version constraint for the dependency."
+        )]
         dependency_version: Option<String>,
-    }
+    },
 }
 #[derive(Debug)]
 pub enum CliArgs {
@@ -102,8 +120,8 @@ pub enum CliArgs {
         email: String,
         password: String,
     },
-    NewPackage{},
-    NewVersion{},
+    NewPackage {},
+    NewVersion {},
     AddDependency {
         dependency_name: String,
         dependency_version: Option<String>,
@@ -111,7 +129,7 @@ pub enum CliArgs {
     Pipe {
         target: String,
         command: String,
-    }
+    },
 }
 #[derive(Debug)]
 pub struct ParseArgs {
@@ -192,12 +210,24 @@ pub fn handle_args() -> CliArgs {
                 email,
                 password,
             } => {
-                return CliArgs::CreateUser { username, email, password };
+                return CliArgs::CreateUser {
+                    username,
+                    email,
+                    password,
+                };
             }
             PackageSubcommand::Push {} => return CliArgs::Push {},
-            PackageSubcommand::New {  } => return CliArgs::NewPackage {  },
-            PackageSubcommand::CreateVersion {  } => return CliArgs::NewVersion {  },
-            PackageSubcommand::Add { dependency_name, dependency_version } => return CliArgs::AddDependency { dependency_name, dependency_version },
+            PackageSubcommand::New {} => return CliArgs::NewPackage {},
+            PackageSubcommand::CreateVersion {} => return CliArgs::NewVersion {},
+            PackageSubcommand::Add {
+                dependency_name,
+                dependency_version,
+            } => {
+                return CliArgs::AddDependency {
+                    dependency_name,
+                    dependency_version,
+                };
+            }
         },
         Some(SubCommand::Pipe { target, command }) => {
             return CliArgs::Pipe { target, command };
@@ -227,7 +257,12 @@ mod tests {
         ])
         .unwrap();
 
-        let Some(SubCommand::Run { global_vars, expression, .. }) = args.command else {
+        let Some(SubCommand::Run {
+            global_vars,
+            expression,
+            ..
+        }) = args.command
+        else {
             panic!("expected run command");
         };
         assert_eq!(expression.as_deref(), Some("Hello, $g#name!"));
@@ -242,26 +277,13 @@ mod tests {
 
     #[test]
     fn rejects_global_value_without_key_value_separator() {
-        let result = Args::try_parse_from([
-            "rplace",
-            "run",
-            "--eval",
-            "hello",
-            "--var",
-            "name",
-        ]);
+        let result = Args::try_parse_from(["rplace", "run", "--eval", "hello", "--var", "name"]);
         assert!(result.is_err());
     }
 
     #[test]
     fn rejects_source_file_and_inline_template_together() {
-        let result = Args::try_parse_from([
-            "rplace",
-            "run",
-            "template.rp",
-            "--eval",
-            "hello",
-        ]);
+        let result = Args::try_parse_from(["rplace", "run", "template.rp", "--eval", "hello"]);
         assert!(result.is_err());
     }
 }

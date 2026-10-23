@@ -1,37 +1,41 @@
 use crate::structs::{Value, Var};
 
 #[derive(Debug, Clone)]
-pub enum ResValue{
-    Val{value:String},
-    Array{array: Vec<ResValue>},
-    Struct{
+pub enum ResValue {
+    Val {
+        value: String,
+    },
+    Array {
+        array: Vec<ResValue>,
+    },
+    Struct {
         names: Option<Vec<String>>,
         values: Vec<ResValue>,
     },
 }
 impl ResValue {
-    pub fn new_val(value: String) -> ResValue{
+    pub fn new_val(value: String) -> ResValue {
         ResValue::Val { value }
     }
-    pub fn new_array(array: Vec<ResValue>) -> ResValue{
+    pub fn new_array(array: Vec<ResValue>) -> ResValue {
         ResValue::Array { array }
     }
-    pub fn new_struct(values: Vec<ResValue>, names: Option<Vec<String>>) -> ResValue{
+    pub fn new_struct(values: Vec<ResValue>, names: Option<Vec<String>>) -> ResValue {
         Self::Struct { names, values }
     }
 }
-pub enum FileWriteOptions{
+pub enum FileWriteOptions {
     Override,
     Append,
 }
-pub struct FileData{
+pub struct FileData {
     pub data: String,
     pub path: String,
-    pub options: Option<Vec<FileWriteOptions>>
+    pub options: Option<Vec<FileWriteOptions>>,
 }
-pub struct Derive{
+pub struct Derive {
     pub path: String,
-    pub vals: Vec<(Var,Value)>,
+    pub vals: Vec<(Var, Value)>,
 }
 pub struct WriterResult {
     pub file_data: Vec<FileData>,
@@ -39,22 +43,30 @@ pub struct WriterResult {
     pub to_parse: Vec<String>,
 }
 impl WriterResult {
-    pub fn new() -> Self{
-        Self { file_data: Vec::new(), derives: Vec::new(), to_parse: vec![]}
+    pub fn new() -> Self {
+        Self {
+            file_data: Vec::new(),
+            derives: Vec::new(),
+            to_parse: vec![],
+        }
     }
-    pub fn set_to_parse(&mut self, to_parse: Vec<String>){
+    pub fn set_to_parse(&mut self, to_parse: Vec<String>) {
         self.to_parse = to_parse;
     }
-    pub fn push_to_parse(&mut self, path: String){
+    pub fn push_to_parse(&mut self, path: String) {
         self.to_parse.push(path);
     }
-    pub fn append(&mut self, mut data: WriterResult){
+    pub fn append(&mut self, mut data: WriterResult) {
         self.file_data.append(&mut data.file_data);
         self.derives.append(&mut data.derives);
         self.to_parse.append(&mut data.to_parse);
     }
-    pub fn push_elements(&mut self, data: String, path: String){
-        self.file_data.push(FileData { data, path, options: None });
+    pub fn push_elements(&mut self, data: String, path: String) {
+        self.file_data.push(FileData {
+            data,
+            path,
+            options: None,
+        });
     }
 }
 impl IntoIterator for WriterResult {

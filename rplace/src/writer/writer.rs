@@ -154,7 +154,7 @@ impl Writer {
                     }
 
                     // todo: update this to allow other var types and other global variables
-                    // this is a patch, val should be properly solveed 
+                    // this is a patch, val should be properly solveed
                     let (val, options) = val.clone().expect_literal_or_else(|_| {
                         anyhow!("expected literal value for global variable!")
                     })?;
@@ -699,9 +699,9 @@ impl Writer {
             RangeBound::Global(name) => (name, self.global_variables.get(name)),
         };
         match value {
-            Some(ResValue::Val { value }) => value
-                .parse::<u64>()
-                .map_err(|error| anyhow!("Range bound <{name}> must be a non-negative integer: {error}")),
+            Some(ResValue::Val { value }) => value.parse::<u64>().map_err(|error| {
+                anyhow!("Range bound <{name}> must be a non-negative integer: {error}")
+            }),
             Some(_) => Err(anyhow!("Range bound <{name}> must be a scalar value")),
             None => Err(anyhow!("No value found for range bound <{name}>")),
         }

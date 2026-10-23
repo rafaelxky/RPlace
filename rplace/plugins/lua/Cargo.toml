@@ -1,0 +1,12 @@
+[package]
+name = "rplace-lua-module"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "rplace_lua"
+crate-type = ["cdylib"]
+
+[dependencies]
+mlua = { version = "0.11.6", features = ["lua54", "vendored"] }
+serde_json = "1.0.150"

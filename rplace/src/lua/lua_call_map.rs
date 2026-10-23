@@ -1,87 +1,72 @@
-use std::{collections::HashMap, fs, sync::Arc};
-use directories::ProjectDirs;
-use mlua::{Function, Lua, Value};
+use std::sync::Mutex;
 
-use crate::config::config::{CompilerConfig};
+use serde_json::json;
+
+use crate::{config::config::CompilerConfig, runtime_module::RuntimeModule};
 
 pub struct LuaCallMap {
-    map: HashMap<String, Function>,
-    lua: Lua,
-    compiler_config: Arc<CompilerConfig>,
+    module: Mutex<Option<RuntimeModule>>,
+    enabled: bool,
 }
+
 impl LuaCallMap {
-    pub fn empty(compiler_config: Arc<CompilerConfig>) -> Self{
-        Self { map: HashMap::new(), lua: Lua::new(), compiler_config: compiler_config }
-    }
-    pub fn load(compiler_config: Arc<CompilerConfig>) -> Self {
-        if !compiler_config.allow_lua {
-            return Self {
-                map: HashMap::new(),
-                lua: Lua::new(),
-                compiler_config,
-            };
-        }
-
-        let dir = ProjectDirs::from("io", "rplace", "rplace").unwrap();
-        let dir = dir.data_dir().join("addons");
-        if !dir.exists() {
-            fs::create_dir_all(dir).unwrap();
-            Self {
-                map: HashMap::new(),
-                lua: Lua::new(),
-                compiler_config,
-            }
-        } else {
-            let lua = Lua::new();
-            let mut map = HashMap::new();
-
-            for entry in fs::read_dir(&dir).unwrap() {
-                let entry = entry.unwrap();
-                let path = entry.path();
-
-                if path.extension().is_some_and(|e| e == "lua") {
-                    let source = fs::read_to_string(&path).unwrap();
-                    lua.load(&source)
-                        .set_name(path.to_string_lossy())
-                        .exec()
-                        .unwrap();
-
-                    for pair in lua.globals().pairs::<String, Value>() {
-                        let (name, value) = pair.unwrap();
-
-                        if let Value::Function(func) = value {
-                            map.insert(name, func);
-                        }
-                    }
-                }
-            }
-
-            Self { map, lua, compiler_config }
+    pub fn empty(compiler_config: std::sync::Arc<CompilerConfig>) -> Self {
+        Self {
+            module: Mutex::new(None),
+            enabled: compiler_config.allow_lua,
         }
     }
+
+    pub fn load(compiler_config: std::sync::Arc<CompilerConfig>) -> Self {
+        Self::empty(compiler_config)
+    }
+
     pub fn run<T: ToString>(&self, name: T) -> String {
-        if self.compiler_config.allow_lua {
-            return "".to_string();
-        }
-        let fun = self.map.get(&name.to_string());
-        let fun: Result<String, mlua::Error> = match fun {
-            Some(fun) => fun.call(()),
-            None => panic!("No such lua function called {}", name.to_string()),
-        };
-        match fun {
-            Ok(res) => {
-                return res;
-            }
-            Err(_e) => {
-                panic!("Error calling function {}", &name.to_string())
-            }
-        }
+        self.call(json!({
+            "action": "call",
+            "name": name.to_string(),
+            "addons_dir": addons_dir(),
+        }))
     }
+
     pub fn execute(&self, code: &str, args: Vec<String>) -> String {
-        if self.compiler_config.allow_lua {
-            return code.to_string();
-        }
-        self.lua.globals().set("args", args).unwrap();
-        self.lua.load(code).eval::<String>().unwrap()
+        self.call(json!({
+            "action": "execute",
+            "code": code,
+            "args": args,
+            "addons_dir": addons_dir(),
+        }))
     }
+
+    fn call(&self, request: serde_json::Value) -> String {
+        if !self.enabled {
+            return String::new();
+        }
+
+        let mut module = self.module.lock().expect("Lua module lock poisoned");
+        if module.is_none() {
+            *module = Some(
+                RuntimeModule::load("rplace_lua")
+                    .unwrap_or_else(|error| panic!("Unable to load Lua module: {error:#}")),
+            );
+        }
+
+        module
+            .as_ref()
+            .expect("Lua module was not initialized")
+            .call(&request)
+            .unwrap_or_else(|error| panic!("Lua module call failed: {error:#}"))
+            .as_str()
+            .unwrap_or_else(|| panic!("Lua module returned a non-string value"))
+            .to_string()
+    }
+}
+
+fn addons_dir() -> String {
+    directories::ProjectDirs::from("io", "rplace", "rplace")
+        .expect("Unable to locate RPlace data directory")
+        .data_dir()
+        .join("addons")
+        .to_string_lossy()
+        .into_owned()
 }

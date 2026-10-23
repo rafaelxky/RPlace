@@ -17,7 +17,7 @@ use crate::writer::writer::Writer;
 use crate::writer::writer_structs::WriterResult;
 use anyhow::{Result, anyhow};
 
-pub fn parse_get_all_paths(data: PackageData, config: CompilerConfig) -> Result<Vec<String>>{
+pub fn parse_get_all_paths(data: PackageData, config: CompilerConfig) -> Result<Vec<String>> {
     let project_src = data.package.root;
     let output_src = "".to_string();
     let (mut stream, _origin) = get_data_stream(&project_src);
@@ -54,18 +54,26 @@ pub fn parse_get_all_paths(data: PackageData, config: CompilerConfig) -> Result<
     }
     return Ok(paths_outer);
 }
-pub fn run_pipe(path: String, piped: &str,config: CompilerConfig) -> Result<OutputWriter>{
+pub fn run_pipe(path: String, piped: &str, config: CompilerConfig) -> Result<OutputWriter> {
     let mut stream = FileDataStream::new(path.to_string());
-    let (data, path) = stream.next().ok_or_else(|| anyhow!("No such file {}",path))?;
-     let lexer = Lexer::new(path.clone(), data);
-        let tokens = lexer.parse();
-        let parser = Parser::new(tokens, path.to_string(), path.to_string());
-        let nodes = parser.parse()?;
-        
+    let (data, path) = stream
+        .next()
+        .ok_or_else(|| anyhow!("No such file {}", path))?;
+    let lexer = Lexer::new(path.clone(), data);
+    let tokens = lexer.parse();
+    let parser = Parser::new(tokens, path.to_string(), path.to_string());
+    let nodes = parser.parse()?;
+
     let config = Arc::new(config);
     let lua_map = LuaCallMap::load(config.clone());
     let var_options_map = Arc::new(VarOptionsMap::new(config.clone(), lua_map));
-    let writer = Writer::new(nodes, path.to_string(), path.to_string(), config, var_options_map);
+    let writer = Writer::new(
+        nodes,
+        path.to_string(),
+        path.to_string(),
+        config,
+        var_options_map,
+    );
     let (replaced, config) = writer.replace_pipe(piped)?;
     let file = OpenOptions::new().write(true).open(path)?;
     let output = OutputWriter::new(replaced, file, config);
@@ -101,7 +109,11 @@ pub fn run_inline(
         .ok_or_else(|| anyhow!("Inline template produced no output"))
 }
 
-pub fn run_parse(args: ParseArgs, config: CompilerConfig, _package_data: Option<PackageData>) -> Result<Vec<OutputWriter>> {
+pub fn run_parse(
+    args: ParseArgs,
+    config: CompilerConfig,
+    _package_data: Option<PackageData>,
+) -> Result<Vec<OutputWriter>> {
     let (mut stream, origin) = get_data_stream(args.origin.as_ref().unwrap());
     let project_src = args.origin.unwrap();
     let global_vars = args.global_vars.into_iter().collect::<HashMap<_, _>>();
@@ -124,8 +136,6 @@ pub fn run_parse(args: ParseArgs, config: CompilerConfig, _package_data: Option<
     let config = Arc::new(config);
     let lua_map = LuaCallMap::load(config.clone());
     let var_options_map = Arc::new(VarOptionsMap::new(config.clone(), lua_map));
-
-   
 
     let mut to_write = vec![];
     loop {

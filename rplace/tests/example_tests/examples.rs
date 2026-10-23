@@ -132,14 +132,14 @@ fn range_loop_accepts_template_variable_bounds() -> Result<()> {
 }
 
 #[test]
-pub fn def_test() -> Result<()>{
+pub fn def_test() -> Result<()> {
     let code = "//- def a:a//- end://- place a:";
     let str = parse(code)?;
     assert_eq!(str, "a");
     Ok(())
 }
 #[test]
-pub fn def_place() -> Result<()>{
+pub fn def_place() -> Result<()> {
     let code = "//- def a:$#var//- end://- def b place a where var = val://- place b:";
     let str = parse(code)?;
     assert_eq!(str, "val");
@@ -160,7 +160,7 @@ pub fn def_when_uses_default_overload() -> Result<()> {
     Ok(())
 }
 #[test]
-pub fn def_test_var_options() -> Result<()>{
+pub fn def_test_var_options() -> Result<()> {
     let code = "//- def a:$#var\\screaming//- end://- place a where var = val:";
     let str = parse(code)?;
     assert_eq!(str, "VAL");
@@ -186,30 +186,29 @@ pub fn def_test_var_case_options() -> Result<()> {
     Ok(())
 }
 #[test]
-pub fn def_test_var() -> Result<()>{
+pub fn def_test_var() -> Result<()> {
     let code = "//- def a:$#var//- end://- place a where var = val:";
     let str = parse(code)?;
     assert_eq!(str, "val");
     Ok(())
 }
 #[test]
-pub fn def_test_var_optional() -> Result<()>{
+pub fn def_test_var_optional() -> Result<()> {
     let code = "//- def a:$#var? value//- end://- place a:";
     let str = parse(code)?;
     assert_eq!(str, " value");
     Ok(())
 }
 #[test]
-pub fn def_test_var_dquote() -> Result<()>{
+pub fn def_test_var_dquote() -> Result<()> {
     let code = "//- def a:$#var//- end://- place a where var = \"double quote var\":";
     let str = parse(code)?;
     assert_eq!(str, "double quote var");
     Ok(())
 }
 #[test]
-pub fn def_test_var_multiline_var() -> Result<()>{
-    let code = 
-"//- def a:$#var//- end://- place a where var = \"
+pub fn def_test_var_multiline_var() -> Result<()> {
+    let code = "//- def a:$#var//- end://- place a where var = \"
 double quote var
 //-\":";
     let str = parse(code)?;
@@ -217,14 +216,14 @@ double quote var
     Ok(())
 }
 #[test]
-pub fn raw_text_test() -> Result<()>{
+pub fn raw_text_test() -> Result<()> {
     let code = "hello world :";
     let str = parse(code)?;
     assert_eq!(str, code);
     Ok(())
 }
 #[test]
-pub fn text_test_nl() -> Result<()>{
+pub fn text_test_nl() -> Result<()> {
     let code = "
     hello 
     world 
@@ -235,30 +234,29 @@ pub fn text_test_nl() -> Result<()>{
     Ok(())
 }
 #[test]
-pub fn text_place_when() -> Result<()>{
+pub fn text_place_when() -> Result<()> {
     let code = "//- def a when var = val1: defa //- end: //- def a when var = val2: defb //-end: //- place a where var = val2:";
     let str = parse(code)?;
     assert_eq!(str, "defb ");
     Ok(())
 }
 #[test]
-pub fn text_place_var_plus() -> Result<()>{
+pub fn text_place_var_plus() -> Result<()> {
     let code = "//- def a:$#var+suffix//-end://- place a where var=val:";
     let str = parse(code)?;
     assert_eq!(str, "valsuffix");
     Ok(())
 }
 #[test]
-pub fn arrow_var() -> Result<()>{
+pub fn arrow_var() -> Result<()> {
     let code = "//- def a: /*- $#varname -> -*/ default //- end: //- place a:";
     let str = parse(code)?;
     assert_eq!(str, "default ");
     Ok(())
 }
 #[test]
-pub fn test_match() -> Result<()>{
-    let code = 
-    "//- def a: //- match var: //- case vala:case A//- end: //- case valb:case B//- end://- end://- end://- place a where var = valb:";
+pub fn test_match() -> Result<()> {
+    let code = "//- def a: //- match var: //- case vala:case A//- end: //- case valb:case B//- end://- end://- end://- place a where var = valb:";
     let str = parse(code)?;
     assert_eq!(str, "case B");
     Ok(())

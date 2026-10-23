@@ -1,12 +1,13 @@
-use std::{
-    collections::HashMap,
-    fs,
-    ops::{Range},
+use std::{collections::HashMap, fs, ops::Range};
+
+use serde_json::json;
+
+use crate::{
+    derive::options_map::{DeriveScope, apply_options, arrow_var},
+    runtime_module::RuntimeModule,
+    structs::VarOption,
+    writer::writer_structs::Derive,
 };
-
-use regex::Regex;
-
-use crate::{derive::options_map::{DeriveScope, apply_options, arrow_var}, structs::VarOption, writer::writer_structs::Derive};
 
 pub struct Deriver {}
 impl Deriver {
@@ -21,11 +22,14 @@ impl Deriver {
         let mut all_changes: Vec<(Range<usize>, DeriveScope)> = Vec::new();
 
         derive.vals.iter().for_each(|(var, pattern)| {
-            let (value,options) = match pattern {
-                crate::structs::Value::Literal { value, options } => (value,options),
-                crate::structs::Value::Var { value: _, options: _ } => todo!(),
-                crate::structs::Value::Array { arr:_} => todo!(),
-                crate::structs::Value::Struct { str:_ } => todo!(),
+            let (value, options) = match pattern {
+                crate::structs::Value::Literal { value, options } => (value, options),
+                crate::structs::Value::Var {
+                    value: _,
+                    options: _,
+                } => todo!(),
+                crate::structs::Value::Array { arr: _ } => todo!(),
+                crate::structs::Value::Struct { str: _ } => todo!(),
             };
             let opts = options.as_ref();
 
@@ -42,19 +46,43 @@ impl Deriver {
                 .unwrap_or(true);
 
             if is_regex {
-                let re = Regex::new(&value).unwrap();
-                
-                for mat in re.find_iter(&text) {
-                    if mat.start() == mat.end() {
+                let matches = RuntimeModule::load("rplace_regex")
+                    .and_then(|module| {
+                        module.call(&json!({
+                            "action": "find",
+                            "pattern": value,
+                            "text": text,
+                        }))
+                    })
+                    .unwrap_or_else(|error| panic!("Regex module call failed: {error:#}"));
+                let ranges = matches
+                    .as_array()
+                    .unwrap_or_else(|| panic!("Regex module returned a non-array value"));
+
+                for range in ranges {
+                    let bounds = range
+                        .as_array()
+                        .filter(|bounds| bounds.len() == 2)
+                        .unwrap_or_else(|| panic!("Regex module returned an invalid match range"));
+                    let start = bounds[0]
+                        .as_u64()
+                        .unwrap_or_else(|| panic!("Regex module returned an invalid range start"))
+                        as usize;
+                    let end = bounds[1]
+                        .as_u64()
+                        .unwrap_or_else(|| panic!("Regex module returned an invalid range end"))
+                        as usize;
+                    if start >= end || end > text.len() {
                         continue;
                     }
 
-                    let matched = &text[mat.range()];
+                    let range = start..end;
+                    let matched = &text[range.clone()];
 
                     let mut replacement = if default_place {
-                        arrow_var(&var.name, matched, &mat.range(), &vec![])
+                        arrow_var(&var.name, matched, &range, &vec![])
                     } else {
-                        apply_options(&var.name, matched, &mat.range(), features_vec.unwrap())
+                        apply_options(&var.name, matched, &range, features_vec.unwrap())
                     };
 
                     if replacement.is_some() {

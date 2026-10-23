@@ -1,41 +1,41 @@
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug,Clone,Deserialize,Serialize)]
-pub struct ErrorResponse{
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ErrorResponse {
     pub message: String,
     pub err: String,
 }
-#[derive(Debug,Clone,Deserialize)]
-pub struct CreatedPackageResponse{
+#[derive(Debug, Clone, Deserialize)]
+pub struct CreatedPackageResponse {
     pub id: i32,
     pub name: String,
     pub created_at: DateTime<Utc>,
     pub creator_id: i32,
 }
-#[derive(Debug,Clone,Deserialize)]
-pub struct CreatedVersionResponse{
+#[derive(Debug, Clone, Deserialize)]
+pub struct CreatedVersionResponse {
     pub id: i32,
     pub version: String,
     pub created_at: DateTime<Utc>,
     pub package_id: i32,
 }
-#[derive(Debug,Clone,Deserialize)]
-pub struct UploadedFileResponse{
+#[derive(Debug, Clone, Deserialize)]
+pub struct UploadedFileResponse {
     pub path: String,
     pub file_hash: String,
 }
-#[derive(Debug,Clone,Deserialize,Serialize)]
-pub struct LoginResponse{
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct LoginResponse {
     pub token: String,
 }
-#[derive(Debug,Clone,Deserialize)]
-pub struct CreatedUserResponse{
+#[derive(Debug, Clone, Deserialize)]
+pub struct CreatedUserResponse {
     pub id: i32,
     pub name: String,
 }
-#[derive(Debug,Clone,Deserialize)]
-pub struct ResponsePackageData{
+#[derive(Debug, Clone, Deserialize)]
+pub struct ResponsePackageData {
     pub repo_id: i32,
     pub version: String,
     pub header_id: i32,
@@ -44,33 +44,36 @@ pub struct ResponsePackageData{
     pub code: String,
 }
 
-#[derive(Debug,Clone)]
-pub struct PackageFile{
+#[derive(Debug, Clone)]
+pub struct PackageFile {
     pub file_path: String,
     pub file_hash: String,
     pub code: String,
 }
-#[derive(Debug,Clone,Deserialize)]
-pub struct ResponseGetPackageFile{
+#[derive(Debug, Clone, Deserialize)]
+pub struct ResponseGetPackageFile {
     pub header_id: i32,
     pub file_path: String,
     pub file_hash: String,
     pub code: String,
 }
 impl ResponseGetPackageFile {
-    pub fn into_package_file(self) -> PackageFile{
-        PackageFile { file_path: self.file_path, file_hash: self.file_hash, code: self.code }
+    pub fn into_package_file(self) -> PackageFile {
+        PackageFile {
+            file_path: self.file_path,
+            file_hash: self.file_hash,
+            code: self.code,
+        }
     }
 }
 
-#[derive(Debug,Clone,Deserialize)]
-pub struct InitialPackageData{
+#[derive(Debug, Clone, Deserialize)]
+pub struct InitialPackageData {
     pub package_id: i32,
     pub version_id: i32,
 }
 
-#[derive(Debug,Clone,Deserialize)]
-pub struct Links{
+#[derive(Debug, Clone, Deserialize)]
+pub struct Links {
     pub links: Vec<String>,
 }
-

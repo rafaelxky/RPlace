@@ -111,10 +111,7 @@ pub async fn get_initial_data(
     Ok(body)
 }
 
-pub async fn get_version_paths(
-    package_source: &str,
-    version_header_id: i32,
-) -> Result<Links> {
+pub async fn get_version_paths(package_source: &str, version_header_id: i32) -> Result<Links> {
     let uri = format!(
         "{}{}{}",
         package_source, GET_VERSION_PATHS_URI, version_header_id

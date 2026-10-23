@@ -264,7 +264,9 @@ impl Lexer {
                         false
                     };
                     if is_mark {
-                        tokens.push(Token::MARK { kind: "*///-".to_string() });
+                        tokens.push(Token::MARK {
+                            kind: "*///-".to_string(),
+                        });
                     } else {
                         tokens.push(Token::IDENT { str: sequence });
                     }
@@ -307,7 +309,9 @@ impl Lexer {
                                 kind: "-*/".to_string(),
                             });
                         } else {
-                            tokens.push(Token::IDENT { str: "-*".to_string() });
+                            tokens.push(Token::IDENT {
+                                str: "-*".to_string(),
+                            });
                         }
                         continue;
                     } else {

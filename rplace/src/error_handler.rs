@@ -354,9 +354,10 @@ impl CompilationError {
             ),
             // todo message
             CompilationError::WrongArrayType => ErrorMessage::new(
-                format!("Wrong array type"), 
+                format!("Wrong array type"),
                 format!("Simplified array expression cannot contain parentesis direcly inside"),
-                 format!("Todo here!")),
+                format!("Todo here!"),
+            ),
         }
     }
     #[allow(dead_code)]

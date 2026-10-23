@@ -1,6 +1,10 @@
-use std::{fs::{self, File, OpenOptions}};
+use std::fs::{self, File, OpenOptions};
 
-use crate::{derive::deriver::Deriver, structs::FileConfig, writer::writer_structs::{FileData, WriterResult}};
+use crate::{
+    derive::deriver::Deriver,
+    structs::FileConfig,
+    writer::writer_structs::{FileData, WriterResult},
+};
 use std::io::Write;
 use std::path::Path;
 
@@ -11,7 +15,11 @@ pub struct OutputWriter {
 }
 impl OutputWriter {
     pub fn new(to_write: WriterResult, file: File, file_config: FileConfig) -> Self {
-        Self { to_write, file, _file_config: file_config }
+        Self {
+            to_write,
+            file,
+            _file_config: file_config,
+        }
     }
     pub fn write(mut self) {
         let mut replaced = self.to_write;

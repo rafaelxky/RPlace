@@ -160,7 +160,7 @@ impl Parser {
         Ok((name, options, optional))
     }
 
-    fn handle_func(&mut self, nodes: &mut ParsingResult) -> Result<()>{
+    fn handle_func(&mut self, nodes: &mut ParsingResult) -> Result<()> {
         let mut nodes = nodes;
         self.remove_spaces();
         match self.peek() {

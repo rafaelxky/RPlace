@@ -29,7 +29,8 @@ fn array_can_mix_values_and_structs() -> Result<()> {
 
 #[test]
 fn array_can_contain_a_single_value() -> Result<()> {
-    let code = "//- def a://- for val in values:$#val//- end://- end://- place a where values = [val]:";
+    let code =
+        "//- def a://- for val in values:$#val//- end://- end://- place a where values = [val]:";
     let str = parse(code)?;
     assert_eq!(str, "val");
     Ok(())
@@ -37,7 +38,8 @@ fn array_can_contain_a_single_value() -> Result<()> {
 
 #[test]
 fn array_can_contain_a_single_value_struct() -> Result<()> {
-    let code = "//- def a://- for val in values:$#val//- end://- end://- place a where values = [(val)]:";
+    let code =
+        "//- def a://- for val in values:$#val//- end://- end://- place a where values = [(val)]:";
     let str = parse(code)?;
     assert_eq!(str, "val");
     Ok(())
@@ -53,7 +55,8 @@ fn array_can_contain_named_structs() -> Result<()> {
 
 #[test]
 fn empty_array_runs_no_iterations() -> Result<()> {
-    let code = "//- def a://- for val in values:$#val//- end://- end://- place a where values = []:";
+    let code =
+        "//- def a://- for val in values:$#val//- end://- end://- place a where values = []:";
     let str = parse(code)?;
     assert_eq!(str, "");
     Ok(())

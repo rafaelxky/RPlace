@@ -3,17 +3,20 @@ name = "rplace"
 version = "0.2.0"
 edition = "2024"
 
+[workspace]
+members = ["plugins/lua", "plugins/regex"]
+resolver = "3"
+
 [dependencies]
 crossterm = "0.29"
 clap = { version = "4.6.1", features = ["derive"] }
 reqwest = { version = "0.13.2", features = ["json", "blocking"] }
-regex = "1.12.3"
 rayon = "1.12.0"
 walkdir = "2.5.0"
 directories = "6.0.0"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
-mlua = { version = "0.11.6", features = ["lua54", "send", "vendored"] }
+libloading = "0.8"
 path-clean = "1.0.1"
 anyhow = "1.0.104"
 tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread"] }

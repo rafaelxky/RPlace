@@ -1,3 +1,4 @@
+use crate::config::config::CompilerConfig;
 use crate::config::config::{CONFIG, reload_config};
 use crate::constants::PROJECT_FILE;
 use crate::package_manager::auth::read_tok;
@@ -15,14 +16,13 @@ use crate::package_manager::web::fetch::{
 };
 use crate::package_manager::web::structs::ResponsePackageData;
 use crate::package_manager::web::user::create_user;
-use crate::run::run_options::{parse_get_all_paths, run_inline, run_pipe};
 use crate::run::run_options::run_parse;
+use crate::run::run_options::{parse_get_all_paths, run_inline, run_pipe};
 use crate::term::terminal_handler::CliArgs;
 use crate::term::terminal_handler::handle_args;
-use crate::config::config::CompilerConfig;
 use anyhow::Result;
 use directories::ProjectDirs;
-use std::process::{exit};
+use std::process::exit;
 
 pub mod config;
 pub mod constants;
@@ -37,6 +37,7 @@ pub mod output_stream;
 pub mod package_manager;
 pub mod parser;
 pub mod run;
+pub mod runtime_module;
 pub mod structs;
 pub mod term;
 pub mod writer;

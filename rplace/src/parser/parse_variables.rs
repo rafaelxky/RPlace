@@ -172,18 +172,12 @@ impl Parser {
                     let field_name = match value {
                         Value::Literal { value, options } => {
                             if options.is_some() {
-                                return Err(parser_error(
-                                    CompilationError::InvalidVarOption,
-                                    self,
-                                ));
+                                return Err(parser_error(CompilationError::InvalidVarOption, self));
                             }
                             value
                         }
                         _ => {
-                            return Err(parser_error(
-                                CompilationError::Invalid1stPlaceVar,
-                                self,
-                            ));
+                            return Err(parser_error(CompilationError::Invalid1stPlaceVar, self));
                         }
                     };
                     let value = self.handle_val()?;

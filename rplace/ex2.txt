@@ -2,7 +2,7 @@
 
 //- def name:
     //- for i in 0..10:
-        hello world N $#i
+        hello world N $#i\lua::"return args[1]"
     //- end:
 //- end:
 

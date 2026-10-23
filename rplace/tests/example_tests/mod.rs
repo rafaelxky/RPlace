@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use anyhow::{Ok, Result};
 use rplace::{
@@ -14,10 +14,7 @@ fn parse(code: &str) -> Result<String> {
     parse_with_global_values(code, HashMap::new())
 }
 
-fn parse_with_global_values(
-    code: &str,
-    global_values: HashMap<String, String>,
-) -> Result<String> {
+fn parse_with_global_values(code: &str, global_values: HashMap<String, String>) -> Result<String> {
     const PATH: &str = "test.txt";
     const OUTPUT_PATH: &str = "output_test.txt";
 

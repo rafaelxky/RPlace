@@ -1,0 +1,37 @@
+thread 'rustc' panicked at /rustc-dev/17fd5b8a37b6667b6cc137f3cc35f09759768a3b/compiler/rustc_query_impl/src/incremental.rs:143:9:
+Box<dyn Any>
+stack backtrace:
+   0:     0x7945c6281455 - <std[206309b28d9a07bf]::backtrace::Backtrace>::create
+   1:     0x7945c62813a5 - <std[206309b28d9a07bf]::backtrace::Backtrace>::force_capture
+   2:     0x7945c51f9823 - std[206309b28d9a07bf]::panicking::update_hook::<alloc[7f8ce9961dceb534]::boxed::Box<rustc_driver_impl[59491c9177dec8b9]::install_ice_hook::{closure#1}>>::{closure#0}
+   3:     0x7945c6297822 - std[206309b28d9a07bf]::panicking::panic_with_hook
+   4:     0x7945c5227ff4 - std[206309b28d9a07bf]::panicking::begin_panic::<rustc_errors[ee11973e906644be]::ExplicitBug>::{closure#0}
+   5:     0x7945c5220a8e - std[206309b28d9a07bf]::sys::backtrace::__rust_end_short_backtrace::<std[206309b28d9a07bf]::panicking::begin_panic<rustc_errors[ee11973e906644be]::ExplicitBug>::{closure#0}, !>
+   6:     0x7945c521eb2e - std[206309b28d9a07bf]::panicking::begin_panic::<rustc_errors[ee11973e906644be]::ExplicitBug>
+   7:     0x7945c5233a41 - <rustc_errors[ee11973e906644be]::diagnostic::BugAbort as rustc_errors[ee11973e906644be]::diagnostic::EmissionGuarantee>::emit_producing_guarantee
+   8:     0x7945c57cbe89 - rustc_middle[f61e198e6d446bb5]::util::bug::opt_span_bug_fmt::<rustc_span[cee2938d6f5fef49]::span_encoding::Span>::{closure#0}
+   9:     0x7945c57cc282 - rustc_middle[f61e198e6d446bb5]::ty::context::tls::with_opt::<rustc_middle[f61e198e6d446bb5]::util::bug::opt_span_bug_fmt<rustc_span[cee2938d6f5fef49]::span_encoding::Span>::{closure#0}, !>::{closure#0}
+  10:     0x7945c57b70e0 - rustc_middle[f61e198e6d446bb5]::ty::context::tls::with_context_opt::<rustc_middle[f61e198e6d446bb5]::ty::context::tls::with_opt<rustc_middle[f61e198e6d446bb5]::util::bug::opt_span_bug_fmt<rustc_span[cee2938d6f5fef49]::span_encoding::Span>::{closure#0}, !>::{closure#0}, !>
+  11:     0x7945c243b834 - rustc_middle[f61e198e6d446bb5]::util::bug::bug_fmt
+  12:     0x7945c786a98a - <rustc_query_impl[c6eef159487448c5]::dep_kind_vtables::make_dep_kind_vtable_for_query<rustc_query_impl[c6eef159487448c5]::query_vtables::externally_implementable_items::VTableGetter>::{closure#1} as core[6e7e658899e916bc]::ops::function::FnOnce<(rustc_middle[f61e198e6d446bb5]::ty::context::TyCtxt, rustc_middle[f61e198e6d446bb5]::dep_graph::dep_node::DepNode, rustc_middle[f61e198e6d446bb5]::dep_graph::serialized::SerializedDepNodeIndex, rustc_middle[f61e198e6d446bb5]::dep_graph::graph::DepNodeIndex)>>::call_once
+  13:     0x7945c787424f - <rustc_middle[f61e198e6d446bb5]::dep_graph::graph::DepGraph>::exec_cache_promotions
+  14:     0x7945c7dd354b - rustc_incremental[9752c9e830af2b43]::persist::save::save_dep_graph::{closure#0}::{closure#3}
+  15:     0x7945c7dc47e4 - rustc_incremental[9752c9e830af2b43]::persist::save::save_dep_graph
+  16:     0x7945c7dc4473 - <rustc_incremental[9752c9e830af2b43]::provide::{closure#0} as core[6e7e658899e916bc]::ops::function::FnOnce<(rustc_middle[f61e198e6d446bb5]::ty::context::TyCtxt,)>>::call_once
+  17:     0x7945c7dd007d - <rustc_middle[f61e198e6d446bb5]::ty::context::TyCtxt>::finish
+  18:     0x7945c7dbb1dc - rustc_interface[3dff4e636a01ee1e]::interface::run_compiler::<(), rustc_driver_impl[59491c9177dec8b9]::run_compiler::{closure#0}>::{closure#2}
+  19:     0x7945c7e0a802 - std[206309b28d9a07bf]::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface[3dff4e636a01ee1e]::util::run_in_thread_with_globals<rustc_interface[3dff4e636a01ee1e]::util::run_in_thread_pool_with_globals<rustc_interface[3dff4e636a01ee1e]::interface::run_compiler<(), rustc_driver_impl[59491c9177dec8b9]::run_compiler::{closure#0}>::{closure#2}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  20:     0x7945c7e0a5ad - <std[206309b28d9a07bf]::thread::lifecycle::spawn_unchecked<rustc_interface[3dff4e636a01ee1e]::util::run_in_thread_with_globals<rustc_interface[3dff4e636a01ee1e]::util::run_in_thread_pool_with_globals<rustc_interface[3dff4e636a01ee1e]::interface::run_compiler<(), rustc_driver_impl[59491c9177dec8b9]::run_compiler::{closure#0}>::{closure#2}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core[6e7e658899e916bc]::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  21:     0x7945c7e07f87 - <std[206309b28d9a07bf]::sys::thread::unix::Thread>::new::thread_start
+  22:     0x7945c0e9cb84 - start_thread
+                               at ./nptl/pthread_create.c:447:8
+  23:     0x7945c0f29ecc - clone3
+                               at ./misc/../sysdeps/unix/sysv/linux/x86_64/clone3.S:78:0
+  24:                0x0 - <unknown>
+
+
+rustc version: 1.100.0-nightly (17fd5b8a3 2026-08-28)
+platform: x86_64-unknown-linux-gnu
+
+query stack during panic:
+end of query stack
