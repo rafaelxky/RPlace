@@ -1,7 +1,7 @@
 {
   "name": "rplacecompletionprovider",
   "displayName": "RplaceCompletionProvider",
-  "description": "todo",
+  "description": "Context-aware completions for the RPlace templating language",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.125.0"

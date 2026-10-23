@@ -1,5 +1,12 @@
 //- $#output = "out3.txt":
 
-//- for val in $g#name:
-    $#val
+//- def name:
+    //- for i in 0..10:
+        hello world N $#i
+    //- end:
 //- end:
+
+//- place name:
+
+
+
