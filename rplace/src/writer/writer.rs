@@ -1,23 +1,17 @@
-use std::sync::{Arc, RwLock};
-use std::{
-    collections::HashMap,str
-};
-use rayon::{ prelude::*};
-use rayon::iter::IntoParallelRefIterator;
 use anyhow::{Result, anyhow};
+use rayon::iter::IntoParallelRefIterator;
+use rayon::prelude::*;
+use std::sync::{Arc, RwLock};
+use std::{collections::HashMap, str};
 
-use crate::config::config::{CompilerConfig};
+use crate::config::config::CompilerConfig;
+use crate::data_stream::get_data_stream;
 use crate::derive::deriver::Deriver;
-use crate::options::var_options::{VarOptionsMap};
+use crate::options::var_options::VarOptionsMap;
 use crate::structs::*;
 use crate::writer::writer_structs::{Derive, ResValue, WriterResult};
-use crate::{data_stream::get_data_stream};
 
-use crate::{
-    error_handler::handle_error,
-    lexer::Lexer,
-    parser::{Parser},
-};
+use crate::{error_handler::handle_error, lexer::Lexer, parser::Parser};
 
 pub struct Writer {
     nodes: Vec<Node>,
@@ -31,11 +25,11 @@ pub struct Writer {
 }
 impl Writer {
     pub fn new(
-        nodes: ParsingResult, 
-        project_src: String, 
-        output_src: String, 
-        compiler_config: Arc<CompilerConfig>, 
-        var_options: Arc<VarOptionsMap>
+        nodes: ParsingResult,
+        project_src: String,
+        output_src: String,
+        compiler_config: Arc<CompilerConfig>,
+        var_options: Arc<VarOptionsMap>,
     ) -> Self {
         Self {
             nodes: nodes.nodes,
@@ -49,13 +43,13 @@ impl Writer {
         }
     }
     pub fn new_with_imports(
-        nodes: ParsingResult, 
-        imports: Arc<RwLock<HashMap<String,ParsingResult>>>, 
-        project_src: String, 
-        output_src: String, 
+        nodes: ParsingResult,
+        imports: Arc<RwLock<HashMap<String, ParsingResult>>>,
+        project_src: String,
+        output_src: String,
         compiler_config: Arc<CompilerConfig>,
         var_options: Arc<VarOptionsMap>,
-    ) -> Self{
+    ) -> Self {
         Self {
             nodes: nodes.nodes,
             file_path: nodes.file_path,
@@ -76,102 +70,125 @@ impl Writer {
             match maybe_import {
                 Some(result) => {
                     return Ok(result.clone());
-                },
+                }
                 None => (),
             }
         }
-                let lexer = Lexer::new(path.clone(), data);
-                let parser = Parser::new(lexer.parse(),self.project_src.clone(), self.output_src.clone());
-                let nodes = parser.parse()?;
-                let mut import_lock = self.imports.write().unwrap();
-                import_lock.insert(nodes.file_path.clone(), nodes.clone());
-                Ok(nodes)
+        let lexer = Lexer::new(path.clone(), data);
+        let parser = Parser::new(
+            lexer.parse(),
+            self.project_src.clone(),
+            self.output_src.clone(),
+        );
+        let nodes = parser.parse()?;
+        let mut import_lock = self.imports.write().unwrap();
+        import_lock.insert(nodes.file_path.clone(), nodes.clone());
+        Ok(nodes)
     }
     fn initial_sweap(
-        &mut self, 
-        def_map: &mut HashMap<String, Vec<Node>>, 
-        to_parse: &mut Vec<String>, 
+        &mut self,
+        def_map: &mut HashMap<String, Vec<Node>>,
+        to_parse: &mut Vec<String>,
         mod_list: &mut Vec<String>,
         global_variables: &mut HashMap<String, ResValue>,
-    ) -> Result<()>{
+    ) -> Result<()> {
         // initial sweap
-        let mut to_import: Vec<(String,usize)> = Vec::new();
+        let mut to_import: Vec<(String, usize)> = Vec::new();
 
         for node in &self.nodes {
             match node {
-            Node::DEF {
-                name,
-                body: _,
-                line: _,
-                conditions: _,
-                defaults:_,
-            } => {
-                self.handle_def(&mut *def_map, &node, &name);
-            },
-            Node::INCLUDE { path, line } => {
-                mod_list.push(path.clone());
-               to_import.push((path.clone(),*line));
-            },
-            Node::SETVARIABLE { var, val } => {
-                if var.len() < 1 {
+                Node::DEF {
+                    name,
+                    body: _,
+                    line: _,
+                    conditions: _,
+                    defaults: _,
+                } => {
+                    self.handle_def(&mut *def_map, &node, &name);
+                }
+                Node::INCLUDE { path, line } => {
+                    mod_list.push(path.clone());
+                    to_import.push((path.clone(), *line));
+                }
+                Node::SETVARIABLE { var, val } => {
+                    if var.len() < 1 {
+                        panic!("todo message: var assignement cant be empty");
+                    }
+
+                    if var.len() == 1 {
+                        // this is a patch, val should be properly solveed
+                        let (val, options) = val.clone().expect_literal_or_else(|_| {
+                            anyhow!("expected literal value for global variable!")
+                        })?;
+                        let val = self.var_options.exec_options_or_return(&options, val);
+                        let val = ResValue::new_val(val);
+                        global_variables.insert(var[0].clone(), val.clone());
+                    }
+
                     panic!("todo message: var assignement cant be empty");
                 }
-                
-                if var.len() == 1 {
-                    global_variables.insert(var[0].clone(), val.clone());
+                Node::PARSE { path } => {
+                    to_parse.push(path.clone());
                 }
-
-                panic!("todo message: var assignement cant be empty");
-            },
-            Node::PARSE { path } => {
-                to_parse.push(path.clone());
-            }
-            Node::MOD { path } => {
-                mod_list.push(path.clone());
-            }
-            _ => (),
-        }};
-
-        if let Some(out) = global_variables.get("output"){
-            match out {
-                Value::Literal { value, options:_ } => {
-                    self.file_config.set_val("output", value.clone());
-                },
-                _ => return Err(anyhow!("Invalid variable type for output!"))
+                Node::MOD { path } => {
+                    mod_list.push(path.clone());
+                }
+                _ => (),
             }
         }
 
-        let imports: Vec<Vec<ParsingResult>> = to_import.par_iter().map(|(path, _line)| -> Result<Vec<ParsingResult>>{
-            let (mut stream, _) = get_data_stream(path);
-            let mut imp: Vec<ParsingResult> = Vec::new();
-            loop {
-                let data = stream.next();
-                if data.is_none() {
-                    break;
+        if let Some(out) = global_variables.get("output") {
+            match out {
+                ResValue::Val { value } => {
+                    self.file_config.set_val("output", value.clone());
                 }
-                let (data, path) = data.unwrap();
-                if !self.compiler_config.allow_import {
-                    continue;
-                }
-                let import = self.handle_import(data, path)?;
-                imp.push(import);
+                _ => return Err(anyhow!("Invalid variable type for output!")),
             }
-            Ok(imp)
-        }).collect::<anyhow::Result<Vec<Vec<ParsingResult>>>>()?;
+        }
 
-        for imports_inner in imports{
+        let imports: Vec<Vec<ParsingResult>> = to_import
+            .par_iter()
+            .map(|(path, _line)| -> Result<Vec<ParsingResult>> {
+                let (mut stream, _) = get_data_stream(path);
+                let mut imp: Vec<ParsingResult> = Vec::new();
+                loop {
+                    let data = stream.next();
+                    if data.is_none() {
+                        break;
+                    }
+                    let (data, path) = data.unwrap();
+                    if !self.compiler_config.allow_import {
+                        continue;
+                    }
+                    let import = self.handle_import(data, path)?;
+                    imp.push(import);
+                }
+                Ok(imp)
+            })
+            .collect::<anyhow::Result<Vec<Vec<ParsingResult>>>>()?;
+
+        for imports_inner in imports {
             for import in imports_inner {
                 for node in import.nodes {
                     match &node {
-                        Node::DEF { conditions:_, defaults:_, name, body:_, line:_ } => {
-                            def_map.entry(name.clone()).or_insert_with(Vec::new).push(node.clone());
-                        },
-                        _ => ()
+                        Node::DEF {
+                            conditions: _,
+                            defaults: _,
+                            name,
+                            body: _,
+                            line: _,
+                        } => {
+                            def_map
+                                .entry(name.clone())
+                                .or_insert_with(Vec::new)
+                                .push(node.clone());
+                        }
+                        _ => (),
                     }
                 }
             }
         }
-     Ok(())   
+        Ok(())
     }
 
     fn handle_def(&self, def_map: &mut HashMap<String, Vec<Node>>, node: &Node, name: &String) {
@@ -183,42 +200,47 @@ impl Writer {
     }
 
     /// raw body text just takes the values and pushes it to buffer
-    fn handle_raw_text(text: &mut String, data: &Vec<Node>){
-         data.iter().for_each(|n| match n {
-                        Node::DATA { data, line:_ } => {
-                            text.push_str(data);
-                        }
-                        Node::VARTEMPLATE { val } => {
-                            let name = &val.value;
-                            text.push_str(&format!("$#{}", name));
-                        }
-                        _ => (),
-                    });
+    fn handle_raw_text(text: &mut String, data: &Vec<Node>) {
+        data.iter().for_each(|n| match n {
+            Node::DATA { data, line: _ } => {
+                text.push_str(data);
+            }
+            Node::VARTEMPLATE { val } => {
+                let name = &val.value;
+                text.push_str(&format!("$#{}", name));
+            }
+            _ => (),
+        });
     }
 
-    pub fn get_paths(mut self) -> Result<(Vec<String>,Vec<String>)>{
+    pub fn get_paths(mut self) -> Result<(Vec<String>, Vec<String>)> {
         let mut def_map = HashMap::new();
         let mut to_parse = Vec::new();
         let mut mod_list = Vec::new();
         let mut global_variables = HashMap::new();
-        self.initial_sweap(&mut def_map, &mut to_parse, &mut mod_list, &mut global_variables)?;
-        return Ok((to_parse,mod_list));
+        self.initial_sweap(
+            &mut def_map,
+            &mut to_parse,
+            &mut mod_list,
+            &mut global_variables,
+        )?;
+        return Ok((to_parse, mod_list));
     }
-    pub fn replace_pipe(self, piped: &str) -> Result<(WriterResult,FileConfig)>{
+    pub fn replace_pipe(self, piped: &str) -> Result<(WriterResult, FileConfig)> {
         let mut result = WriterResult::new();
         let nodes = &self.nodes;
         let mut text = String::new();
-        for node in nodes{
+        for node in nodes {
             match node {
                 Node::PIPE => {
                     text.push_str(piped);
                 }
-                Node::BODY { data, line:_ } => {
+                Node::BODY { data, line: _ } => {
                     Self::handle_raw_text(&mut text, data);
-                },
-                Node::DATA { data, line:_ } => {
+                }
+                Node::DATA { data, line: _ } => {
                     text.push_str(&data);
-                },
+                }
                 _ => {}
             }
         }
@@ -234,22 +256,33 @@ impl Writer {
         let mut to_parse = Vec::new();
         let mut mod_list = Vec::new();
         let mut global_variables = HashMap::new();
-        self.initial_sweap(&mut def_map, &mut to_parse, &mut mod_list, &mut global_variables)?;
+        self.initial_sweap(
+            &mut def_map,
+            &mut to_parse,
+            &mut mod_list,
+            &mut global_variables,
+        )?;
         result.set_to_parse(to_parse);
 
         let nodes = &self.nodes;
         for node in nodes {
             match node {
-                Node::BODY { data, line:_ } => {
+                Node::BODY { data, line: _ } => {
                     Self::handle_raw_text(&mut text, data);
-                },
-                Node::DATA { data, line:_ } => {
+                }
+                Node::DATA { data, line: _ } => {
                     text.push_str(&data);
-                },
+                }
                 Node::PLACE { name, args, line } => {
                     let mut args_map: HashMap<String, ResValue> = HashMap::new();
-                    let (inner_defs,result_inner) =
-                        self.handle_place(&mut text, &mut def_map, name, args, line, &mut args_map);
+                    let (inner_defs, result_inner) = self.handle_place(
+                        &mut text,
+                        &mut def_map,
+                        name,
+                        args,
+                        line,
+                        &mut args_map,
+                    )?;
                     result.append(result_inner);
                     if matches!(inner_defs, Some(_)) {
                         inner_defs.unwrap().iter().for_each(|def| {
@@ -261,18 +294,21 @@ impl Writer {
                                 line: _,
                             } = def
                             {
-                                self.handle_def(&mut def_map, def, name);
+                                self.handle_def(&mut def_map, &def, &name);
                             }
                         });
                     }
-                },
+                }
                 Node::CREATE { path, content } => {
-                    let result_inner = self.handle_create(path, content, &def_map);
+                    let result_inner = self.handle_create(path, content, &def_map)?;
                     result.append(result_inner);
-                },
+                }
                 Node::DERIVE { path, val } => {
-                    result.derives.push(Derive { path: path.to_string(), vals: val.clone() });
-                },
+                    result.derives.push(Derive {
+                        path: path.to_string(),
+                        vals: val.clone(),
+                    });
+                }
                 _ => (),
             }
         }
@@ -280,7 +316,12 @@ impl Writer {
         Ok((result, self.file_config))
     }
 
-    fn handle_create(&self, path: &str, body: &Option<Box<Node>>, def_map: &HashMap<String, Vec<Node>>) -> WriterResult {
+    fn handle_create(
+        &self,
+        path: &str,
+        body: &Option<Box<Node>>,
+        def_map: &HashMap<String, Vec<Node>>,
+    ) -> Result<WriterResult> {
         let path = path.to_string();
         let mut result = WriterResult::new();
 
@@ -289,249 +330,347 @@ impl Writer {
                 match &**node {
                     // body -> place
                     Node::BODY { data, line } => {
-                        data.iter().for_each(|place|{
+                        for place in data {
                             match place {
                                 Node::PLACE { name, args, line } => {
                                     let mut text = String::new();
                                     let mut args_map: HashMap<String, ResValue> = HashMap::new();
-                                    self.handle_place(&mut text, def_map, name, args, line, &mut args_map);
+                                    self.handle_place(
+                                        &mut text,
+                                        def_map,
+                                        name,
+                                        args,
+                                        line,
+                                        &mut args_map,
+                                    )?;
                                     result.push_elements(text, path.clone());
-                                },
+                                }
                                 _ => {
-                                    panic!("Expected only place inside of create instead found {:?} in line {}", place, line);
+                                    panic!(
+                                        "Expected only place inside of create instead found {:?} in line {}",
+                                        place, line
+                                    );
                                 }
                             }
-                        });
-                        return result;
-                    },
+                        }
+                        return Ok(result);
+                    }
                     _ => {
-                        panic!("Internal error, no body found inside create, found instead {:?}",node);
+                        panic!(
+                            "Internal error, no body found inside create, found instead {:?}",
+                            node
+                        );
                     }
                 }
-            },
+            }
             None => {
                 result.push_elements("".to_string(), path);
-                result
-            },
+                Ok(result)
+            }
         }
     }
 
     // this function is called to place the def body
     fn handle_place_body(
-        &self, data: &Vec<Node>, 
-        text: &mut String, 
-        args_map: &mut HashMap<String, ResValue>,
-        def_queue: &mut Option<Vec<Node>>,  
-        def_name: &String, 
-        line: &usize, 
-        def_map: &HashMap<String, Vec<Node>>, 
-        result: &mut WriterResult)
-        {
-        // for each body node
-        // go trough the body and handle the cases
-        data.iter().for_each(|n| match n {
-            // here is handled anything inside the def
-            Node::DATA { data, line:_ } => {
-                // just text
-                text.push_str(data);
-            },
-            Node::MATCH { line, var_name, val } => {
-                let match_line = line;
-                let var_name = var_name;
-                let var = args_map.get(var_name);
-                let var_value = match var {
-                    Some(val) => Some(val),
-                    None => None,
-                };
-                let matched = val.iter().find(|arm|{
-                    match var_value {
-                        Some(ResValue::Val { value }) => {
-                            arm.matches(value.to_string())
-                        },
-                        None => {
-                            arm.is_any_arm()
-                        }
-                        _ => panic!(),
-                    }
-                });
-
-                match matched {
-                    Some(matched) => {
-                        match &matched.body {
-                            Node::BODY { data, line:_ } => {
-                                self.handle_place_body(data, text, args_map, def_queue, def_name, match_line, def_map, result);
-                            }
-                            _ => panic!("todo error message expected body"),
-                        }
-                    },
-                    None => {
-                        panic!("todo error message found no match")
-                    }
-                }
-
-            }
-            Node::VARTEMPLATE { val } => {
-                let name = &val.value;
-                // $#var 
-                let replacement = match args_map.get(name) {
-                    Some(val) => val,
-                    None => {
-                        if val.optional {
-                            &ResValue::new_val("".to_string())
-                        } else {
-                            //handle_error(format!("No value specified for \"{}\" in template {}!", name,def_name), line.clone(), self.file_path.clone())
-                            panic!("no value specified for <{}>, in template <{}>, vars {:?}", name, def_name, args_map)
-                        }
-                    }
-                };
-                let opts = &val.options;
-                let replaced = match opts {
-                    Some(opts) => {
-                        let mut curr = match replacement {
-                            ResValue::Val { value } => value.to_string(),
-                            _ => todo!()
-                        };
-                        for opt in opts {
-                            curr = self.var_options.exec_option(opt, curr);
-                        }
-                        curr
-                    }
-                    None => {
-                        match replacement {
-                            ResValue::Val { value } => value.to_string(),
-                            _ => todo!()
-                        }
-                    },
-                };
-                text.push_str(&replaced);
-            },
-            Node::RARROWVAR { name, default } => {
-                // ->
-                    let replacement = match args_map.get(name) {
-                    Some(val) => val,
-                    None => {
-                        match default {
-                            Some(default) => &ResValue::new_val(default.to_string()),
-                            None => {
-                                handle_error(format!("No value specified for \"{}\" in right arrow variable declaration!", name), line.clone(), self.file_path.clone())
-                            }
-                        }
-                    }
-                };
-                // todo: handle options here arrow var
-                match replacement {
-                    ResValue::Val { value } => {
-                        text.push_str(&value);
-                    },
-                    _ => panic!(),
-                }
-            },
-            Node::DEF { conditions: _, name: _, body:_, line: _ , defaults: _} => {
-                if def_queue.is_none() {
-                    *def_queue = Some(Vec::new());
-                }
-                def_queue.as_mut().unwrap().push(n.clone());
-            }, 
-            Node::PLACE { name, args, line } => {
-                println!("place {} args {:?}",name,args);
-                // place inside body
-                // ??? whats this def_queue bellow ?
-                if def_queue.is_none() {
-                    *def_queue = Some(Vec::new());
-                }
-                let (result_inner, writer_result) = self.handle_place(text, &def_map, name, args, line, args_map);
-                result.append(writer_result);
-                if result_inner.is_some() {
-                    def_queue.as_mut().unwrap().append(&mut result_inner.unwrap());
-                }
-            },
-            Node::CREATE { path, content } =>{
-                let result_inner = self.handle_create(path, content, def_map);
-                result.append(result_inner);
-            },
-            Node::PARSE { path } => {
-                result.push_to_parse(path.to_string());
-            }
-            Node::FOR { vars, in_var, body } => {
-                let vals = args_map.get(in_var);
-                let values = match vals {
-                    Some(ResValue::Array { array }) => {
-                        vals.unwrap()
-                    },
-                    Some(ResValue::Struct { names, values }) => {
-                        vals.unwrap()
-                    }
-                    None => panic!("todo message, array var not found for in_var {in_var}"),
-                    Some(_) => panic!("expected array todo message"),
-                }.clone();
-                self.handle_for(
-                    vars,
-                    values,
-                    body,
-                    text, 
-                    args_map,
-                    def_queue,
-                    def_name,
-                    line,
-                    def_map,
-                    result,
-                );
-            }
-            _ => {
-                handle_error(format!("Body should only have data or var def, instead found {:?}", n), line.clone(), self.file_path.clone())
-            },
-        });
-    }
-
-    fn handle_for(
-        &self, 
-        var_names: &Vec<String>,
-        var_values: ResValue,
-        body: &Box<Node>, 
-        text: &mut String, 
+        &self,
+        data: &Vec<Node>,
+        text: &mut String,
         args_map: &mut HashMap<String, ResValue>,
         def_queue: &mut Option<Vec<Node>>,
         def_name: &String,
         line: &usize,
         def_map: &HashMap<String, Vec<Node>>,
         result: &mut WriterResult,
-    )
-    {
-        // todo: finish new array and struct integration and global variables
-
-        let mut args_map = args_map.clone();
-        let mut def_queue = def_queue.clone();
-        match var_values {
-            ResValue::Val { value } => todo!(),
-            ResValue::Array { array } => {
-                todo!()
-                for val in array {
+    ) -> Result<()> {
+        // for each body node
+        // go trough the body and handle the cases
+        for n in data {
+            match n {
+                // here is handled anything inside the def
+                Node::DATA { data, line: _ } => {
+                    // just text
+                    text.push_str(data);
                 }
-            },
-            ResValue::Struct { names, values } => {
-                for (name,val) in var_names.iter().zip(val) {
-                    match val {
-                        ResValue::Struct { names, values } => {
-                            args_map.insert(name.to_string(), value.as_ref().clone());
+                Node::MATCH {
+                    line,
+                    var_name,
+                    val,
+                } => {
+                    let match_line = line;
+                    let var_name = var_name;
+                    let var = args_map.get(var_name);
+                    let var_value = match var {
+                        Some(val) => Some(val),
+                        None => None,
+                    };
+                    let matched = val.iter().find(|arm| match var_value {
+                        Some(ResValue::Val { value }) => arm.matches(value.to_string()),
+                        None => arm.is_any_arm(),
+                        _ => panic!(),
+                    });
+
+                    match matched {
+                        Some(matched) => match &matched.body {
+                            Node::BODY { data, line: _ } => {
+                                self.handle_place_body(
+                                    data, text, args_map, def_queue, def_name, match_line, def_map,
+                                    result,
+                                )?;
+                            }
+                            _ => panic!("todo error message expected body"),
                         },
-                        _ => {
-                            args_map.insert(name.to_string(), val);
+                        None => {
+                            panic!("todo error message found no match")
+                        }
+                    }
+                }
+                Node::VARTEMPLATE { val } => {
+                    let name = &val.value;
+                    // $#var
+                    let replacement = match args_map.get(name) {
+                        Some(val) => val,
+                        None => {
+                            if val.optional {
+                                &ResValue::new_val("".to_string())
+                            } else {
+                                //handle_error(format!("No value specified for \"{}\" in template {}!", name,def_name), line.clone(), self.file_path.clone())
+                                panic!(
+                                    "no value specified for <{}>, in template <{}>, vars {:?}",
+                                    name, def_name, args_map
+                                )
+                            }
                         }
                     };
+                    let opts = &val.options;
+                    let replaced = match opts {
+                        Some(opts) => {
+                            let mut curr = match replacement {
+                                ResValue::Val { value } => value.to_string(),
+                                _ => todo!(),
+                            };
+                            for opt in opts {
+                                curr = self.var_options.exec_option(opt, curr);
+                            }
+                            curr
+                        }
+                        None => match replacement {
+                            ResValue::Val { value } => value.to_string(),
+                            _ => todo!(),
+                        },
+                    };
+                    text.push_str(&replaced);
                 }
+                Node::RARROWVAR { name, default } => {
+                    // ->
+                    let replacement = match args_map.get(name) {
+                        Some(val) => val,
+                        None => match default {
+                            Some(default) => &ResValue::new_val(default.to_string()),
+                            None => handle_error(
+                                format!(
+                                    "No value specified for \"{}\" in right arrow variable declaration!",
+                                    name
+                                ),
+                                line.clone(),
+                                self.file_path.clone(),
+                            ),
+                        },
+                    };
+                    // todo: handle options here arrow var
+                    match replacement {
+                        ResValue::Val { value } => {
+                            text.push_str(&value);
+                        }
+                        _ => panic!(),
+                    }
+                }
+                Node::DEF {
+                    conditions: _,
+                    name: _,
+                    body: _,
+                    line: _,
+                    defaults: _,
+                } => {
+                    if def_queue.is_none() {
+                        *def_queue = Some(Vec::new());
+                    }
+                    def_queue.as_mut().unwrap().push(n.clone());
+                }
+                Node::PLACE { name, args, line } => {
+                    println!("place {} args {:?}", name, args);
+                    // place inside body
+                    // ??? whats this def_queue bellow ?
+                    if def_queue.is_none() {
+                        *def_queue = Some(Vec::new());
+                    }
+                    let (result_inner, writer_result) =
+                        self.handle_place(text, &def_map, name, args, line, args_map)?;
+                    result.append(writer_result);
+                    if result_inner.is_some() {
+                        def_queue
+                            .as_mut()
+                            .unwrap()
+                            .append(&mut result_inner.unwrap());
+                    }
+                }
+                Node::CREATE { path, content } => {
+                    let result_inner = self.handle_create(path, content, def_map)?;
+                    result.append(result_inner);
+                }
+                Node::PARSE { path } => {
+                    result.push_to_parse(path.to_string());
+                }
+                Node::FOR { vars, in_var, body } => {
+                    let vals = args_map.get(in_var);
+                    let values = match vals {
+                        None => panic!("todo message, array var not found for in_var {in_var}"),
+                        Some(v) =>v,
+                    }
+                    .clone();
+                    self.handle_for(
+                        vars, values, body, text, args_map, def_queue, def_name, line, def_map,
+                        result,
+                    )?;
+                }
+                _ => handle_error(
+                    format!(
+                        "Body should only have data or var def, instead found {:?}",
+                        n
+                    ),
+                    line.clone(),
+                    self.file_path.clone(),
+                ),
+            }
+        }
+        Ok(())
+    }
+
+    fn handle_for(
+        &self,
+        var_names: &Vec<String>,
+        var_values: ResValue,
+        body: &Box<Node>,
+        text: &mut String,
+        args_map: &mut HashMap<String, ResValue>,
+        def_queue: &mut Option<Vec<Node>>,
+        def_name: &String,
+        line: &usize,
+        def_map: &HashMap<String, Vec<Node>>,
+        result: &mut WriterResult,
+    ) -> Result<()> {
+        // todo: finish new array and struct integration and global variables
+
+        //let mut args_map = args_map.clone();
+        let mut def_queue = def_queue.clone();
+        match var_values {
+            ResValue::Val { value } => {
+                let mut args_map = args_map.clone();
+                let name: &String = var_names
+                    .get(0)
+                    .ok_or_else(|| anyhow!("No arguments for for loop"))?;
+                args_map.insert(name.clone(), ResValue::Val { value });
+                let data =
+                    body.expect_body_or_else_err(|_| anyhow!("Expected body in handle for!"))?;
+                self.handle_place_body(
+                    data,
+                    text,
+                    &mut args_map,
+                    &mut def_queue,
+                    def_name,
+                    line,
+                    def_map,
+                    result,
+                )?;
+            }
+            // [] -> get inner
+            ResValue::Array { array } => {
+                for val in array {
+                    match &val {
+                        ResValue::Struct {
+                            names: _,
+                            values: _,
+                        } => {
+                            // if is struct just recurse
+                            // [(),(),()]
+                            self.handle_for(
+                                var_names,
+                                val,
+                                body,
+                                text,
+                                args_map,
+                                &mut def_queue,
+                                def_name,
+                                line,
+                                def_map,
+                                result,
+                            )?;
+                        }
+                        // [a,b,c,d] -> puts variable in the first name for every variable
+                        // also if [[a,b,c],[a,b,c]], treats inner arrays as variables
+                        val => {
+                            let mut args_map = args_map.clone();
+                            let name: &String = var_names
+                                .get(0)
+                                .ok_or_else(|| anyhow!("No arguments for for loop"))?;
+                            args_map.insert(name.clone(), val.clone());
+                            match &**body {
+                                Node::BODY { data, line: _ } => {
+                                    self.handle_place_body(
+                                        data,
+                                        text,
+                                        &mut args_map,
+                                        &mut def_queue,
+                                        def_name,
+                                        line,
+                                        def_map,
+                                        result,
+                                    )?;
+                                }
+                                _ => panic!("todo error message expected body"),
+                            };
+                        }
+                    }
+                }
+            }
+            // () or [(),()] or [(a=b,c=d),...]
+            ResValue::Struct { names, values } => {
+                let mut args_map = args_map.clone();
+                match names {
+                    Some(names) => {
+                        for (name, val) in names.iter().zip(values) {
+                            args_map.insert(name.to_string(), val);
+                        }
+                    }
+                    None => {
+                        for (name, val) in var_names.iter().zip(values) {
+                            args_map.insert(name.to_string(), val);
+                        }
+                    }
+                }
+
                 match &**body {
-                    Node::BODY { data, line:_ } => {
-                        self.handle_place_body(data, text, &mut args_map, &mut def_queue, def_name, line, def_map, result);
-                    },
+                    Node::BODY { data, line: _ } => {
+                        self.handle_place_body(
+                            data,
+                            text,
+                            &mut args_map,
+                            &mut def_queue,
+                            def_name,
+                            line,
+                            def_map,
+                            result,
+                        )?;
+                    }
                     _ => panic!("todo error message expected body"),
                 };
+            }
         }
-        todo!();
-        /* 
+        Ok(())
+        /*
         for val in var_values {
             let mut args_map = args_map.clone();
             let mut def_queue = def_queue.clone();
-            
+
             for (name,val) in var_names.iter().zip(val) {
                 match val {
                     ResValue::Struct { names, values } => {
@@ -542,7 +681,7 @@ impl Writer {
                     }
                 };
             }
-            
+
 
              match &**body {
             Node::BODY { data, line:_ } => {
@@ -552,7 +691,6 @@ impl Writer {
         }
         }
         */
-        
     }
 
     fn resolve_var(
@@ -611,19 +749,19 @@ impl Writer {
                         let names: &mut Vec<String> = names.as_mut().unwrap();
                         names.push(name.clone());
                         resolved
-                    },
+                    }
                     None => {
-                        if names.is_some(){
+                        if names.is_some() {
                             panic!("Struct cannot mix named and unamed variables!");
                         }
                         resolved
-                    },
+                    }
                 };
                 res
             })
             .collect();
 
-            return ResValue::new_struct(values, names);
+        return ResValue::new_struct(values, names);
     }
 
     fn handle_place(
@@ -634,17 +772,15 @@ impl Writer {
         args: &Vec<(Var, Value)>,
         line: &usize,
         args_map: &mut HashMap<String, ResValue>,
-    ) 
-    // def queue
-    -> (Option<Vec<Node>>, WriterResult) {
+    ) -> Result<(Option<Vec<Node>>, WriterResult)> {
         // maps variables to values
         args.iter().for_each(|arg| {
             // this is to avoid children overriding parent values
-            // maybe the best is to clone the hashmap 
+            // maybe the best is to clone the hashmap
             if !args_map.contains_key(&arg.0.name.clone()) {
                 // resolve variables
-                let (name,val) = self.resolve_var(&arg.0, &arg.1, args_map);
-                 args_map.insert(name, val);
+                let (name, val) = self.resolve_var(&arg.0, &arg.1, args_map);
+                args_map.insert(name, val);
             }
         });
 
@@ -675,13 +811,11 @@ impl Writer {
                             Some(vec) => {
                                 for eval in vec {
                                     let val = args_map.get(&eval.0);
-                                   
+
                                     //- def struct where lang = rust:
                                     //- place struct where lang = rust:
                                     let value = match val {
-                                        Some(ResValue::Val { value }) => {
-                                            value
-                                        },
+                                        Some(ResValue::Val { value }) => value,
                                         None => break,
                                         _ => todo!(),
                                     };
@@ -717,40 +851,52 @@ impl Writer {
                         defaults,
                     } => {
                         if defaults.is_some() {
-                            defaults.as_ref().unwrap().iter().for_each(|(var,val)|{
+                            defaults.as_ref().unwrap().iter().for_each(|(var, val)| {
                                 if !args_map.contains_key(var) {
                                     args_map.insert(var.clone(), ResValue::new_val(val.clone()));
                                 }
                             });
                         }
                         match body.as_ref() {
-                        // outer match is for stuff like def place, inner is for true body
-                        Node::BODY { data, line } => {
-                           self.handle_place_body(data, text, args_map, &mut def_queue, def_name, line, def_map, &mut result);
-                        },
-                        // def place
-                        Node::PLACE { name, args, line } => {
-                            self.handle_place(text, def_map, name, args, line, args_map);
-                        },
-                        // def derive
-                        Node::DERIVE { path, val } => {
-                            let result = Deriver::derive(&Derive { path: path.clone(), vals: val.clone() });
-                            text.push_str(&result);
-                        },
-                        // def create
-                        Node::CREATE { path, content } => {
-                            self.handle_create(path, content, def_map);
-                        },
-                        _ => handle_error(
-                            format!(
-                                "Internal error, def has a node {:?} wich is not of type body or place",
-                                body
+                            // outer match is for stuff like def place, inner is for true body
+                            Node::BODY { data, line } => {
+                                self.handle_place_body(
+                                    data,
+                                    text,
+                                    args_map,
+                                    &mut def_queue,
+                                    def_name,
+                                    line,
+                                    def_map,
+                                    &mut result,
+                                )?;
+                            }
+                            // def place
+                            Node::PLACE { name, args, line } => {
+                                self.handle_place(text, def_map, name, args, line, args_map)?;
+                            }
+                            // def derive
+                            Node::DERIVE { path, val } => {
+                                let result = Deriver::derive(&Derive {
+                                    path: path.clone(),
+                                    vals: val.clone(),
+                                });
+                                text.push_str(&result);
+                            }
+                            // def create
+                            Node::CREATE { path, content } => {
+                                self.handle_create(path, content, def_map)?;
+                            }
+                            _ => handle_error(
+                                format!(
+                                    "Internal error, def has a node {:?} wich is not of type body or place",
+                                    body
+                                ),
+                                line.clone(),
+                                self.file_path.clone(),
                             ),
-                            line.clone(),
-                            self.file_path.clone(),
-                        ),
+                        }
                     }
-                    },
                     _ => handle_error(
                         format!(
                             "Internal error, wrong insertion in map! Inserted node of type {:?} expected DEF",
@@ -763,14 +909,16 @@ impl Writer {
             }
             None => {
                 let mut defs = String::new();
-                def_map.iter().for_each(|(name,_)|{defs.push_str(&format!(" {} ", name));});
+                def_map.iter().for_each(|(name, _)| {
+                    defs.push_str(&format!(" {} ", name));
+                });
                 handle_error(
-                format!("No such template named {}, available{}", name, defs),
-                *line,
-                self.file_path.clone(),
-            )
-        },
+                    format!("No such template named {}, available{}", name, defs),
+                    *line,
+                    self.file_path.clone(),
+                )
+            }
         }
-        return (def_queue,result);
+        return Ok((def_queue, result));
     }
 }

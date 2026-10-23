@@ -1,19 +1,19 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{config::config::CompilerConfig, lua::{lua_call_map::LuaCallMap}, structs::VarOption};
+use crate::{config::config::CompilerConfig, lua::lua_call_map::LuaCallMap, structs::VarOption};
 
 type ArgType = String;
 type FnReturn = String;
 type FnType = fn(String, &Vec<String>, &VarOptionsContext) -> FnReturn;
 type MapType = HashMap<&'static str, FnType>;
 
-pub struct VarOptionsContext{
+pub struct VarOptionsContext {
     config: Arc<CompilerConfig>,
     lua: LuaCallMap,
 }
 impl VarOptionsContext {
-    pub fn new(config: Arc<CompilerConfig>, lua: LuaCallMap) -> Self{
-        Self { config, lua}
+    pub fn new(config: Arc<CompilerConfig>, lua: LuaCallMap) -> Self {
+        Self { config, lua }
     }
 }
 pub struct VarOptionsMap {
@@ -31,11 +31,9 @@ impl VarOptionsMap {
 
         let context = VarOptionsContext::new(config, lua_map);
 
-        Self {
-            hm,
-            context,
-        }
+        Self { hm, context }
     }
+    // executes the change to the string
     pub fn exec_option(&self, opt: &VarOption, val: String) -> String {
         let name = opt.option.as_str();
         let opt_name = self.hm.get(name);
@@ -44,6 +42,20 @@ impl VarOptionsMap {
             None => panic!("todo error message, no option found {}", name),
         };
         func(val, &opt.args, &self.context)
+    }
+    pub fn exec_options(&self, opts: &Vec<VarOption>, val: String) -> String {
+        let mut val = val;
+        for opt in opts {
+            val = self.exec_option(opt, val);
+        }
+        val
+    }
+    pub fn exec_options_or_return(&self, opts: &Option<Vec<VarOption>>, val: String) -> String {
+        let val = match opts {
+            Some(options) => self.exec_options(&options, val),
+            None => val,
+        };
+        val
     }
 }
 
@@ -104,11 +116,7 @@ pub fn to_screaming_case(
 
     result
 }
-pub fn to_snake_case(
-    var: String,
-    _args: &Vec<ArgType>,
-    _context: &VarOptionsContext,
-) -> String {
+pub fn to_snake_case(var: String, _args: &Vec<ArgType>, _context: &VarOptionsContext) -> String {
     let mut result = String::new();
 
     for (i, ch) in var.chars().enumerate() {
@@ -128,11 +136,7 @@ pub fn to_snake_case(
 
     result
 }
-pub fn to_camel_case(
-    input: String,
-    _args: &Vec<ArgType>,
-    _context: &VarOptionsContext,
-) -> String {
+pub fn to_camel_case(input: String, _args: &Vec<ArgType>, _context: &VarOptionsContext) -> String {
     let mut result = String::new();
     let mut capitalize_next = false;
 

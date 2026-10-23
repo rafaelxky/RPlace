@@ -1,3 +1,5 @@
+use anyhow::{Error, Result};
+
 #[derive(Debug, Clone)]
 pub struct FileConfig {
     pub output: Option<String>,
@@ -62,15 +64,26 @@ pub enum Value {
     },
     Struct {
         str: StructType,
+    },
+}
+impl Value {
+    pub fn expect_literal_or_else(
+        self,
+        err: fn(Self) -> Error,
+    ) -> Result<(String, Option<Vec<VarOption>>)> {
+        match self {
+            Value::Literal { value, options } => Ok((value, options)),
+            _ => Err(err(self)),
+        }
     }
 }
 #[derive(Debug, Clone)]
-pub struct StructType{
+pub struct StructType {
     values: Vec<Value>,
     names: Option<Vec<String>>,
 }
 impl StructType {
-    pub fn new(values: Vec<Value>, names: Option<Vec<String>>) -> Self{
+    pub fn new(values: Vec<Value>, names: Option<Vec<String>>) -> Self {
         Self { values, names }
     }
 
@@ -83,32 +96,26 @@ impl StructType {
     }
 }
 #[derive(Debug, Clone)]
-pub struct ArrayType{
+pub struct ArrayType {
     pub values: Vec<Value>,
 }
 impl ArrayType {
-    pub fn new(values: Vec<Value>) -> Self{
+    pub fn new(values: Vec<Value>) -> Self {
         Self { values }
     }
 }
 impl Value {
     pub fn new_literal_type(value: String, options: Option<Vec<VarOption>>) -> Value {
-        return Value::Literal  {
-            value,
-            options,
-        };
+        return Value::Literal { value, options };
     }
     pub fn new_var_type(value: String, options: Option<Vec<VarOption>>) -> Value {
-        return Value::Var {
-            value,
-            options,
-        };
+        return Value::Var { value, options };
     }
     pub fn new_value_array_type(values: Vec<Value>) -> Value {
         let arr = ArrayType::new(values);
         return Value::Array { arr };
     }
-    pub fn new_struct_type(values: Vec<Value>, names: Option<Vec<String>>) -> Value{
+    pub fn new_struct_type(values: Vec<Value>, names: Option<Vec<String>>) -> Value {
         let str = StructType::new(values, names);
         return Value::Struct { str };
     }
@@ -119,8 +126,11 @@ pub struct Var {
     pub optional: bool,
 }
 impl Var {
-    pub fn new(name: String) -> Self{
-        Self { name, optional: false }
+    pub fn new(name: String) -> Self {
+        Self {
+            name,
+            optional: false,
+        }
     }
 }
 #[derive(Debug, Clone)]
@@ -229,6 +239,14 @@ impl Node {
             },
         }
     }
+    pub fn expect_body_or_else_err(&self, err: fn(&Node) -> Error) -> Result<&Vec<Node>> {
+        match &self {
+            Node::BODY { data, line: _ } => {
+                Ok(data)
+            }
+            _ => Err(err(self)),
+        }
+    }
 }
 #[derive(Debug, Clone)]
 pub struct MatchArm {
@@ -248,7 +266,7 @@ impl MatchArm {
         }
         self.match_value == *val
     }
-    pub fn is_any_arm(&self) -> bool{
+    pub fn is_any_arm(&self) -> bool {
         self.match_value == "_"
     }
 }
