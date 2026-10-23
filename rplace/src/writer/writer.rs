@@ -4,7 +4,7 @@ use std::{
 };
 use rayon::{ prelude::*};
 use rayon::iter::IntoParallelRefIterator;
-use anyhow::{Result};
+use anyhow::{Result, anyhow};
 
 use crate::config::config::{CompilerConfig};
 use crate::derive::deriver::Deriver;
@@ -91,7 +91,9 @@ impl Writer {
         &mut self, 
         def_map: &mut HashMap<String, Vec<Node>>, 
         to_parse: &mut Vec<String>, 
-        mod_list: &mut Vec<String>) -> Result<()>{
+        mod_list: &mut Vec<String>,
+        global_variables: &mut HashMap<String, ResValue>,
+    ) -> Result<()>{
         // initial sweap
         let mut to_import: Vec<(String,usize)> = Vec::new();
 
@@ -116,15 +118,7 @@ impl Writer {
                 }
                 
                 if var.len() == 1 {
-                    match val {
-                        Value::Literal { value, options:_ } => {
-                            self.file_config.set_val(&var[0], value.clone());
-                        },
-                        Value::Var { value:_, options:_ } => panic!("todo msg"),
-                        Value::Array { .. } => todo!(),
-                        Value::Struct { .. } => todo!(),
-                    }
-                    continue;
+                    global_variables.insert(var[0].clone(), val.clone());
                 }
 
                 panic!("todo message: var assignement cant be empty");
@@ -137,6 +131,15 @@ impl Writer {
             }
             _ => (),
         }};
+
+        if let Some(out) = global_variables.get("output"){
+            match out {
+                Value::Literal { value, options:_ } => {
+                    self.file_config.set_val("output", value.clone());
+                },
+                _ => return Err(anyhow!("Invalid variable type for output!"))
+            }
+        }
 
         let imports: Vec<Vec<ParsingResult>> = to_import.par_iter().map(|(path, _line)| -> Result<Vec<ParsingResult>>{
             let (mut stream, _) = get_data_stream(path);
@@ -197,7 +200,8 @@ impl Writer {
         let mut def_map = HashMap::new();
         let mut to_parse = Vec::new();
         let mut mod_list = Vec::new();
-        self.initial_sweap(&mut def_map, &mut to_parse, &mut mod_list)?;
+        let mut global_variables = HashMap::new();
+        self.initial_sweap(&mut def_map, &mut to_parse, &mut mod_list, &mut global_variables)?;
         return Ok((to_parse,mod_list));
     }
     pub fn replace_pipe(self, piped: &str) -> Result<(WriterResult,FileConfig)>{
@@ -229,7 +233,8 @@ impl Writer {
         let mut def_map = HashMap::new();
         let mut to_parse = Vec::new();
         let mut mod_list = Vec::new();
-        self.initial_sweap(&mut def_map, &mut to_parse, &mut mod_list)?;
+        let mut global_variables = HashMap::new();
+        self.initial_sweap(&mut def_map, &mut to_parse, &mut mod_list, &mut global_variables)?;
         result.set_to_parse(to_parse);
 
         let nodes = &self.nodes;
@@ -451,8 +456,11 @@ impl Writer {
                 let vals = args_map.get(in_var);
                 let values = match vals {
                     Some(ResValue::Array { array }) => {
-                        array
+                        vals.unwrap()
                     },
+                    Some(ResValue::Struct { names, values }) => {
+                        vals.unwrap()
+                    }
                     None => panic!("todo message, array var not found for in_var {in_var}"),
                     Some(_) => panic!("expected array todo message"),
                 }.clone();
@@ -478,7 +486,7 @@ impl Writer {
     fn handle_for(
         &self, 
         var_names: &Vec<String>,
-        var_values: Vec<Vec<ResValue>>,
+        var_values: ResValue,
         body: &Box<Node>, 
         text: &mut String, 
         args_map: &mut HashMap<String, ResValue>,
@@ -489,13 +497,44 @@ impl Writer {
         result: &mut WriterResult,
     )
     {
+        // todo: finish new array and struct integration and global variables
+
+        let mut args_map = args_map.clone();
+        let mut def_queue = def_queue.clone();
+        match var_values {
+            ResValue::Val { value } => todo!(),
+            ResValue::Array { array } => {
+                todo!()
+                for val in array {
+                }
+            },
+            ResValue::Struct { names, values } => {
+                for (name,val) in var_names.iter().zip(val) {
+                    match val {
+                        ResValue::Struct { names, values } => {
+                            args_map.insert(name.to_string(), value.as_ref().clone());
+                        },
+                        _ => {
+                            args_map.insert(name.to_string(), val);
+                        }
+                    };
+                }
+                match &**body {
+                    Node::BODY { data, line:_ } => {
+                        self.handle_place_body(data, text, &mut args_map, &mut def_queue, def_name, line, def_map, result);
+                    },
+                    _ => panic!("todo error message expected body"),
+                };
+        }
+        todo!();
+        /* 
         for val in var_values {
             let mut args_map = args_map.clone();
             let mut def_queue = def_queue.clone();
             
             for (name,val) in var_names.iter().zip(val) {
                 match val {
-                    ResValue::NamedArrayValue { name, value } => {
+                    ResValue::Struct { names, values } => {
                         args_map.insert(name.to_string(), value.as_ref().clone());
                     },
                     _ => {
@@ -512,6 +551,7 @@ impl Writer {
             _ => panic!("todo error message expected body"),
         }
         }
+        */
         
     }
 
@@ -532,17 +572,17 @@ impl Writer {
                 .cloned()
                 .unwrap_or_else(|| panic!("No value found for <var> type {:?} line ", value)),
             Value::Array { arr } => {
-                let rows = arr
+                let rows: Vec<ResValue> = arr
                     .values
                     .iter()
                     .map(|value| match value {
                         Value::Struct { str } => self.resolve_struct(str, args_map),
-                        value => vec![self.resolve_value(value, args_map)],
+                        value => self.resolve_value(value, args_map),
                     })
                     .collect();
                 ResValue::new_array(rows)
             }
-            Value::Struct { str } => ResValue::new_array(vec![self.resolve_struct(str, args_map)]),
+            Value::Struct { str } => self.resolve_struct(str, args_map),
         }
     }
 
@@ -550,19 +590,40 @@ impl Writer {
         &self,
         structure: &StructType,
         args_map: &HashMap<String, ResValue>,
-    ) -> Vec<ResValue> {
-        structure
+    ) -> ResValue {
+        let mut is_first = true;
+        let mut names = None;
+        let values: Vec<ResValue> = structure
             .values()
             .iter()
             .enumerate()
             .map(|(index, value)| {
-                let resolved = self.resolve_value(value, args_map);
-                match structure.names().and_then(|names| names.get(index)) {
-                    Some(name) => ResValue::new_named_array_value(name.clone(), resolved),
-                    None => resolved,
-                }
+                let resolved: ResValue = self.resolve_value(value, args_map);
+                let res = match structure.names().and_then(|names| names.get(index)) {
+                    Some(name) => {
+                        if names.is_none() {
+                            if !is_first {
+                                panic!("Struct cannot mix named and unamed variables!");
+                            }
+                            names = Some(vec![]);
+                            is_first = false;
+                        }
+                        let names: &mut Vec<String> = names.as_mut().unwrap();
+                        names.push(name.clone());
+                        resolved
+                    },
+                    None => {
+                        if names.is_some(){
+                            panic!("Struct cannot mix named and unamed variables!");
+                        }
+                        resolved
+                    },
+                };
+                res
             })
-            .collect()
+            .collect();
+
+            return ResValue::new_struct(values, names);
     }
 
     fn handle_place(

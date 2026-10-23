@@ -3,12 +3,12 @@ pub struct FileConfig {
     pub output: Option<String>,
 }
 impl FileConfig {
-    pub fn set_val(&mut self, var: &str, val: String) {
-        match var {
+    pub fn set_val(&mut self, var_name: &str, val: String) {
+        match var_name {
             "output" => {
                 self.output = Some(val);
             }
-            _ => panic!("todo message: no such file option {}", var),
+            _ => panic!("todo message: no such file option {}", var_name),
         }
     }
     pub fn default() -> Self {

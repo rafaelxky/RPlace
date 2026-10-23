@@ -3,21 +3,21 @@ use crate::structs::{Value, Var};
 #[derive(Debug, Clone)]
 pub enum ResValue{
     Val{value:String},
-    Array{array: Vec<Vec<ResValue>>},
-    NamedArrayValue{
-        name:String,
-        value: Box<ResValue>,
-    }
+    Array{array: Vec<ResValue>},
+    Struct{
+        names: Option<Vec<String>>,
+        values: Vec<ResValue>,
+    },
 }
 impl ResValue {
     pub fn new_val(value: String) -> ResValue{
         ResValue::Val { value }
     }
-    pub fn new_array(array: Vec<Vec<ResValue>>) -> ResValue{
+    pub fn new_array(array: Vec<ResValue>) -> ResValue{
         ResValue::Array { array }
     }
-    pub fn new_named_array_value<T:Into<String>>(name:T, value: ResValue) -> ResValue{
-        ResValue::NamedArrayValue { name: name.into(), value: Box::new(value) }
+    pub fn new_struct(values: Vec<ResValue>, names: Option<Vec<String>>) -> ResValue{
+        Self::Struct { names, values }
     }
 }
 pub enum FileWriteOptions{
