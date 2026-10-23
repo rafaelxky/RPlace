@@ -209,13 +209,27 @@ pub enum Node {
     },
     FOR {
         vars: Vec<String>,
-        in_var: String,
+        source: ForSource,
         body: Box<Node>,
     },
     MOD {
         path: String,
     },
     PIPE,
+}
+#[derive(Debug, Clone)]
+pub enum ForSource {
+    Variable(String),
+    Range {
+        start: RangeBound,
+        end: RangeBound,
+    },
+}
+#[derive(Debug, Clone)]
+pub enum RangeBound {
+    Literal(u64),
+    Variable(String),
+    Global(String),
 }
 impl Node {
     pub fn new_create(path: String, content: Vec<Node>, starting_line: usize) -> Node {

@@ -81,6 +81,57 @@ fn inline_top_level_loop_accepts_struct_shell_global() -> Result<()> {
 }
 
 #[test]
+fn inline_top_level_range_loop_binds_each_counter() -> Result<()> {
+    let output = run_inline(
+        "//- for i in 0..10:\n$#i,//- end:",
+        CompilerConfig::default(),
+        vec![],
+    )?;
+
+    assert_eq!(output, "0,1,2,3,4,5,6,7,8,9,");
+    Ok(())
+}
+
+#[test]
+fn range_loop_inside_template_supports_nonzero_and_empty_ranges() -> Result<()> {
+    let output = run_inline(
+        "//- def demo://- for i in 3..6:$#i//- end:|//- for j in 4..4:$#j//- end://- end://- place demo:",
+        CompilerConfig::default(),
+        vec![],
+    )?;
+
+    assert_eq!(output, "345|");
+    Ok(())
+}
+
+#[test]
+fn range_loop_accepts_global_variable_bounds() -> Result<()> {
+    let output = run_inline(
+        "//- for i in $g#start..$g#limit:$#i,//- end:",
+        CompilerConfig::default(),
+        vec![
+            ("start".to_string(), "2".to_string()),
+            ("limit".to_string(), "5".to_string()),
+        ],
+    )?;
+
+    assert_eq!(output, "2,3,4,");
+    Ok(())
+}
+
+#[test]
+fn range_loop_accepts_template_variable_bounds() -> Result<()> {
+    let output = run_inline(
+        "//- def demo://- for i in $#start..$#limit:$#i,//- end://- end://- place demo where start=3, limit=6:",
+        CompilerConfig::default(),
+        vec![],
+    )?;
+
+    assert_eq!(output, "3,4,5,");
+    Ok(())
+}
+
+#[test]
 pub fn def_test() -> Result<()>{
     let code = "//- def a:a//- end://- place a:";
     let str = parse(code)?;

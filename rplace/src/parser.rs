@@ -706,21 +706,42 @@ impl Parser {
                 _ => return Err(parser_error(CompilationError::InvalidVar, self)),
             }
         }
-        // in var
+        // Iterator source is a variable or a half-open range with dynamic bounds.
         self.remove_spaces();
-        let in_var = match self.pop() {
-            Token::GLOBAL => match self.pop() {
-                Token::IDENT { str } => str,
-                _ => return Err(parser_error(CompilationError::InvalidVar, self)),
-            },
-            Token::IDENT { str } => str,
-            tok => {
-                let w = tok.try_get_soft_keyword();
-                match w {
-                    Some(w) => w,
-                    None => return Err(parser_error(CompilationError::InvalidVar, self)),
-                }
+        let range_start_offset = match self.peek() {
+            Token::IDENT { ref str } if str.chars().all(|ch| ch.is_ascii_digit()) => 1,
+            Token::VAR | Token::GLOBAL => 2,
+            _ => 0,
+        };
+        let is_range = range_start_offset > 0
+            && matches!(self.peek_ahead(range_start_offset), Token::DOT)
+            && matches!(self.peek_ahead(range_start_offset + 1), Token::DOT);
+
+        let source = if is_range {
+            let start = self.parse_range_bound()?;
+            self.ptr_next();
+            self.ptr_next();
+            let end = self.parse_range_bound()?;
+            if vars.len() != 1 {
+                return Err(parser_error(CompilationError::InvalidVar, self));
             }
+            ForSource::Range { start, end }
+        } else {
+            let in_var = match self.pop() {
+                Token::GLOBAL | Token::VAR => match self.pop() {
+                    Token::IDENT { str } => str,
+                    _ => return Err(parser_error(CompilationError::InvalidVar, self)),
+                },
+                Token::IDENT { str } => str,
+                tok => {
+                    let w = tok.try_get_soft_keyword();
+                    match w {
+                        Some(w) => w,
+                        None => return Err(parser_error(CompilationError::InvalidVar, self)),
+                    }
+                }
+            };
+            ForSource::Variable(in_var)
         };
         self.remove_spaces();
         match self.pop() {
@@ -731,9 +752,26 @@ impl Parser {
         let body = self.build_body()?;
         return Ok(Node::FOR {
             vars,
-            in_var,
+            source,
             body: Box::new(body),
         });
+    }
+
+    fn parse_range_bound(&mut self) -> Result<RangeBound> {
+        match self.pop() {
+            Token::IDENT { str } if str.chars().all(|ch| ch.is_ascii_digit()) => {
+                Ok(RangeBound::Literal(str.parse()?))
+            }
+            Token::VAR => match self.pop() {
+                Token::IDENT { str } => Ok(RangeBound::Variable(str)),
+                _ => Err(parser_error(CompilationError::InvalidVar, self)),
+            },
+            Token::GLOBAL => match self.pop() {
+                Token::IDENT { str } => Ok(RangeBound::Global(str)),
+                _ => Err(parser_error(CompilationError::InvalidVar, self)),
+            },
+            _ => Err(parser_error(CompilationError::InvalidVar, self)),
+        }
     }
 
     /// builds a body Node

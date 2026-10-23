@@ -329,38 +329,52 @@ impl Writer {
                 Node::GLOBALVARTEMPLATE { val } => {
                     text.push_str(&self.render_global_variable(val)?);
                 }
-                Node::FOR {
-                    vars,
-                    in_var,
-                    body,
-                } => {
-                    let values = self
-                        .global_variables
-                        .get(in_var)
-                        .cloned()
-                        .ok_or_else(|| anyhow!("No value found for global loop variable <{in_var}>"))?;
-                    let mut args_map = HashMap::new();
-                    let mut def_queue = None;
-                    self.handle_for(
-                        vars,
-                        values,
-                        body,
-                        &mut text,
-                        &mut args_map,
-                        &mut def_queue,
-                        &"<top-level>".to_string(),
-                        &0,
-                        &def_map,
-                        &mut result,
-                    )?;
-                    if let Some(definitions) = def_queue {
-                        for definition in definitions {
-                            if let Node::DEF { name, .. } = &definition {
-                                self.handle_def(&mut def_map, &definition, name);
+                Node::FOR { vars, source, body } => match source {
+                    ForSource::Variable(in_var) => {
+                        let values =
+                            self.global_variables.get(in_var).cloned().ok_or_else(|| {
+                                anyhow!("No value found for global loop variable <{in_var}>")
+                            })?;
+                        let mut args_map = HashMap::new();
+                        let mut def_queue = None;
+                        self.handle_for(
+                            vars,
+                            values,
+                            body,
+                            &mut text,
+                            &mut args_map,
+                            &mut def_queue,
+                            &"<top-level>".to_string(),
+                            &0,
+                            &def_map,
+                            &mut result,
+                        )?;
+                        if let Some(definitions) = def_queue {
+                            for definition in definitions {
+                                if let Node::DEF { name, .. } = &definition {
+                                    self.handle_def(&mut def_map, &definition, name);
+                                }
                             }
                         }
                     }
-                }
+                    ForSource::Range { start, end } => {
+                        let mut args_map = HashMap::new();
+                        let mut def_queue = None;
+                        self.handle_for_range(
+                            vars,
+                            start,
+                            end,
+                            body,
+                            &mut text,
+                            &mut args_map,
+                            &mut def_queue,
+                            &"<top-level>".to_string(),
+                            &0,
+                            &def_map,
+                            &mut result,
+                        )?;
+                    }
+                },
                 Node::PLACE { name, args, line } => {
                     let mut args_map: HashMap<String, ResValue> = HashMap::new();
                     let (inner_defs, result_inner) = self.handle_place(
@@ -611,18 +625,23 @@ impl Writer {
                 Node::PARSE { path } => {
                     result.push_to_parse(path.to_string());
                 }
-                Node::FOR { vars, in_var, body } => {
-                    let vals = args_map.get(in_var);
-                    let values = match vals {
-                        None => panic!("todo message, array var not found for in_var {in_var}"),
-                        Some(v) => v,
+                Node::FOR { vars, source, body } => match source {
+                    ForSource::Variable(in_var) => {
+                        let values = args_map.get(in_var).cloned().ok_or_else(|| {
+                            anyhow!("No value found for loop variable <{in_var}>")
+                        })?;
+                        self.handle_for(
+                            vars, values, body, text, args_map, def_queue, def_name, line, def_map,
+                            result,
+                        )?;
                     }
-                    .clone();
-                    self.handle_for(
-                        vars, values, body, text, args_map, def_queue, def_name, line, def_map,
-                        result,
-                    )?;
-                }
+                    ForSource::Range { start, end } => {
+                        self.handle_for_range(
+                            vars, start, end, body, text, args_map, def_queue, def_name, line,
+                            def_map, result,
+                        )?;
+                    }
+                },
                 _ => handle_error(
                     format!(
                         "Body should only have data or var def, instead found {:?}",
@@ -634,6 +653,58 @@ impl Writer {
             }
         }
         Ok(())
+    }
+
+    fn handle_for_range(
+        &self,
+        var_names: &Vec<String>,
+        start: &RangeBound,
+        end: &RangeBound,
+        body: &Box<Node>,
+        text: &mut String,
+        args_map: &mut HashMap<String, ResValue>,
+        def_queue: &mut Option<Vec<Node>>,
+        def_name: &String,
+        line: &usize,
+        def_map: &HashMap<String, Vec<Node>>,
+        result: &mut WriterResult,
+    ) -> Result<()> {
+        let start = self.resolve_range_bound(start, args_map)?;
+        let end = self.resolve_range_bound(end, args_map)?;
+        for value in start..end {
+            self.handle_for(
+                var_names,
+                ResValue::new_val(value.to_string()),
+                body,
+                text,
+                args_map,
+                def_queue,
+                def_name,
+                line,
+                def_map,
+                result,
+            )?;
+        }
+        Ok(())
+    }
+
+    fn resolve_range_bound(
+        &self,
+        bound: &RangeBound,
+        args_map: &HashMap<String, ResValue>,
+    ) -> Result<u64> {
+        let (name, value) = match bound {
+            RangeBound::Literal(value) => return Ok(*value),
+            RangeBound::Variable(name) => (name, args_map.get(name)),
+            RangeBound::Global(name) => (name, self.global_variables.get(name)),
+        };
+        match value {
+            Some(ResValue::Val { value }) => value
+                .parse::<u64>()
+                .map_err(|error| anyhow!("Range bound <{name}> must be a non-negative integer: {error}")),
+            Some(_) => Err(anyhow!("Range bound <{name}> must be a scalar value")),
+            None => Err(anyhow!("No value found for range bound <{name}>")),
+        }
     }
 
     fn handle_for(

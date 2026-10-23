@@ -210,6 +210,9 @@ this will take regular text and transform it into a template acording to rules
 
 ## for loops
 - for loops allow you to iterate over an array
+- integer ranges are also supported; `0..10` binds the loop variable to `0` through `9` (the end is exclusive)
+- ex: `rplace run -e '//- for i in 0..10:$#i,//- end:'` prints `0,1,2,3,4,5,6,7,8,9,`
+- either range bound can come from a template variable (`$#start`) or global (`$g#limit`), for example `//- for i in $#start..$g#limit:`
 - ex:
 //- for varA,varB in val:
     $#varA
@@ -245,6 +248,19 @@ this will take regular text and transform it into a template acording to rules
 - use `$g#KEY` in the template to read a global value
 - ex: `rplace run template.txt -D name=RPlace -D greeting="hello world"`
 - in the template, `$g#greeting` will render as `hello world`
+- render a short template directly from the command line with `-e` or `--eval`
+- inline mode writes the rendered text to stdout by default; provide `<target>` to write it to a file
+- use `-D KEY=VALUE` or `--var KEY=VALUE` to pass globals to an inline template
+- ex: `rplace run -e 'Hello, $g#name!' -D name=Rafael`
+- output: `Hello, Rafael!`
+- write inline output to a file with `rplace run -e 'Hello, $g#name!' result.txt -D name=Rafael`
+- global values beginning with `[` or `(` are parsed as arrays or structs, so templates can loop over them
+- ex: `rplace run -e '/*- def list:/*- for item in items:$#item,/*- end:*///- end:*///- place list:' -D 'items=[red,green,blue]'`
+- pass a struct with `-D 'record=(Rafael,admin)'`; iterate its fields with `/*- for name,role in record: ... *///- end:`
+- loops over a global array or struct can also be written directly at the top level, outside a `def`, using `in $g#KEY`
+- `--eval` cannot be combined with a source `<origin>` or `--parse-only`
+- quote the template with single quotes so the shell does not expand `$g` before RPlace sees it
+- global values use the first `=` as the key/value separator, so values may contain additional `=` characters
 - replace new <project_name> 
 - creates a new project config "rplace.toml" file
 - rplace pipe <target> <text> 
