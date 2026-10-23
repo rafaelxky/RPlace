@@ -112,20 +112,20 @@ impl Writer {
                 }
                 Node::SETVARIABLE { var, val } => {
                     if var.len() < 1 {
-                        panic!("todo message: var assignement cant be empty");
+                        panic!("todo message: var assignement cant be empty for {:?}", val);
+                    }
+                    if var.len() != 1 {
+                        panic!("todo message: var assignement wrong size {}", var.len());
                     }
 
-                    if var.len() == 1 {
-                        // this is a patch, val should be properly solveed
-                        let (val, options) = val.clone().expect_literal_or_else(|_| {
-                            anyhow!("expected literal value for global variable!")
-                        })?;
-                        let val = self.var_options.exec_options_or_return(&options, val);
-                        let val = ResValue::new_val(val);
-                        global_variables.insert(var[0].clone(), val.clone());
-                    }
-
-                    panic!("todo message: var assignement cant be empty");
+                    // todo: update this to allow other var types and other global variables
+                    // this is a patch, val should be properly solveed 
+                    let (val, options) = val.clone().expect_literal_or_else(|_| {
+                        anyhow!("expected literal value for global variable!")
+                    })?;
+                    let val = self.var_options.exec_options_or_return(&options, val);
+                    let val = ResValue::new_val(val);
+                    global_variables.insert(var[0].clone(), val.clone());
                 }
                 Node::PARSE { path } => {
                     to_parse.push(path.clone());
@@ -524,7 +524,7 @@ impl Writer {
                     let vals = args_map.get(in_var);
                     let values = match vals {
                         None => panic!("todo message, array var not found for in_var {in_var}"),
-                        Some(v) =>v,
+                        Some(v) => v,
                     }
                     .clone();
                     self.handle_for(
