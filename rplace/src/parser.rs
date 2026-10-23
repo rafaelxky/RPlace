@@ -172,6 +172,10 @@ impl Parser {
                 self.ptr_next();
                 self.handle_place(&mut nodes)?;
             }
+            Token::FOR => {
+                self.ptr_next();
+                nodes.push(self.handle_for()?);
+            }
             Token::INCLUDE => {
                 self.ptr_next();
                 self.handle_include(&mut nodes)?;
@@ -705,6 +709,10 @@ impl Parser {
         // in var
         self.remove_spaces();
         let in_var = match self.pop() {
+            Token::GLOBAL => match self.pop() {
+                Token::IDENT { str } => str,
+                _ => return Err(parser_error(CompilationError::InvalidVar, self)),
+            },
             Token::IDENT { str } => str,
             tok => {
                 let w = tok.try_get_soft_keyword();

@@ -57,6 +57,30 @@ fn inline_template_accepts_struct_shell_globals() -> Result<()> {
 }
 
 #[test]
+fn inline_top_level_loop_accepts_array_shell_global() -> Result<()> {
+    let output = run_inline(
+        "//- for val in $g#name:\n    $#val\n//- end:",
+        CompilerConfig::default(),
+        vec![("name".to_string(), "[a,b,c]".to_string())],
+    )?;
+
+    assert_eq!(output, "    a\n    b\n    c\n");
+    Ok(())
+}
+
+#[test]
+fn inline_top_level_loop_accepts_struct_shell_global() -> Result<()> {
+    let output = run_inline(
+        "//- for first,second in $g#record:\n$#first:$#second\n//- end:",
+        CompilerConfig::default(),
+        vec![("record".to_string(), "(a,b)".to_string())],
+    )?;
+
+    assert_eq!(output, "a:b\n");
+    Ok(())
+}
+
+#[test]
 pub fn def_test() -> Result<()>{
     let code = "//- def a:a//- end://- place a:";
     let str = parse(code)?;

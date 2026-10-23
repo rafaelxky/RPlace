@@ -329,6 +329,38 @@ impl Writer {
                 Node::GLOBALVARTEMPLATE { val } => {
                     text.push_str(&self.render_global_variable(val)?);
                 }
+                Node::FOR {
+                    vars,
+                    in_var,
+                    body,
+                } => {
+                    let values = self
+                        .global_variables
+                        .get(in_var)
+                        .cloned()
+                        .ok_or_else(|| anyhow!("No value found for global loop variable <{in_var}>"))?;
+                    let mut args_map = HashMap::new();
+                    let mut def_queue = None;
+                    self.handle_for(
+                        vars,
+                        values,
+                        body,
+                        &mut text,
+                        &mut args_map,
+                        &mut def_queue,
+                        &"<top-level>".to_string(),
+                        &0,
+                        &def_map,
+                        &mut result,
+                    )?;
+                    if let Some(definitions) = def_queue {
+                        for definition in definitions {
+                            if let Node::DEF { name, .. } = &definition {
+                                self.handle_def(&mut def_map, &definition, name);
+                            }
+                        }
+                    }
+                }
                 Node::PLACE { name, args, line } => {
                     let mut args_map: HashMap<String, ResValue> = HashMap::new();
                     let (inner_defs, result_inner) = self.handle_place(
