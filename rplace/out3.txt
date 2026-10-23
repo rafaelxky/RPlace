@@ -1,11 +1,4 @@
 
 
-Mixed array:
-            a
-            b
-            d
-    
-Struct rows:
-            one, two
-            three, four
-    
+    val
+

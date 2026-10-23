@@ -74,6 +74,7 @@ pub fn run_pipe(path: String, piped: &str,config: CompilerConfig) -> Result<Outp
 pub fn run_parse(args: ParseArgs, config: CompilerConfig, _package_data: Option<PackageData>) -> Result<Vec<OutputWriter>> {
     let (mut stream, origin) = get_data_stream(args.origin.as_ref().unwrap());
     let project_src = args.origin.unwrap();
+    let global_vars = args.global_vars.into_iter().collect::<HashMap<_, _>>();
     let output_src = match &args.target {
         Some(t) => t.clone(),
         None => project_src.clone(),
@@ -117,7 +118,8 @@ pub fn run_parse(args: ParseArgs, config: CompilerConfig, _package_data: Option<
             output_src.clone(),
             config.clone(),
             var_options_map.clone(),
-        );
+        )
+        .with_global_variables(global_vars.clone());
         let (mut replaced, config): (WriterResult, FileConfig) = writer.replace()?;
         stream.append(&mut replaced.to_parse);
 

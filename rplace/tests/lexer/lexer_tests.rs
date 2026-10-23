@@ -1,5 +1,5 @@
 use anyhow::{Ok, Result};
-use rplace::lexer::{Lexer, Token::{self, BSLASH, COMMA, DD, DOT, DQUOTE, EOF, EQUALS, LPAREN, LSRQBRACK, NL, PLUS, QD, QUESTION, RARROW, RPAREN, RSRQBRACK}};
+use rplace::lexer::{Lexer, Token::{self, BSLASH, COMMA, DD, DOT, DQUOTE, EOF, EQUALS, GLOBAL, LPAREN, LSRQBRACK, NL, PLUS, QD, QUESTION, RARROW, RPAREN, RSRQBRACK}};
 
 pub const FILE_PATH: &str = "example_file.txt";
 
@@ -25,6 +25,46 @@ pub fn test_ident_underscore() -> Result<()>{
     assert_eq!(toks[1], Token::EOF);
     Ok(())
 }
+
+#[test]
+fn recognizes_global_variable_token() {
+    let tokens = Lexer::new(FILE_PATH, "$g#var".to_string()).parse().tokens;
+
+    assert_eq!(tokens[0], GLOBAL);
+    assert_eq!(
+        tokens[1],
+        Token::IDENT {
+            str: "var".to_string()
+        }
+    );
+    assert_eq!(tokens[2], EOF);
+}
+
+#[test]
+fn preserves_incomplete_punctuation_sequences() {
+    for input in ["/", "//", "/*", "*", "*/", "*//", "*///", "-", "-*"] {
+        let tokens = Lexer::new(FILE_PATH, input.to_string()).parse().tokens;
+        assert_eq!(
+            tokens,
+            vec![
+                Token::IDENT {
+                    str: input.to_string()
+                },
+                EOF
+            ],
+            "input {input:?}"
+        );
+    }
+}
+
+#[test]
+fn handles_trailing_variable_prefixes() {
+    for input in ["$", "$g", "$g#"] {
+        let tokens = Lexer::new(FILE_PATH, input.to_string()).parse().tokens;
+        assert_eq!(tokens.last(), Some(&EOF), "input {input:?}");
+    }
+}
+
 #[test]
 pub fn test_many_words() -> Result<()>{
     const EXPECTED_LEN: usize = 2;

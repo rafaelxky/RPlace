@@ -167,6 +167,9 @@ pub enum Node {
     VARTEMPLATE {
         val: TemplateValue,
     },
+    GLOBALVARTEMPLATE {
+        val: TemplateValue,
+    },
     RARROWVAR {
         name: String,
         default: Option<String>,
@@ -239,11 +242,22 @@ impl Node {
             },
         }
     }
+    pub fn global_var_template<T: ToString>(
+        name: T,
+        options: Option<Vec<VarOption>>,
+        optional: bool,
+    ) -> Self {
+        Self::GLOBALVARTEMPLATE {
+            val: TemplateValue {
+                value: name.to_string(),
+                options: options,
+                optional,
+            },
+        }
+    }
     pub fn expect_body_or_else_err(&self, err: fn(&Node) -> Error) -> Result<&Vec<Node>> {
         match &self {
-            Node::BODY { data, line: _ } => {
-                Ok(data)
-            }
+            Node::BODY { data, line: _ } => Ok(data),
             _ => Err(err(self)),
         }
     }

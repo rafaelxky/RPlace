@@ -1,5 +1,5 @@
 use anyhow::Result;
-use rplace::{lexer::Lexer, parser::Parser};
+use rplace::{lexer::Lexer, parser::Parser, structs::Node};
 
 fn parse_invalid(code: &str) -> Result<String> {
     let tokens = Lexer::new("invalid.txt", code.to_string()).parse();
@@ -41,5 +41,21 @@ fn rejects_invalid_when_condition() -> Result<()> {
 fn rejects_unterminated_quoted_value() -> Result<()> {
     let error = parse_invalid("//- def a:$#value//- end://- place a where value=\"unterminated:")?;
     assert!(error.contains("Found EOF inside of quotation variable"));
+    Ok(())
+}
+
+#[test]
+fn parses_global_variable_as_a_template_node() -> Result<()> {
+    let tokens = Lexer::new(
+        "global.txt",
+        "//- $#var = val:\n$g#var".to_string(),
+    )
+    .parse();
+    let result = Parser::new(tokens, "global.txt".to_string(), "output.txt".to_string()).parse()?;
+
+    assert!(matches!(
+        result.nodes.get(3),
+        Some(Node::GLOBALVARTEMPLATE { val }) if val.value == "var"
+    ));
     Ok(())
 }

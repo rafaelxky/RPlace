@@ -6,6 +6,7 @@ pub enum Token {
     DEF,
     END,
     VAR,
+    GLOBAL,
     MARK { kind: String },
     DD,
     EOF,
@@ -76,6 +77,7 @@ impl Token {
             Token::IN => "in",
             Token::MOD => "mod",
             Token::PIPE => "here",
+            Token::GLOBAL => "$g#",
         }
         .to_string();
     }
@@ -104,10 +106,10 @@ impl Token {
             return Some(res.to_string());
         }
     }
-    pub fn expect_dd_or_else(&self, predicate: fn()->Error) -> Result<()>{
+    pub fn expect_dd_or_else(&self, predicate: fn() -> Error) -> Result<()> {
         match self {
             Token::DD => return Ok(()),
-            _ => return Err(predicate())
+            _ => return Err(predicate()),
         }
     }
 }
@@ -129,15 +131,20 @@ impl Lexer {
             file_path: path.to_string(),
         }
     }
-    fn peek(&self) -> char {
-        self.data[self.ptr]
+    fn peek(&self) -> Option<char> {
+        self.data.get(self.ptr).copied()
     }
     fn pop(&mut self) -> char {
         self.ptr = self.ptr + 1;
         self.data[self.ptr - 1]
     }
-    fn unpop(&mut self) {
-        self.ptr = self.ptr - 1;
+    fn consume_if(&mut self, expected: char) -> bool {
+        if self.peek() == Some(expected) {
+            self.pop();
+            true
+        } else {
+            false
+        }
     }
     fn can_pop(&self) -> bool {
         self.ptr < self.data.len()
@@ -166,19 +173,11 @@ impl Lexer {
                     continue;
                 }
                 ':' => {
-                    if !self.can_pop() {
+                    if self.consume_if(':') {
+                        tokens.push(Token::QD);
+                    } else {
                         tokens.push(Token::DD);
-                        continue;
                     }
-                    match self.peek() {
-                        ':' => {
-                            self.pop();
-                            tokens.push(Token::QD);
-                            continue;
-                        }
-                        _ => (),
-                    }
-                    tokens.push(Token::DD);
                     continue;
                 }
                 '=' => {
@@ -218,28 +217,25 @@ impl Lexer {
                     continue;
                 }
                 '/' => {
-                    // //-
-                    if self.peek() == '/' {
-                        self.pop();
-                        if self.peek() == '-' {
-                            self.pop();
+                    if self.consume_if('/') {
+                        if self.consume_if('-') {
                             tokens.push(Token::MARK {
                                 kind: "//-".to_string(),
                             });
+                        } else {
+                            tokens.push(Token::IDENT {
+                                str: "//".to_string(),
+                            });
                         }
-                    } else
-                    // /*-
-                    if self.peek() == '*' {
-                        self.pop();
-                        if self.peek() == '-' {
-                            self.pop();
+                    } else if self.consume_if('*') {
+                        if self.consume_if('-') {
                             tokens.push(Token::MARK {
                                 kind: "/*-".to_string(),
                             });
                         } else {
                             tokens.push(Token::IDENT {
                                 str: "/*".to_string(),
-                            })
+                            });
                         }
                     } else {
                         tokens.push(Token::IDENT {
@@ -250,36 +246,27 @@ impl Lexer {
                 }
                 // *///-
                 '*' => {
-                    if self.peek() == '/' {
-                        self.pop();
-                        if self.peek() == '/' {
-                            self.pop();
-                            if self.peek() == '/' {
-                                self.pop();
-                                if self.peek() == '-' {
-                                    self.pop();
-                                    tokens.push(Token::MARK {
-                                        kind: "*///-".to_string(),
-                                    });
-                                } else {
-                                    tokens.push(Token::IDENT {
-                                        str: "*///".to_string(),
-                                    });
-                                }
+                    let mut sequence = String::from("*");
+                    let is_mark = if self.consume_if('/') {
+                        sequence.push('/');
+                        if self.consume_if('/') {
+                            sequence.push('/');
+                            if self.consume_if('/') {
+                                sequence.push('/');
+                                self.consume_if('-')
                             } else {
-                                tokens.push(Token::IDENT {
-                                    str: "*//".to_string(),
-                                });
+                                false
                             }
                         } else {
-                            tokens.push(Token::IDENT {
-                                str: "*/".to_string(),
-                            });
+                            false
                         }
                     } else {
-                        tokens.push(Token::IDENT {
-                            str: "*".to_string(),
-                        });
+                        false
+                    };
+                    if is_mark {
+                        tokens.push(Token::MARK { kind: "*///-".to_string() });
+                    } else {
+                        tokens.push(Token::IDENT { str: sequence });
                     }
                     continue;
                 }
@@ -292,32 +279,35 @@ impl Lexer {
                     continue;
                 }
                 '$' => {
-                    if self.peek() == '#' {
-                        self.pop();
-                        tokens.push(Token::VAR);
-                    } else {
-                        tokens.push(Token::IDENT {
-                            str: "$".to_string(),
-                        });
+                    match self.data.get(self.ptr).copied() {
+                        Some('#') => {
+                            self.pop();
+                            tokens.push(Token::VAR);
+                        }
+                        Some('g') if self.data.get(self.ptr + 1) == Some(&'#') => {
+                            self.pop();
+                            self.pop();
+                            tokens.push(Token::GLOBAL);
+                        }
+                        _ => {
+                            tokens.push(Token::IDENT {
+                                str: "$".to_string(),
+                            });
+                        }
                     }
                     continue;
                 }
                 '-' => {
-                    if self.peek() == '>' {
-                        self.pop();
+                    if self.consume_if('>') {
                         tokens.push(Token::RARROW);
                         continue;
-                    } else if self.peek() == '*' {
-                        self.pop();
-                        if self.peek() == '/' {
-                            self.pop();
+                    } else if self.consume_if('*') {
+                        if self.consume_if('/') {
                             tokens.push(Token::MARK {
                                 kind: "-*/".to_string(),
                             });
                         } else {
-                            tokens.push(Token::IDENT {
-                                str: "-/".to_string(),
-                            });
+                            tokens.push(Token::IDENT { str: "-*".to_string() });
                         }
                         continue;
                     } else {
@@ -330,8 +320,6 @@ impl Lexer {
                 _ => (),
             }
 
-            let mut str = String::new();
-
             if is_char_terminator(curr) {
                 tokens.push(Token::IDENT {
                     str: curr.to_string(),
@@ -339,12 +327,13 @@ impl Lexer {
                 continue;
             }
 
-            self.unpop();
+            let mut str = String::from(curr);
             while self.can_pop() {
-                if is_char_terminator(self.peek()) {
-                    break;
+                match self.peek() {
+                    Some(next) if is_char_terminator(next) => break,
+                    Some(_) => str.push(self.pop()),
+                    None => break,
                 }
-                str.push(self.pop());
             }
 
             match str.as_str() {

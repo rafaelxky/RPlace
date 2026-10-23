@@ -22,6 +22,9 @@ pub enum SubCommand {
         /// Parse and print the syntax tree without rendering output.
         #[arg(short = 'p', long = "parse-only", help = "Parse and print the syntax tree without rendering output.")]
         stops_at_parser: bool,
+        /// Set a global template value; may be passed more than once.
+        #[arg(short = 'D', long = "var", value_name = "KEY=VALUE", value_parser = parse_global_value, action = clap::ArgAction::Append)]
+        global_vars: Vec<(String, String)>,
     },
     /// Reload the global RPlace configuration.
     Reload,
@@ -112,6 +115,17 @@ pub struct ParseArgs {
     pub origin: Option<String>,
     pub target: Option<String>,
     pub stops_at_parser: bool,
+    pub global_vars: Vec<(String, String)>,
+}
+
+fn parse_global_value(value: &str) -> Result<(String, String), String> {
+    let (key, value) = value
+        .split_once('=')
+        .ok_or_else(|| "expected KEY=VALUE".to_string())?;
+    if key.is_empty() {
+        return Err("global variable key cannot be empty".to_string());
+    }
+    Ok((key.to_string(), value.to_string()))
 }
 
 #[derive(Parser, Debug)]
@@ -135,6 +149,7 @@ pub fn handle_args() -> CliArgs {
             origin,
             target,
             stops_at_parser,
+            global_vars,
         }) => {
             let path = Path::new(PROJECT_FILE);
             if origin.is_none() && !path.is_file() {
@@ -149,8 +164,10 @@ pub fn handle_args() -> CliArgs {
                 origin,
                 target,
                 stops_at_parser,
+                global_vars,
             });
         }
+
         Some(SubCommand::Reload) => return CliArgs::ReloadConfig,
         Some(SubCommand::Package { command }) => match command {
             PackageSubcommand::Login { email, password } => {
@@ -169,10 +186,47 @@ pub fn handle_args() -> CliArgs {
             PackageSubcommand::Add { dependency_name, dependency_version } => return CliArgs::AddDependency { dependency_name, dependency_version },
         },
         Some(SubCommand::Pipe { target, command }) => {
-            CliArgs::Pipe { target, command }
+            return CliArgs::Pipe { target, command };
         }
         None => {
             panic!("Invalid subcommand!")
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Args, SubCommand};
+    use clap::Parser;
+
+    #[test]
+    fn parses_repeated_global_values() {
+        let args = Args::try_parse_from([
+            "rplace",
+            "run",
+            "template.rp",
+            "-D",
+            "name=RPlace",
+            "--var",
+            "message=hello=world",
+        ])
+        .unwrap();
+
+        let Some(SubCommand::Run { global_vars, .. }) = args.command else {
+            panic!("expected run command");
+        };
+        assert_eq!(
+            global_vars,
+            vec![
+                ("name".to_string(), "RPlace".to_string()),
+                ("message".to_string(), "hello=world".to_string()),
+            ]
+        );
+    }
+
+    #[test]
+    fn rejects_global_value_without_key_value_separator() {
+        let result = Args::try_parse_from(["rplace", "run", "template.rp", "--var", "name"]);
+        assert!(result.is_err());
     }
 }

@@ -22,6 +22,7 @@ pub struct Writer {
     output_src: String,
     compiler_config: Arc<CompilerConfig>,
     var_options: Arc<VarOptionsMap>,
+    shell_globals: HashMap<String, String>,
 }
 impl Writer {
     pub fn new(
@@ -40,6 +41,7 @@ impl Writer {
             output_src,
             compiler_config,
             var_options,
+            shell_globals: HashMap::new(),
         }
     }
     pub fn new_with_imports(
@@ -53,13 +55,19 @@ impl Writer {
         Self {
             nodes: nodes.nodes,
             file_path: nodes.file_path,
-            imports: imports,
+            imports,
             file_config: FileConfig::default(),
             project_src,
             output_src,
             compiler_config,
             var_options,
+            shell_globals: HashMap::new(),
         }
+    }
+
+    pub fn with_global_variables(mut self, global_variables: HashMap<String, String>) -> Self {
+        self.shell_globals = global_variables;
+        self
     }
 
     fn handle_import(&self, data: String, path: String) -> Result<ParsingResult> {
@@ -135,6 +143,10 @@ impl Writer {
                 }
                 _ => (),
             }
+        }
+
+        for (name, value) in &self.shell_globals {
+            global_variables.insert(name.clone(), ResValue::new_val(value.clone()));
         }
 
         if let Some(out) = global_variables.get("output") {
@@ -272,6 +284,29 @@ impl Writer {
                 }
                 Node::DATA { data, line: _ } => {
                     text.push_str(&data);
+                }
+                Node::GLOBALVARTEMPLATE { val } => {
+                    let value = match global_variables.get(&val.value) {
+                        Some(ResValue::Val { value }) => value.clone(),
+                        Some(_) => {
+                            return Err(anyhow!(
+                                "Invalid value type for global variable <{}>",
+                                val.value
+                            ));
+                        }
+                        None if val.optional => String::new(),
+                        None => {
+                            return Err(anyhow!(
+                                "No value found for global variable <{}>",
+                                val.value
+                            ));
+                        }
+                    };
+                    let value = match &val.options {
+                        Some(options) => self.var_options.exec_options(options, value),
+                        None => value,
+                    };
+                    text.push_str(&value);
                 }
                 Node::PLACE { name, args, line } => {
                     let mut args_map: HashMap<String, ResValue> = HashMap::new();

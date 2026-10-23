@@ -11,8 +11,9 @@ impl Parser {
     // gets here after //- $#
     // currently only handles global variable set for stuff like file config
     // ex: //- $#var = val:
-    pub(super) fn handle_set_variable(&mut self, nodes: &mut ParsingResult) -> Result<()>{
+    pub(super) fn handle_set_variable(&mut self) -> Result<(Vec<String>,Value)>{
         let mut var = vec![];
+        // a.b.c.d
         loop {
             let var_name = match self.pop() {
                 Token::IDENT { str } => str,
@@ -40,8 +41,8 @@ impl Parser {
             _ => return Err(parser_error(CompilationError::NoDDAfterQuotVar, self)),
         }
 
-        nodes.push(Node::SETVARIABLE { var: var, val: val });
-        Ok(())
+        //nodes.push(Node::SETVARIABLE { var: var, val: val });
+        Ok((var,val))
     }
     /// //- parse file.txt:
     pub(super) fn handle_parse_instr(&mut self, nodes: &mut ParsingResult) -> Result<()> {

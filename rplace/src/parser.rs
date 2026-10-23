@@ -1,8 +1,8 @@
-use std::str;
 use anyhow::{Ok, Result};
+use std::str;
 
 use crate::{
-    error_handler::{parser_error, CompilationError},
+    error_handler::{CompilationError, parser_error},
     lexer::{
         Token::{self},
         TokenResult,
@@ -116,6 +116,15 @@ impl Parser {
                 body_str = String::new();
                 self.handle_func(nodes)?;
             }
+            Token::GLOBAL => {
+                nodes.push(Node::DATA {
+                    data: body_str,
+                    line: self.line,
+                });
+                body_str = String::new();
+                let (name, options, optional) = self.parse_template_var()?;
+                nodes.push(Node::global_var_template(name, options, optional));
+            }
             Token::NL => {
                 self.line = self.line + 1;
                 body_str.push('\n');
@@ -125,6 +134,30 @@ impl Parser {
             }
         }
         return Ok(body_str);
+    }
+
+    fn parse_template_var(&mut self) -> Result<(String, Option<Vec<VarOption>>, bool)> {
+        let name = match self.peek() {
+            Token::IDENT { str } => {
+                self.ptr_next();
+                str
+            }
+            _ => return Err(parser_error(CompilationError::InvalidVar, self)),
+        };
+        let mut options = None;
+        let mut optional = false;
+        if matches!(self.peek(), Token::QUESTION) {
+            self.ptr_next();
+            optional = true;
+        }
+        if matches!(self.peek(), Token::BSLASH) {
+            self.ptr_next();
+            options = self.handle_var_options()?;
+        }
+        if matches!(self.peek(), Token::PLUS) {
+            self.ptr_next();
+        }
+        Ok((name, options, optional))
     }
 
     fn handle_func(&mut self, nodes: &mut ParsingResult) -> Result<()>{
@@ -152,9 +185,15 @@ impl Parser {
                 self.ptr_next();
                 self.handle_derive(&mut nodes)?;
             }
+            // set_var //- $#var = val
             Token::VAR => {
                 self.ptr_next();
-                self.handle_set_variable(&mut nodes)?;
+                let (var, val): (Vec<String>, Value) = self.handle_set_variable()?;
+                let vt = Node::SETVARIABLE { var, val };
+                nodes.push(vt);
+            }
+            Token::GLOBAL => {
+                self.ptr_next();
             }
             Token::PARSE => {
                 self.ptr_next();
@@ -175,7 +214,7 @@ impl Parser {
         Ok(())
     }
 
-    fn handle_def(&mut self, nodes: &mut ParsingResult) -> Result<()>{
+    fn handle_def(&mut self, nodes: &mut ParsingResult) -> Result<()> {
         //- def ...
         self.remove_spaces();
 
@@ -222,11 +261,11 @@ impl Parser {
                         }
                         _ => {
                             return Err(parser_error(CompilationError::InvalidDefPlaceName, self));
-                        },
+                        }
                     }
                 }
+                // todo: improve and add more stuff
                 Token::DERIVE => {
-                    // todo:
                     self.ptr_next();
                     let mut temp_nodes = ParsingResult::new(self.file_path.clone());
                     self.handle_derive(&mut temp_nodes)?;
@@ -279,7 +318,7 @@ impl Parser {
                                                     CompilationError::Invalid2ndIdentWhen,
                                                     self,
                                                 ));
-                                        },
+                                            }
                                         }
                                     }
                                     _ => {
@@ -287,14 +326,17 @@ impl Parser {
                                             CompilationError::InvalidComparissonTok,
                                             self,
                                         ));
-                                },
+                                    }
                                 }
                             }
                             Token::PLACE => {
                                 break;
                             }
                             _ => {
-                                return Err(parser_error(CompilationError::Invalid1stIdentWhen, self));
+                                return Err(parser_error(
+                                    CompilationError::Invalid1stIdentWhen,
+                                    self,
+                                ));
                             }
                         }
                     }
@@ -618,7 +660,7 @@ impl Parser {
                 *body_str = String::new();
                 let node = self.handle_create()?;
                 body.push(node);
-            },
+            }
             _ => {
                 return Err(parser_error(CompilationError::InvalidBodyCommand, self));
             }
@@ -686,12 +728,11 @@ impl Parser {
         });
     }
 
-   
-
     /// builds a body Node
     /// contains raw text and any nodes supported inside of a def body
     /// ends at "end"
     /// comes from def or match arm
+    // # inside_body, build_body, parse_body
     fn build_body(&mut self) -> Result<Node> {
         let mut body_str = String::new();
         let mut body: Vec<Node> = Vec::new();
@@ -708,40 +749,20 @@ impl Parser {
                         line: self.line,
                     });
                     body_str = String::new();
-                    match self.peek() {
-                        // $#ident
-                        Token::IDENT { str } => {
-                            self.ptr_next();
-                            let mut option = None;
-                            let mut optional = false;
-                            match self.peek() {
-                                Token::QUESTION => {
-                                    self.ptr_next();
-                                    optional = true;
-                                }
-                                _ => (),
-                            }
-                            match self.peek() {
-                                Token::BSLASH => {
-                                    self.ptr_next();
-                                    option = self.handle_var_options()?;
-                                }
-                                _ => (),
-                            }
-                            match self.peek() {
-                                Token::PLUS => {
-                                    self.ptr_next();
-                                }
-                                _ => (),
-                            }
-                            body.push(Node::var_template(str, option, optional));
-                            continue;
-                        }
-                        // $#name
-                        _ => {
-                            return Err(parser_error(CompilationError::InvalidVar, self));
-                        }
-                    }
+                    let (str, option, optional) = self.parse_template_var()?;
+                    body.push(Node::var_template(str, option, optional));
+                }
+                // $g#varname
+                Token::GLOBAL => {
+                    self.ptr_next();
+                    // push data before we continue
+                    body.push(Node::DATA {
+                        data: body_str.to_string(),
+                        line: self.line,
+                    });
+                    body_str = String::new();
+                    let (str, option, optional) = self.parse_template_var()?;
+                    body.push(Node::global_var_template(str, option, optional));
                 }
                 Token::MARK { kind: _ } => {
                     self.ptr_next();

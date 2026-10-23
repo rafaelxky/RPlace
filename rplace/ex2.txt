@@ -1,14 +1,7 @@
 //- $#output = "out3.txt":
+//- $#var = "val":
 //- def demo:
-Mixed array:
-    //- for item in mixed:
-        $#item
-    //- end:
 
-Struct rows:
-    //- for first,second in pairs:
-        $#first, $#second
-    //- end:
 //- end:
-
-//- place demo where mixed = [a, (b, c), d], pairs = [(first=one, second=two), (three, four)]:
+    $g#var
+//- place demo:

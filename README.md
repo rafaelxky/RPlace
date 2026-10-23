@@ -240,6 +240,11 @@ this will take regular text and transform it into a template acording to rules
 - rplace run <origin> <target>
 - executes the code at origin if target is provided writes at target if not, write direcly on origin
 - target can be overriten by the file config variable $#output
+- pass global template values from the shell with `-D KEY=VALUE` or `--var KEY=VALUE`
+- you can pass the option multiple times, and shell values override values declared in the source
+- use `$g#KEY` in the template to read a global value
+- ex: `rplace run template.txt -D name=RPlace -D greeting="hello world"`
+- in the template, `$g#greeting` will render as `hello world`
 - replace new <project_name> 
 - creates a new project config "rplace.toml" file
 - rplace pipe <target> <text> 

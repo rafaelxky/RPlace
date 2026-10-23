@@ -1,52 +1,21 @@
-use std::sync::Arc;
+use anyhow::Result;
 
-use anyhow::{Ok, Result};
-use rplace::{
-    config::config::CompilerConfig, lexer::Lexer, lua::lua_call_map::LuaCallMap,
-    options::var_options::VarOptionsMap, parser::Parser, writer::writer::Writer,
-};
-
-const PATH: &str = "test.txt";
-const OUTPUT_PATH: &str = "output_test.txt";
-
-fn parse(code: &str) -> Result<String> {
-    let code = code.to_string();
-    let config = Arc::new(CompilerConfig::default());
-    let lua_map = LuaCallMap::empty(config.clone());
-    let var_options_map = Arc::new(VarOptionsMap::new(config.clone(), lua_map));
-    let tok = Lexer::new(PATH, code).parse();
-    let res = Parser::new(tok, PATH.to_string(), OUTPUT_PATH.to_string()).parse()?;
-    let (mut replaced, _config) = Writer::new(
-        res,
-        PATH.to_string(),
-        OUTPUT_PATH.to_string(),
-        config,
-        var_options_map,
-    )
-    .replace()?;
-    let str = replaced.file_data.pop().unwrap().data;
-    Ok(str)
-}
+use super::{parse, parse_with_global_values};
+use std::collections::HashMap;
 
 #[test]
-pub fn for_loop_test() -> Result<()> {
-    let code ="//- def a://- for val in var:$#val//- end://- end://- place a where var = [(a),(b),(c)]:";
-    let str = parse(code)?;
-    assert_eq!(str, "abc");
+fn global_variable_reference_is_rendered() -> Result<()> {
+    let code = "//- $#var = val:\n$g#var";
+    assert_eq!(parse(code)?, "\nval");
     Ok(())
 }
+
 #[test]
-pub fn for_loop_binds_multiple_values() -> Result<()> {
-    let code = "//- def a://- for first,second in pairs:$#first,$#second;//- end://- end://- place a where pairs = [(one,two),(three,four)]:";
-    let str = parse(code)?;
-    assert_eq!(str, "one,two;three,four;");
-    Ok(())
-}
-#[test]
-pub fn array_can_mix_values_and_structs() -> Result<()> {
-    let code = "//- def a://- for val in values:$#val//- end://- end://- place a where values = [a,(b,c)]:";
-    let str = parse(code)?;
-    assert_eq!(str, "ab");
+fn shell_global_value_overrides_source_value() -> Result<()> {
+    let code = "//- $#name = default:\n$g#name";
+    let globals = HashMap::from([("name".to_string(), "shell".to_string())]);
+
+    assert_eq!(parse_with_global_values(code, globals)?, "\nshell");
     Ok(())
 }
 
