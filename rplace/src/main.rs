@@ -15,7 +15,7 @@ use crate::package_manager::web::fetch::{
 };
 use crate::package_manager::web::structs::ResponsePackageData;
 use crate::package_manager::web::user::create_user;
-use crate::run::run_options::{parse_get_all_paths, run_pipe};
+use crate::run::run_options::{parse_get_all_paths, run_inline, run_pipe};
 use crate::run::run_options::run_parse;
 use crate::term::terminal_handler::CliArgs;
 use crate::term::terminal_handler::handle_args;
@@ -57,6 +57,17 @@ async fn main() -> Result<()> {
             Ok(())
         }
         CliArgs::Run(args) => {
+            if let Some(expression) = args.expression {
+                let config = CONFIG.clone().read().unwrap().clone();
+                let output = run_inline(&expression, config, args.global_vars)?;
+                if let Some(target) = args.target {
+                    std::fs::write(target, output)?;
+                } else {
+                    print!("{output}");
+                }
+                return Ok(());
+            }
+
             let data = get_package_manager_data();
             let config = CONFIG.clone().read().unwrap().clone();
             let (args, config) = match &data {

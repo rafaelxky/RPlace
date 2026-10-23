@@ -71,6 +71,36 @@ pub fn run_pipe(path: String, piped: &str,config: CompilerConfig) -> Result<Outp
     let output = OutputWriter::new(replaced, file, config);
     return Ok(output);
 }
+
+pub fn run_inline(
+    expression: &str,
+    config: CompilerConfig,
+    global_vars: Vec<(String, String)>,
+) -> Result<String> {
+    let virtual_path = "<inline>".to_string();
+    let tokens = Lexer::new(virtual_path.clone(), expression.to_string()).parse();
+    let nodes = Parser::new(tokens, virtual_path.clone(), virtual_path.clone()).parse()?;
+
+    let config = Arc::new(config);
+    let lua_map = LuaCallMap::load(config.clone());
+    let var_options_map = Arc::new(VarOptionsMap::new(config.clone(), lua_map));
+    let writer = Writer::new(
+        nodes,
+        virtual_path.clone(),
+        virtual_path,
+        config,
+        var_options_map,
+    )
+    .with_global_variables(global_vars.into_iter().collect());
+    let (mut result, _) = writer.replace()?;
+
+    result
+        .file_data
+        .pop()
+        .map(|file| file.data)
+        .ok_or_else(|| anyhow!("Inline template produced no output"))
+}
+
 pub fn run_parse(args: ParseArgs, config: CompilerConfig, _package_data: Option<PackageData>) -> Result<Vec<OutputWriter>> {
     let (mut stream, origin) = get_data_stream(args.origin.as_ref().unwrap());
     let project_src = args.origin.unwrap();

@@ -12,6 +12,15 @@ use crate::{
 };
 
 impl Parser {
+    pub(crate) fn parse_single_value(mut self) -> Result<Value> {
+        let value = self.handle_val()?;
+        self.remove_spaces();
+        if !matches!(self.peek(), Token::EOF) {
+            return Err(parser_error(CompilationError::Invalid2ndPlaceVar, &self));
+        }
+        Ok(value)
+    }
+
     /// handles values
     /// reaches here after =
     /// single word values
@@ -55,6 +64,9 @@ impl Parser {
             },
             Token::LSRQBRACK => {
                 return Ok(self.handle_array_values()?);
+            }
+            Token::LPAREN => {
+                return Ok(self.handle_struct_values()?);
             }
             _ => {
                 self.remove_spaces();

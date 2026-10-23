@@ -1,21 +1,58 @@
 use anyhow::Result;
 
 use super::{parse, parse_with_global_values};
+use rplace::{config::config::CompilerConfig, run::run_options::run_inline};
 use std::collections::HashMap;
 
 #[test]
 fn global_variable_reference_is_rendered() -> Result<()> {
-    let code = "//- $#var = val:\n$g#var";
-    assert_eq!(parse(code)?, "\nval");
+    let code = "//- $#var = val:\n//- def demo:Hello, $g#var!//- end://- place demo:";
+    assert_eq!(parse(code)?, "\nHello, val!");
     Ok(())
 }
 
 #[test]
 fn shell_global_value_overrides_source_value() -> Result<()> {
-    let code = "//- $#name = default:\n$g#name";
+    let code = "//- $#name = default:\n//- def demo:$g#name//- end://- place demo:";
     let globals = HashMap::from([("name".to_string(), "shell".to_string())]);
 
     assert_eq!(parse_with_global_values(code, globals)?, "\nshell");
+    Ok(())
+}
+
+#[test]
+fn inline_template_renders_shell_globals() -> Result<()> {
+    let output = run_inline(
+        "Hello, $g#name!",
+        CompilerConfig::default(),
+        vec![("name".to_string(), "Rafael".to_string())],
+    )?;
+
+    assert_eq!(output, "Hello, Rafael!");
+    Ok(())
+}
+
+#[test]
+fn inline_template_accepts_array_shell_globals() -> Result<()> {
+    let output = run_inline(
+        "//- def demo://- for item in items:$#item,//- end://- end://- place demo:",
+        CompilerConfig::default(),
+        vec![("items".to_string(), "[a,b,c]".to_string())],
+    )?;
+
+    assert_eq!(output, "a,b,c,");
+    Ok(())
+}
+
+#[test]
+fn inline_template_accepts_struct_shell_globals() -> Result<()> {
+    let output = run_inline(
+        "//- def demo://- for first,second,third in record:$#first,$#second,$#third//- end://- end://- place demo:",
+        CompilerConfig::default(),
+        vec![("record".to_string(), "(a,b,c)".to_string())],
+    )?;
+
+    assert_eq!(output, "a,b,c");
     Ok(())
 }
 

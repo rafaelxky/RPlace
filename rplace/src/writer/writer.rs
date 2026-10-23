@@ -23,6 +23,7 @@ pub struct Writer {
     compiler_config: Arc<CompilerConfig>,
     var_options: Arc<VarOptionsMap>,
     shell_globals: HashMap<String, String>,
+    global_variables: HashMap<String, ResValue>,
 }
 impl Writer {
     pub fn new(
@@ -42,6 +43,7 @@ impl Writer {
             compiler_config,
             var_options,
             shell_globals: HashMap::new(),
+            global_variables: HashMap::new(),
         }
     }
     pub fn new_with_imports(
@@ -62,12 +64,37 @@ impl Writer {
             compiler_config,
             var_options,
             shell_globals: HashMap::new(),
+            global_variables: HashMap::new(),
         }
     }
 
     pub fn with_global_variables(mut self, global_variables: HashMap<String, String>) -> Self {
         self.shell_globals = global_variables;
         self
+    }
+
+    fn render_global_variable(&self, val: &TemplateValue) -> Result<String> {
+        let value = match self.global_variables.get(&val.value) {
+            Some(ResValue::Val { value }) => value.clone(),
+            Some(_) => {
+                return Err(anyhow!(
+                    "Invalid value type for global variable <{}>",
+                    val.value
+                ));
+            }
+            None if val.optional => String::new(),
+            None => {
+                return Err(anyhow!(
+                    "No value found for global variable <{}>",
+                    val.value
+                ));
+            }
+        };
+
+        Ok(match &val.options {
+            Some(options) => self.var_options.exec_options(options, value),
+            None => value,
+        })
     }
 
     fn handle_import(&self, data: String, path: String) -> Result<ParsingResult> {
@@ -145,8 +172,21 @@ impl Writer {
             }
         }
 
-        for (name, value) in &self.shell_globals {
-            global_variables.insert(name.clone(), ResValue::new_val(value.clone()));
+        for (name, raw_value) in &self.shell_globals {
+            let trimmed = raw_value.trim_start();
+            let value = if trimmed.starts_with('[') || trimmed.starts_with('(') {
+                let path = format!("<global:{name}>");
+                let tokens = Lexer::new(path.clone(), raw_value.clone()).parse();
+                let parsed = Parser::new(tokens, path.clone(), path)
+                    .parse_single_value()
+                    .map_err(|error| {
+                        anyhow!("Invalid array or struct value for global <{name}>: {error}")
+                    })?;
+                self.resolve_value(&parsed, &HashMap::new())
+            } else {
+                ResValue::new_val(raw_value.clone())
+            };
+            global_variables.insert(name.clone(), value);
         }
 
         if let Some(out) = global_variables.get("output") {
@@ -274,6 +314,7 @@ impl Writer {
             &mut mod_list,
             &mut global_variables,
         )?;
+        self.global_variables = global_variables.clone();
         result.set_to_parse(to_parse);
 
         let nodes = &self.nodes;
@@ -286,27 +327,7 @@ impl Writer {
                     text.push_str(&data);
                 }
                 Node::GLOBALVARTEMPLATE { val } => {
-                    let value = match global_variables.get(&val.value) {
-                        Some(ResValue::Val { value }) => value.clone(),
-                        Some(_) => {
-                            return Err(anyhow!(
-                                "Invalid value type for global variable <{}>",
-                                val.value
-                            ));
-                        }
-                        None if val.optional => String::new(),
-                        None => {
-                            return Err(anyhow!(
-                                "No value found for global variable <{}>",
-                                val.value
-                            ));
-                        }
-                    };
-                    let value = match &val.options {
-                        Some(options) => self.var_options.exec_options(options, value),
-                        None => value,
-                    };
-                    text.push_str(&value);
+                    text.push_str(&self.render_global_variable(val)?);
                 }
                 Node::PLACE { name, args, line } => {
                     let mut args_map: HashMap<String, ResValue> = HashMap::new();
@@ -494,6 +515,9 @@ impl Writer {
                         },
                     };
                     text.push_str(&replaced);
+                }
+                Node::GLOBALVARTEMPLATE { val } => {
+                    text.push_str(&self.render_global_variable(val)?);
                 }
                 Node::RARROWVAR { name, default } => {
                     // ->
@@ -818,6 +842,11 @@ impl Writer {
                 args_map.insert(name, val);
             }
         });
+        for (global_name, global_value) in &self.global_variables {
+            args_map
+                .entry(global_name.clone())
+                .or_insert_with(|| global_value.clone());
+        }
 
         let mut def_queue: Option<Vec<Node>> = None;
         let mut result = WriterResult::new();

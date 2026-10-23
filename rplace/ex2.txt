@@ -1,7 +1,5 @@
 //- $#output = "out3.txt":
-//- $#var = "val":
-//- def demo:
 
+//- for val in $g#name:
+    $#val
 //- end:
-    $g#var
-//- place demo:

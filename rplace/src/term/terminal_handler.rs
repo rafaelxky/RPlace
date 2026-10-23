@@ -19,6 +19,9 @@ pub enum SubCommand {
         /// Output file; defaults to the configured output or the source file.
         #[arg(value_name = "TARGET", help = "Output file; defaults to the configured output or the source file.")]
         target: Option<String>,
+        /// Render an inline template instead of reading a source file.
+        #[arg(short = 'e', long = "eval", value_name = "TEMPLATE", conflicts_with = "origin")]
+        expression: Option<String>,
         /// Parse and print the syntax tree without rendering output.
         #[arg(short = 'p', long = "parse-only", help = "Parse and print the syntax tree without rendering output.")]
         stops_at_parser: bool,
@@ -114,6 +117,7 @@ pub enum CliArgs {
 pub struct ParseArgs {
     pub origin: Option<String>,
     pub target: Option<String>,
+    pub expression: Option<String>,
     pub stops_at_parser: bool,
     pub global_vars: Vec<(String, String)>,
 }
@@ -148,21 +152,31 @@ pub fn handle_args() -> CliArgs {
         Some(SubCommand::Run {
             origin,
             target,
+            expression,
             stops_at_parser,
             global_vars,
         }) => {
             let path = Path::new(PROJECT_FILE);
-            if origin.is_none() && !path.is_file() {
+            if origin.is_none() && expression.is_none() && !path.is_file() {
                 Args::command()
                     .error(
                         ErrorKind::MissingRequiredArgument,
-                        "the following required arguments were not provided:\n  <ORIGIN>",
+                        "provide <ORIGIN>, --eval <TEMPLATE>, or run inside a project",
+                    )
+                    .exit();
+            }
+            if expression.is_some() && stops_at_parser {
+                Args::command()
+                    .error(
+                        ErrorKind::ArgumentConflict,
+                        "--eval cannot be combined with --parse-only",
                     )
                     .exit();
             }
             return CliArgs::Run(ParseArgs {
                 origin,
                 target,
+                expression,
                 stops_at_parser,
                 global_vars,
             });
@@ -204,7 +218,8 @@ mod tests {
         let args = Args::try_parse_from([
             "rplace",
             "run",
-            "template.rp",
+            "--eval",
+            "Hello, $g#name!",
             "-D",
             "name=RPlace",
             "--var",
@@ -212,9 +227,10 @@ mod tests {
         ])
         .unwrap();
 
-        let Some(SubCommand::Run { global_vars, .. }) = args.command else {
+        let Some(SubCommand::Run { global_vars, expression, .. }) = args.command else {
             panic!("expected run command");
         };
+        assert_eq!(expression.as_deref(), Some("Hello, $g#name!"));
         assert_eq!(
             global_vars,
             vec![
@@ -226,7 +242,26 @@ mod tests {
 
     #[test]
     fn rejects_global_value_without_key_value_separator() {
-        let result = Args::try_parse_from(["rplace", "run", "template.rp", "--var", "name"]);
+        let result = Args::try_parse_from([
+            "rplace",
+            "run",
+            "--eval",
+            "hello",
+            "--var",
+            "name",
+        ]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn rejects_source_file_and_inline_template_together() {
+        let result = Args::try_parse_from([
+            "rplace",
+            "run",
+            "template.rp",
+            "--eval",
+            "hello",
+        ]);
         assert!(result.is_err());
     }
 }

@@ -220,11 +220,28 @@ or rplace run --json {a:b, c:d}
 - //- !n < :
 - kinda like this, deletes the following newlines
 
-- structs s = ()
-- structs s.elem
-- structs hashmap<k,v>
-- arrays f = []
+- struct, arrays and elements
+- structs str = (...) 
+- structs str.elem
+- structs hashmap<k,v> <- works like
+- arrays arr = [...]
 - arrays //-for elem in f: or f[id]
-- arrays array[v]
+- arrays array[v] <- works like
 
 - allow for finite ammount of elements like an enum
+
+- read from other files and paste
+
+- enums and tags
+ex: //- tag name regex enum enum_name:
+enum name (
+    a = (propertyA = a, propertyB = (...)),
+    b = (propertyA = b, propertyB = (...)),
+    c = (propertyA = c, propertyB = (...)),
+)
+- then access
+$#tag.propertyA
+
+- reduce the dependency on 
+- for example allow //- for elem in arr: outside of def
+- allow $#var and $g#var outside of def
