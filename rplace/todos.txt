@@ -269,3 +269,5 @@ end:
 
  - need to use fuzzification and baesian networks for this 
  - probab going to be hard but very usefull
+
+ - ex: rplace fz file 
