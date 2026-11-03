@@ -251,3 +251,21 @@ $#tag.propertyA
 
 - git template dependencies
 - program addons and api
+
+- fuzzy lexer guesses and completes sintax
+ex: 
+def a wre a = b: 
+
+end:
+
+-> 100% chance its supposed to be
+//- def a were a = b:
+//- end: 
+ so it transalates
+
+ ex2: 
+ "I defined a variable were its value was its type and that was the end"
+ 0% chance its anything even tho it has kewords
+
+ - need to use fuzzification and baesian networks for this 
+ - probab going to be hard but very usefull
