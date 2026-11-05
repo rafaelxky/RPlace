@@ -1,6 +1,6 @@
 use std::{
     ffi::{CStr, CString, c_char},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use anyhow::{Context, Result, anyhow, bail};
@@ -30,12 +30,13 @@ unsafe impl Sync for RuntimeModule {}
 
 impl RuntimeModule {
     pub fn load(name: &str) -> Result<Self> {
-        let addons = ProjectDirs::from("io", "rplace", "rplace")
-            .ok_or_else(|| anyhow!("Unable to locate RPlace data directory"))?
-            .data_dir()
-            .join("addons");
+        let addons = addons_directory()?;
         let path = plugin_path(&addons, name);
-        let library = unsafe { Library::new(&path) }
+        Self::load_path(&path)
+    }
+
+    fn load_path(path: &Path) -> Result<Self> {
+        let library = unsafe { Library::new(path) }
             .with_context(|| format!("Unable to load runtime module {}", path.display()))?;
 
         let call_symbol = unsafe { library.get::<PluginCall>(b"rplace_plugin_call\0") }
@@ -60,6 +61,22 @@ impl RuntimeModule {
             call,
             free,
         })
+    }
+
+    pub fn load_optional(name: &str) -> Result<Option<Self>> {
+        let addons = addons_directory()?;
+        let addons_path = plugin_path(&addons, name);
+        if addons_path.is_file() {
+            return Self::load_path(&addons_path).map(Some);
+        }
+
+        let executable_path = std::env::current_exe()
+            .ok()
+            .and_then(|path| path.parent().map(|directory| plugin_path(directory, name)));
+        match executable_path.filter(|path| path.is_file()) {
+            Some(path) => Self::load_path(&path).map(Some),
+            None => Ok(None),
+        }
     }
 
     pub fn call(&self, request: &Value) -> Result<Value> {
@@ -89,6 +106,13 @@ impl RuntimeModule {
             .value
             .ok_or_else(|| anyhow!("Runtime module response did not include a value"))
     }
+}
+
+fn addons_directory() -> Result<PathBuf> {
+    Ok(ProjectDirs::from("io", "rplace", "rplace")
+        .ok_or_else(|| anyhow!("Unable to locate RPlace data directory"))?
+        .data_dir()
+        .join("addons"))
 }
 
 fn plugin_path(addons: &std::path::Path, name: &str) -> PathBuf {

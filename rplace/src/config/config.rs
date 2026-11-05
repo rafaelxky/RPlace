@@ -8,10 +8,18 @@ use std::{
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 
+pub fn config_path() -> anyhow::Result<PathBuf> {
+    let dir = ProjectDirs::from("io", "rplace", "rplace")
+        .ok_or_else(|| anyhow::anyhow!("Unable to find config path"))?;
+    Ok(dir.config_dir().join("config.json"))
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PackageManagerCompilerConfig {
     pub allow_lua: Option<bool>,
     pub allow_import: Option<bool>,
+    #[serde(alias = "allow_fuzzy_sintax")]
+    pub allow_fuzzy_syntax: Option<bool>,
     pub package_source: Option<String>,
 }
 impl PackageManagerCompilerConfig {
@@ -19,6 +27,7 @@ impl PackageManagerCompilerConfig {
         Self {
             allow_lua: None,
             allow_import: None,
+            allow_fuzzy_syntax: None,
             package_source: None,
         }
     }
@@ -28,6 +37,8 @@ impl PackageManagerCompilerConfig {
 pub struct CompilerConfig {
     pub allow_lua: bool,
     pub allow_import: bool,
+    #[serde(default, alias = "allow_fuzzy_sintax")]
+    pub allow_fuzzy_syntax: bool,
     pub package_source: String,
 }
 impl CompilerConfig {
@@ -63,6 +74,7 @@ impl CompilerConfig {
         Self {
             allow_lua: false,
             allow_import: true,
+            allow_fuzzy_syntax: false,
             package_source: package_source,
         }
     }
@@ -121,4 +133,39 @@ pub fn load_config(path: PathBuf) -> CompilerConfig {
     } else {
         return CompilerConfig::load(&config);
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::CompilerConfig;
+
+    #[test]
+    fn missing_fuzzy_syntax_setting_defaults_to_disabled() {
+        let config: CompilerConfig = serde_json::from_str(
+            r#"{"allow_lua":false,"allow_import":true,"package_source":"http://localhost:3000"}"#,
+        )
+        .expect("Older config files should still load");
+
+        assert!(!config.allow_fuzzy_syntax);
+    }
+
+    #[test]
+    fn reads_correctly_spelled_fuzzy_syntax_setting() {
+        let config: CompilerConfig = serde_json::from_str(
+            r#"{"allow_lua":false,"allow_import":true,"allow_fuzzy_syntax":true,"package_source":"http://localhost:3000"}"#,
+        )
+        .expect("Fuzzy syntax setting should load");
+
+        assert!(config.allow_fuzzy_syntax);
+    }
+
+    #[test]
+    fn reads_legacy_misspelled_fuzzy_syntax_setting() {
+        let config: CompilerConfig = serde_json::from_str(
+            r#"{"allow_lua":false,"allow_import":true,"allow_fuzzy_sintax":true,"package_source":"http://localhost:3000"}"#,
+        )
+        .expect("Legacy fuzzy syntax setting should load");
+
+        assert!(config.allow_fuzzy_syntax);
+    }
 }

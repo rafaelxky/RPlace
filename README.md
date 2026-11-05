@@ -226,9 +226,10 @@ this will take regular text and transform it into a template acording to rules
 - you can use inline lua to manipulate variables
 - ex: $#var\lua::"return args[1]..\" world \""
 - Lua is provided by an optional runtime module rather than being linked into the RPlace executable.
-- Build all packages with `cargo build --workspace --release`; `./build.sh` also installs the executable and both runtime modules on Linux.
-- On Linux, the default directory is `~/.local/share/rplace/addons`. The module loads `.lua` add-ons from the same directory.
+- Build all packages with `cargo build --workspace --release`; `./build.sh` also installs the executable and runtime modules on Linux.
+- On Linux, the default directory is `~/.local/share/rplace/addons`. Runtime modules are loaded from this directory.
 - Set `allow_lua` to `true` in RPlace's `config.json` to enable Lua execution.
+- Set `allow_fuzzy_syntax` to `true` in RPlace's `config.json` to enable optional fuzzy syntax repairs. The plugin is searched for in the addons directory and beside the executable; if it is absent from both locations, fuzzy lexing is skipped.
 
 ## regex derive option
 - Regex matching is also provided by an optional runtime module.
@@ -239,6 +240,7 @@ this will take regular text and transform it into a template acording to rules
 - the config.json has some program specifications
 - allow_lua -> allows lua code (default: off)
 - allow_import -> allows code import from other files(default: true)
+- allow_fuzzy_syntax -> enables the optional fuzzy syntax plugin (default: off)
 
 # file config global variables
 - you can configure a file to change how the compiler interacts with it by setting variables 

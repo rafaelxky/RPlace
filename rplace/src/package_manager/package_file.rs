@@ -46,6 +46,10 @@ fn join_config(config: CompilerConfig, package: &PackageManagerCompilerConfig) -
         Some(b) => config.allow_lua = b,
         None => (),
     }
+    match package.allow_fuzzy_syntax {
+        Some(b) => config.allow_fuzzy_syntax = b,
+        None => (),
+    }
     match package.package_source.clone() {
         Some(s) => config.package_source = s,
         None => (),

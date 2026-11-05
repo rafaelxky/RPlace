@@ -46,6 +46,8 @@ pub enum SubCommand {
     },
     /// Reload the global RPlace configuration.
     Reload,
+    /// Print the path to the global config.json file.
+    ConfigPath,
     /// Manage packages and package dependencies.
     Package {
         #[command(subcommand)]
@@ -107,6 +109,7 @@ pub enum PackageSubcommand {
 pub enum CliArgs {
     Run(ParseArgs),
     ReloadConfig,
+    ConfigPath,
     New {
         project_name: String,
     },
@@ -201,6 +204,7 @@ pub fn handle_args() -> CliArgs {
         }
 
         Some(SubCommand::Reload) => return CliArgs::ReloadConfig,
+        Some(SubCommand::ConfigPath) => return CliArgs::ConfigPath,
         Some(SubCommand::Package { command }) => match command {
             PackageSubcommand::Login { email, password } => {
                 return CliArgs::Login { email, password };

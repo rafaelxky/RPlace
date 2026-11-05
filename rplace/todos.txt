@@ -271,3 +271,9 @@ end:
  - probab going to be hard but very usefull
 
  - ex: rplace fz file 
+- fuzzy grammar mistake fix
+- might add other keywords that are missing other than the marks 
+
+- add shortcut ..10 wich is equivalent to 0..10 (in regular parser)
+
+- add support for trailing commas in arrays and struct and others so like ([a,b,c,],[],[],),: is allowed

@@ -1,0 +1,199 @@
+Fuzzy Syntax Repair Plan
+========================
+
+Goal
+----
+Repair likely omitted RPlace command markers (`//-`, `/*-`, `*///-`) and
+required colons without rewriting ordinary template text. False positives are
+more damaging than missed repairs: when evidence is ambiguous, leave tokens
+unchanged and let the normal parser report the error.
+
+The fuzzy pass runs after the ordinary lexer and before the parser. It must
+preserve token order and values except for explicit repairs, preserve the
+file_path, and never silently delete or reinterpret source text.
+
+Rules that apply to every repair
+-------------------------------
+1. Use the existing Token stream and Token::val() semantics. Do not repair by
+   searching raw source text for keyword substrings.
+2. Recognize command candidates only at valid token/line boundaries and in a
+   parser-compatible context. Keywords also occur as ordinary text.
+3. Do not treat command-looking tokens inside quoted values as commands.
+   Track quote state according to the lexer's tokenization, including escaped
+   quotes, and reset/validate state at end of input.
+4. Existing marker tokens are decisive evidence that a command starts there.
+   Preserve their exact marker spelling; do not replace one marker style with
+   another.
+5. Candidate recognition and repair application are separate. A candidate
+   records the expected command, context, evidence, and proposed insertion
+   points. Apply only repairs whose confidence meets the command-specific
+   threshold.
+6. Never use raw counts of DEF or END tokens as proof of command structure.
+   Counts may be diagnostic evidence only. Prefer a stack of recognized block
+   openers with their kinds and source positions.
+7. Process original token indices and apply insertions in a separate pass so
+   earlier repairs cannot shift later positions.
+8. Re-lex/reparse repaired output in tests. Repairs must be idempotent: running
+   fuzzy lexing twice must not add more markers or colons.
+9. Keep the feature opt-in. If the optional plugin is absent, skip fuzzy
+   lexing; if present but invalid or failing, surface the error rather than
+   returning a success-shaped fallback.
+10. Add positive and negative tests for each rule. Include near misses where
+    words such as "def", "end", "for", and "place" occur in prose, paths,
+    identifiers, variable values, and quoted strings.
+
+Evidence and confidence
+-----------------------
+HIGH:
+  * A recognized command already has a supported marker.
+  * A recognized command is missing only a required colon and has an otherwise
+    valid, unambiguous header.
+  * A closing command is marked and corresponds to the top compatible opener.
+
+LIKELY:
+  * An unmarked command is the first non-whitespace item on its line, its
+    complete header matches a supported grammar, and nearby structural
+    evidence agrees (for example a corresponding block opener or a following
+    command that is valid only in that block).
+  * A standalone unmarked `end` is at line start and closes the top compatible
+    opener on the block stack. Insert the marker and colon only when the line
+    has no conflicting content.
+
+LOW / DO NOT REPAIR:
+  * A keyword appears within ordinary prose, a quoted value, a path, or a
+    longer identifier.
+  * An unmarked end has no compatible open block, or several interpretations
+    remain plausible.
+  * The header is incomplete or does not match the parser's grammar.
+  * Evidence is only an aggregate keyword count.
+
+Command and keyword rules
+-------------------------
+
+Markers (`//-`, `/*-`, `*///-`)
+  The lexer emits MARK tokens for these supported open/close spellings. A
+  marker followed by a recognized command keyword starts a command candidate.
+  Preserve the selected spelling. A closing `-*/` marker belongs to the
+  alternate block-comment style; do not synthesize or move closing markers
+  without dedicated lexer/parser support.
+
+`def`
+  Top level and inside a body, the parser accepts `def <name>` where name is
+  an identifier or the soft keyword `place`. Headers may then contain:
+    * `place <template-name>` (inheritance)
+    * `derive [path] where <assignments>`
+    * `when <identifier>=<identifier>[, ...]`
+    * `where <assignments>`
+    * a terminating `:`
+  A body definition opens a block and is closed by a recognized `end:`.
+  An incomplete `def` is a candidate only if its name and all present options
+  parse completely. Add a missing marker only for a line-start candidate with
+  strong block evidence; add a missing colon only at the end of a complete
+  header. A `def` used in prose is not a candidate.
+  `def ... place ...` and `def ... derive ...` may define an immediate
+  inheritance/derive template rather than a body block; do not push a body
+  opener for these forms.
+
+`end`
+  `//- end:` is an explicit close. A marked `end` missing its colon is likely
+  a close only if it is otherwise a complete end command; insert the colon.
+  An unmarked `end:` is ambiguous by itself. An unmarked bare `end` is also
+  ambiguous. Repair either only at line start and only when it closes the
+  compatible top entry on the block stack; never infer a close from a global
+  END/DEF count.
+  Ordinary phrases such as "in the end they died" must remain untouched. Quoted
+  `"end"` is always ordinary string content.
+
+`for`
+  Body-only command. Header grammar: one or more loop variable names (including
+  comma-separated names), `in`, then a variable or supported half-open numeric
+  range, then `:`. The body opens a block closed by `end:`.
+  Repair only if the entire header parses and the context is a definition or
+  another valid body. Do not interpret prose such as "for example" as a loop.
+
+`match` and `case`
+  `match <variable>:` is a body command and opens a match block. Its arms are
+  marked `case <value>:` commands; each arm has a body ending in `end:`, and a
+  marked `end:` closes the match after the arms. Require the parser's expected
+  sequence and stack nesting before repairing missing markers. Do not count
+  every `case`/`end` token as a block.
+
+`place`
+  Top-level, body, and `create` command. Grammar is `place <name>` (an
+  identifier or soft keyword), optional `where <assignments>`, then `:`.
+  `place` does not open a block. Repair a missing marker only when the whole
+  header parses at a command boundary. `place` in `def ... place ...` or
+  `create ... place ...` belongs to that enclosing header, not a separate
+  command.
+
+`include`
+  Body command with a path and required colon. It does not open a block. A
+  path may contain words that lex as soft keywords; parse it as a path, not as
+  a sequence of commands. Repair only a complete path/header.
+
+`create`
+  Body command with an output path followed by either `:` or `place ...:`.
+  It does not itself open a block. Do not treat keywords within the path as
+  command starts. Repair only when the path and one supported form are clear.
+
+`derive`
+  Top-level or body command. Supports an optional path and `where` assignments,
+  ending in `:`. In `def <name> derive ...`, it is part of the def declaration.
+  Keep these contexts distinct. Do not infer a command from a path component
+  named "derive".
+
+`parse`
+  Top-level command taking a path and a required colon. It schedules another
+  file for parsing; it does not open a block. Repair only a complete path
+  header.
+
+`mod`
+  Top-level command taking a path and a required colon. It imports a module and
+  does not open a block. Treat its path as path content, not command keywords.
+
+`here` / PIPE
+  Top-level command with a required colon. It is represented by the PIPE token
+  and does not open a block. Do not confuse ordinary prose or an identifier
+  with this soft keyword.
+
+`$#` variable assignment command
+  At top level, `//- $#name[.name...] = <value>:` sets file configuration.
+  The value may be a literal, quoted string, array, struct, or supported
+  variable value. This is not a block opener. Respect nested delimiters and
+  quoted content when locating the final colon. Never add a marker or colon
+  inside a value.
+
+Template/global variables (`$#`, `$g#`) and arrow variables (`->`)
+  These are interpolation/value syntax, not commands or block openers. Do not
+  infer a marker from their identifiers. In particular, keyword tokens used
+  as soft-keyword variable names are valid only where the parser allows them.
+
+`when` and `where`
+  These are declaration/argument clauses, not standalone commands. For `def`,
+  `when` conditions use identifier equality pairs; `where` carries assignments.
+  For `place`, `where` carries assignments. Parse commas, nested collections,
+  strings, and option syntax before considering the declaration complete.
+
+Other lexer keywords
+  `IN`, `GLOBAL`, `VAR`, `CASE`, `MATCH`, `QUESTION`, `MOD`, and `PIPE` have
+  their own structural/value roles described above. `END` is a command only in
+  a supported marked or confidently inferred closing context. A token being a
+  reserved/soft keyword is never sufficient evidence by itself.
+
+Implementation sequence
+-----------------------
+1. Build a line-aware command scanner that tracks quoted strings and marker
+   boundaries without changing tokens.
+2. Parse complete candidate headers using small command-specific recognizers
+   that mirror the existing parser's accepted grammar.
+3. Track nested open blocks with a stack containing block kind and source
+   position. Push only after a complete opener is recognized. Pop only a
+   compatible closer; preserve unmatched closers as ambiguous.
+4. Create explicit repair proposals with evidence and confidence. Apply only
+   HIGH and carefully specified LIKELY repairs.
+5. Keep non-block commands (`place`, `include`, `create`, `derive`, `parse`,
+   `mod`, `here`, assignments) out of the block stack.
+6. Test each command's marked, missing-marker, missing-colon, incomplete, and
+   prose/quoted/path near-miss cases. Verify parser acceptance for repaired
+   valid examples and unchanged output for uncertain examples.
+7. Re-run the pass on its own output to verify idempotence.

@@ -1,5 +1,5 @@
 use crate::config::config::CompilerConfig;
-use crate::config::config::{CONFIG, reload_config};
+use crate::config::config::{CONFIG, config_path, reload_config};
 use crate::constants::PROJECT_FILE;
 use crate::package_manager::auth::read_tok;
 use crate::package_manager::auth::save_tok;
@@ -30,6 +30,7 @@ pub mod data_stream;
 pub mod derive;
 pub mod error_handler;
 pub mod errors;
+pub mod fuzzy_syntax;
 pub mod lexer;
 pub mod lua;
 pub mod options;
@@ -104,6 +105,10 @@ async fn main() -> Result<()> {
             let config = dir.config_dir().join("config.json");
             reload_config(config);
             println!("Config reloaded successfully!");
+            Ok(())
+        }
+        CliArgs::ConfigPath => {
+            println!("{}", config_path()?.display());
             Ok(())
         }
         CliArgs::Login { email, password } => {

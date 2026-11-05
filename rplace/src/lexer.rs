@@ -1,6 +1,8 @@
 use anyhow::{Error, Result};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+// AIgnore: double quote should probably be turned into a string literal here instead of at the parser
 pub enum Token {
     IDENT { str: String },
     DEF,
@@ -113,6 +115,7 @@ impl Token {
         }
     }
 }
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TokenResult {
     pub tokens: Vec<Token>,
     pub file_path: String,

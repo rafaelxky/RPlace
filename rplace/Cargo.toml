@@ -4,7 +4,7 @@ version = "0.2.0"
 edition = "2024"
 
 [workspace]
-members = ["plugins/lua", "plugins/regex"]
+members = ["plugins/fuzzy_sintax","plugins/lua", "plugins/regex"]
 resolver = "3"
 
 [dependencies]

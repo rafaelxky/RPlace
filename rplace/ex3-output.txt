@@ -1,0 +1,15 @@
+
+
+
+    This block works because the fuzzy lexer can match its definition with its closing end.
+
+Fuzzy syntax limits (requires allow_fuzzy_syntax = true):
+
+The incomplete command below is left as literal text because no matching end is present:
+def unfinished:
+
+Words later in a line are not command starts: end:
+Quoted command-looking text is not repaired: "def another:"
+
+Fuzzy syntax does not invent missing or unsupported header arguments.
+An explicitly marked malformed command is still a syntax error.

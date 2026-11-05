@@ -5,6 +5,7 @@ use std::sync::{Arc, RwLock};
 
 use crate::config::config::CompilerConfig;
 use crate::data_stream::{DataSouce, DataStream, FileDataStream, get_data_stream};
+use crate::fuzzy_syntax::FuzzySyntax;
 use crate::lexer::Lexer;
 use crate::lua::lua_call_map::LuaCallMap;
 use crate::options::var_options::VarOptionsMap;
@@ -24,6 +25,7 @@ pub fn parse_get_all_paths(data: PackageData, config: CompilerConfig) -> Result<
 
     let imports = Arc::new(RwLock::new(HashMap::new()));
     let config = Arc::new(config);
+    let fuzzy_syntax = FuzzySyntax::new(config.allow_fuzzy_syntax);
     let lua_map = LuaCallMap::load(config.clone());
     let var_options_map = Arc::new(VarOptionsMap::new(config.clone(), lua_map));
     let mut paths_outer: Vec<String> = vec![];
@@ -35,7 +37,7 @@ pub fn parse_get_all_paths(data: PackageData, config: CompilerConfig) -> Result<
         }
         let (data, path) = data.unwrap();
         let lexer = Lexer::new(path.clone(), data);
-        let tokens = lexer.parse();
+        let tokens = fuzzy_syntax.lex(lexer.parse())?;
         let parser = Parser::new(tokens, project_src.clone(), output_src.to_string());
         let nodes = parser.parse()?;
         let path = nodes.file_path.clone();
@@ -59,8 +61,9 @@ pub fn run_pipe(path: String, piped: &str, config: CompilerConfig) -> Result<Out
     let (data, path) = stream
         .next()
         .ok_or_else(|| anyhow!("No such file {}", path))?;
+    let fuzzy_syntax = FuzzySyntax::new(config.allow_fuzzy_syntax);
     let lexer = Lexer::new(path.clone(), data);
-    let tokens = lexer.parse();
+    let tokens = fuzzy_syntax.lex(lexer.parse())?;
     let parser = Parser::new(tokens, path.to_string(), path.to_string());
     let nodes = parser.parse()?;
 
@@ -86,7 +89,9 @@ pub fn run_inline(
     global_vars: Vec<(String, String)>,
 ) -> Result<String> {
     let virtual_path = "<inline>".to_string();
+    let fuzzy_syntax = FuzzySyntax::new(config.allow_fuzzy_syntax);
     let tokens = Lexer::new(virtual_path.clone(), expression.to_string()).parse();
+    let tokens = fuzzy_syntax.lex(tokens)?;
     let nodes = Parser::new(tokens, virtual_path.clone(), virtual_path.clone()).parse()?;
 
     let config = Arc::new(config);
@@ -134,6 +139,7 @@ pub fn run_parse(
 
     let imports = Arc::new(RwLock::new(HashMap::new()));
     let config = Arc::new(config);
+    let fuzzy_syntax = FuzzySyntax::new(config.allow_fuzzy_syntax);
     let lua_map = LuaCallMap::load(config.clone());
     let var_options_map = Arc::new(VarOptionsMap::new(config.clone(), lua_map));
 
@@ -145,7 +151,7 @@ pub fn run_parse(
         }
         let (data, path) = data.unwrap();
         let lexer = Lexer::new(path.clone(), data);
-        let tokens = lexer.parse();
+        let tokens = fuzzy_syntax.lex(lexer.parse())?;
         let parser = Parser::new(tokens, project_src.clone(), output_src.clone());
         let nodes = parser.parse()?;
         if args.stops_at_parser {

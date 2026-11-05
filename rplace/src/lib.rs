@@ -4,6 +4,7 @@ pub mod data_stream;
 pub mod derive;
 pub mod error_handler;
 pub mod errors;
+pub mod fuzzy_syntax;
 pub mod lexer;
 pub mod lua;
 pub mod options;

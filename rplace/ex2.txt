@@ -1,12 +1,16 @@
 //- $#output = "out3.txt":
 
-//- def name:
-    //- for i in 0..10:
-        hello world N $#i\lua::"return args[1]"
-    //- end:
-//- end:
+def name
+    hello world
+end
+
 
 //- place name:
 
+def list:
+    for item in items:
+        $#item
+    end
+end
 
-
+//- place list where items = [red, green, blue]:

@@ -7,6 +7,7 @@ use std::{collections::HashMap, str};
 use crate::config::config::CompilerConfig;
 use crate::data_stream::get_data_stream;
 use crate::derive::deriver::Deriver;
+use crate::fuzzy_syntax::FuzzySyntax;
 use crate::options::var_options::VarOptionsMap;
 use crate::structs::*;
 use crate::writer::writer_structs::{Derive, ResValue, WriterResult};
@@ -21,6 +22,7 @@ pub struct Writer {
     project_src: String,
     output_src: String,
     compiler_config: Arc<CompilerConfig>,
+    fuzzy_syntax: FuzzySyntax,
     var_options: Arc<VarOptionsMap>,
     shell_globals: HashMap<String, String>,
     global_variables: HashMap<String, ResValue>,
@@ -33,6 +35,7 @@ impl Writer {
         compiler_config: Arc<CompilerConfig>,
         var_options: Arc<VarOptionsMap>,
     ) -> Self {
+        let fuzzy_syntax = FuzzySyntax::new(compiler_config.allow_fuzzy_syntax);
         Self {
             nodes: nodes.nodes,
             file_path: nodes.file_path,
@@ -41,6 +44,7 @@ impl Writer {
             project_src,
             output_src,
             compiler_config,
+            fuzzy_syntax,
             var_options,
             shell_globals: HashMap::new(),
             global_variables: HashMap::new(),
@@ -54,6 +58,7 @@ impl Writer {
         compiler_config: Arc<CompilerConfig>,
         var_options: Arc<VarOptionsMap>,
     ) -> Self {
+        let fuzzy_syntax = FuzzySyntax::new(compiler_config.allow_fuzzy_syntax);
         Self {
             nodes: nodes.nodes,
             file_path: nodes.file_path,
@@ -62,6 +67,7 @@ impl Writer {
             project_src,
             output_src,
             compiler_config,
+            fuzzy_syntax,
             var_options,
             shell_globals: HashMap::new(),
             global_variables: HashMap::new(),
@@ -110,11 +116,8 @@ impl Writer {
             }
         }
         let lexer = Lexer::new(path.clone(), data);
-        let parser = Parser::new(
-            lexer.parse(),
-            self.project_src.clone(),
-            self.output_src.clone(),
-        );
+        let tokens = self.fuzzy_syntax.lex(lexer.parse())?;
+        let parser = Parser::new(tokens, self.project_src.clone(), self.output_src.clone());
         let nodes = parser.parse()?;
         let mut import_lock = self.imports.write().unwrap();
         import_lock.insert(nodes.file_path.clone(), nodes.clone());
