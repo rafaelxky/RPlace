@@ -229,7 +229,6 @@ this will take regular text and transform it into a template acording to rules
 - Build all packages with `cargo build --workspace --release`; `./build.sh` also installs the executable and runtime modules on Linux.
 - On Linux, the default directory is `~/.local/share/rplace/addons`. Runtime modules are loaded from this directory.
 - Set `allow_lua` to `true` in RPlace's `config.json` to enable Lua execution.
-- Set `allow_fuzzy_syntax` to `true` in RPlace's `config.json` to enable optional fuzzy syntax repairs. The plugin is searched for in the addons directory and beside the executable; if it is absent from both locations, fuzzy lexing is skipped.
 
 ## regex derive option
 - Regex matching is also provided by an optional runtime module.
@@ -241,6 +240,21 @@ this will take regular text and transform it into a template acording to rules
 - allow_lua -> allows lua code (default: off)
 - allow_import -> allows code import from other files(default: true)
 - allow_fuzzy_syntax -> enables the optional fuzzy syntax plugin (default: off)
+
+# fuzzy syntax
+- Fuzzy syntax is an optional, conservative repair pass that runs between lexing and parsing.
+- It is disabled by default. To enable it, set `"allow_fuzzy_syntax": true` in the global `config.json`.
+- Build the workspace plugin with `cargo build -p fuzzy_sintax` or build the workspace. The runtime searches for the plugin beside the executable and in the addons directory. If it is not installed, no fuzzy repairs are applied and normal parsing continues.
+- Fuzzy syntax can recognize complete commands whose marker was omitted at the start of a line, and can supply a missing colon on a recognized command. For example:
+```
+def greeting:
+    Hello, world!
+end
+```
+  With fuzzy syntax enabled and the plugin available, the definition and its matching `end` are repaired so the template can be parsed.
+- The pass recognizes command headers such as `def`, `for`, `match`/`case`, `end`, `place`, `include`, `create`, `derive`, `parse`, `mod`, `here`, and file-variable assignments. Repairs are limited to supported, structurally valid forms.
+- Fuzzy syntax does not rewrite command-looking words in the middle of prose or inside quoted text. It does not invent missing arguments, fix malformed commands, or guess at an incomplete or unmatched block. Such input remains unchanged and may still produce a parser error.
+- A marker on a malformed command does not make the command valid. When a repair is ambiguous, prefer writing the explicit marker and colon rather than relying on inference.
 
 # file config global variables
 - you can configure a file to change how the compiler interacts with it by setting variables 
