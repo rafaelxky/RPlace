@@ -8,6 +8,28 @@ fn fuzzy_tokens(source: &str) -> TokenResult {
     FuzzyLexer::new(Lexer::new("test", source.to_string()).parse()).parse()
 }
 
+fn raw_body(tokens: &[Token]) -> Vec<Token> {
+    let raw_index = tokens
+        .iter()
+        .position(|token| matches!(token, Token::IDENT { str } if str == "raw"))
+        .expect("Raw opener should be present");
+    let body_start = tokens[raw_index + 1..]
+        .iter()
+        .position(|token| matches!(token, Token::NL))
+        .map(|index| raw_index + index + 2)
+        .expect("Raw opener should end with a newline");
+    let endraw_index = tokens[body_start..]
+        .iter()
+        .position(|token| matches!(token, Token::IDENT { str } if str == "endraw"))
+        .map(|index| body_start + index)
+        .expect("Raw closer should be present");
+    let body_end = tokens[..endraw_index]
+        .iter()
+        .rposition(|token| matches!(token, Token::NL))
+        .map_or(body_start, |index| index + 1);
+    tokens[body_start..body_end].to_vec()
+}
+
 #[test]
 fn adds_colon_to_explicit_definition() {
     let result = fuzzy_tokens("//- def example\n//- end:");
@@ -15,6 +37,43 @@ fn adds_colon_to_explicit_definition() {
         matches!(window[0], Token::IDENT { ref str } if str == "example")
             && matches!(window[1], Token::DD)
     }));
+}
+
+#[test]
+fn repairs_raw_delimiters_without_changing_the_literal_body() {
+    let source = "raw\r\n//- def generated\r\n\"an unmatched quote\r\nend\r\nendraw\r\n";
+    let original = Lexer::new("test", source.to_string()).parse();
+    let result = FuzzyLexer::new(original.clone()).parse();
+    let raw_index = result
+        .tokens
+        .iter()
+        .position(|token| matches!(token, Token::IDENT { str } if str == "raw"))
+        .expect("Raw opener should remain present");
+    let endraw_index = result
+        .tokens
+        .iter()
+        .position(|token| matches!(token, Token::IDENT { str } if str == "endraw"))
+        .expect("Raw closer should remain present");
+
+    assert!(matches!(
+        result.tokens.get(raw_index - 1),
+        Some(Token::MARK { .. })
+    ));
+    assert!(matches!(result.tokens.get(raw_index + 1), Some(Token::DD)));
+    assert!(matches!(
+        result.tokens.get(endraw_index - 1),
+        Some(Token::MARK { .. })
+    ));
+    assert!(matches!(
+        result.tokens.get(endraw_index + 1),
+        Some(Token::DD)
+    ));
+    assert_eq!(raw_body(&result.tokens), raw_body(&original.tokens));
+    assert!(
+        Parser::new(result, ".".to_string(), ".".to_string())
+            .parse()
+            .is_ok()
+    );
 }
 
 #[test]

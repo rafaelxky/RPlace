@@ -96,6 +96,8 @@ pub enum CompilationError {
     InvalidArrowVarName,
     InvalidBodyCommand,
     BodyEOF,
+    InvalidRawBlockHeader,
+    UnterminatedRawBlock,
     InvalidPlaceName,
     Invalid2ndPlaceVar,
     InvalidPlaceAssign,
@@ -277,6 +279,16 @@ impl CompilationError {
                 ",
                     YELLOW, RESET
                 ),
+            ),
+            Self::InvalidRawBlockHeader => ErrorMessage::new(
+                "Raw block opener must be `raw:` on its own line",
+                "Put the raw block opener on a line by itself",
+                "//- raw:",
+            ),
+            Self::UnterminatedRawBlock => ErrorMessage::new(
+                "Unterminated raw block",
+                "Add a closing `//- endraw:` directive",
+                "//- endraw:",
             ),
             Self::InvalidPlaceName => ErrorMessage::new(
                 format!("Invalid template name in place {:?}", parser.peek()),

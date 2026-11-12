@@ -170,6 +170,24 @@ it will call the default def
 - inner def will make so that a macro is only defined after its parent is called, this is essentially runtime definitions
 - inner place works as a normal place
 
+# literal blocks
+- Use a raw block to output RPlace syntax literally, such as when generating one RPlace template from another.
+- Raw content is copied without expanding variables or processing directives. Put outer-template interpolation outside the raw block.
+- Raw blocks are not nested. A missing `endraw` is an error.
+- Fuzzy syntax can repair raw-block delimiters when enabled, and leaves the raw body unchanged.
+
+```text
+//- def generated_template:
+//- raw:
+//- def greeting:
+Hello, $#name!
+//- end:
+//- endraw:
+//- end:
+```
+
+Placing `generated_template` outputs the inner `greeting` definition and its `$#name` reference unchanged.
+
 # create
 - create allows you to create files and folders and place data inside it
 - ex: //- create folder/file.txt place name:
@@ -240,6 +258,17 @@ this will take regular text and transform it into a template acording to rules
 - allow_lua -> allows lua code (default: off)
 - allow_import -> allows code import from other files(default: true)
 - allow_fuzzy_syntax -> enables the optional fuzzy syntax plugin (default: off)
+- allow_compile_commands -> allows project compile hooks to execute shell commands (default: off)
+
+Project compile hooks are configured in `rplace.toml` under `[config]`. They run only for a normal project run, not inline evaluation, pipe mode, or parse-only mode:
+
+```toml
+[config]
+before_compile_comand = "echo Starting compile"
+after_compile_comand = "echo Finished compile"
+```
+
+Enable `"allow_compile_commands": true` in the global `config.json` to permit these commands. The before hook runs before project compilation, and the after hook runs after generated files are written. A nonzero command exit status fails the run.
 
 # fuzzy syntax
 - Fuzzy syntax is an optional, conservative repair pass that runs between lexing and parsing.

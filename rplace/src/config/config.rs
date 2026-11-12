@@ -21,6 +21,8 @@ pub struct PackageManagerCompilerConfig {
     #[serde(alias = "allow_fuzzy_sintax")]
     pub allow_fuzzy_syntax: Option<bool>,
     pub package_source: Option<String>,
+    pub before_compile_comand: Option<String>,
+    pub after_compile_comand: Option<String>,
 }
 impl PackageManagerCompilerConfig {
     pub fn new() -> Self {
@@ -29,6 +31,8 @@ impl PackageManagerCompilerConfig {
             allow_import: None,
             allow_fuzzy_syntax: None,
             package_source: None,
+            before_compile_comand: None,
+            after_compile_comand: None,
         }
     }
 }
@@ -39,6 +43,8 @@ pub struct CompilerConfig {
     pub allow_import: bool,
     #[serde(default, alias = "allow_fuzzy_sintax")]
     pub allow_fuzzy_syntax: bool,
+    #[serde(default)]
+    pub allow_compile_commands: bool,
     pub package_source: String,
 }
 impl CompilerConfig {
@@ -75,6 +81,7 @@ impl CompilerConfig {
             allow_lua: false,
             allow_import: true,
             allow_fuzzy_syntax: false,
+            allow_compile_commands: false,
             package_source: package_source,
         }
     }
@@ -137,7 +144,7 @@ pub fn load_config(path: PathBuf) -> CompilerConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::CompilerConfig;
+    use super::{CompilerConfig, PackageManagerCompilerConfig};
 
     #[test]
     fn missing_fuzzy_syntax_setting_defaults_to_disabled() {
@@ -147,6 +154,29 @@ mod tests {
         .expect("Older config files should still load");
 
         assert!(!config.allow_fuzzy_syntax);
+        assert!(!config.allow_compile_commands);
+    }
+
+    #[test]
+    fn reads_compile_command_permission() {
+        let config: CompilerConfig = serde_json::from_str(
+            r#"{"allow_lua":false,"allow_import":true,"allow_compile_commands":true,"package_source":"http://localhost:3000"}"#,
+        )
+        .expect("Global compile-command setting should load");
+
+        assert!(config.allow_compile_commands);
+    }
+
+    #[test]
+    fn reads_project_compile_commands() {
+        let config: PackageManagerCompilerConfig = toml::from_str(
+            r#"before_compile_comand = "echo before"
+after_compile_comand = "echo after""#,
+        )
+        .expect("Project compile commands should load");
+
+        assert_eq!(config.before_compile_comand.as_deref(), Some("echo before"));
+        assert_eq!(config.after_compile_comand.as_deref(), Some("echo after"));
     }
 
     #[test]

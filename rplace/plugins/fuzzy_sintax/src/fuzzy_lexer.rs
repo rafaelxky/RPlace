@@ -13,6 +13,8 @@ enum CommandKind {
     Match,
     Case,
     End,
+    Raw,
+    EndRaw,
     Simple,
 }
 
@@ -56,10 +58,34 @@ impl FuzzyLexer {
         let mut blocks: Vec<OpenBlock> = Vec::new();
         let mut insert_markers = BTreeSet::new();
         let mut insert_colons = BTreeSet::new();
+        let mut raw_block: Option<usize> = None;
 
         for command_index in 0..commands.len() {
             let kind = commands[command_index].kind;
+            if let Some(open_index) = raw_block {
+                if kind == CommandKind::EndRaw && commands[command_index].valid {
+                    apply_simple_repairs(
+                        &commands[command_index],
+                        &mut insert_markers,
+                        &mut insert_colons,
+                    );
+                    apply_simple_repairs(
+                        &commands[open_index],
+                        &mut insert_markers,
+                        &mut insert_colons,
+                    );
+                    raw_block = None;
+                }
+                continue;
+            }
+
             match kind {
+                CommandKind::Raw => {
+                    if commands[command_index].valid {
+                        raw_block = Some(command_index);
+                    }
+                }
+                CommandKind::EndRaw => {}
                 CommandKind::Def | CommandKind::For | CommandKind::Match => {
                     if commands[command_index].valid {
                         if let Some(opener) = commands[command_index].opener {
@@ -155,9 +181,14 @@ fn apply_simple_repairs(
 }
 
 fn find_commands(tokens: &[Token]) -> Vec<Command> {
+    let raw_body = raw_body_mask(tokens);
     let mut in_quotes = vec![false; tokens.len()];
     let mut quote_open = false;
     for index in 0..tokens.len() {
+        if raw_body[index] {
+            in_quotes[index] = true;
+            continue;
+        }
         in_quotes[index] = quote_open;
         if matches!(tokens[index], Token::DQUOTE) && !is_escaped_quote(tokens, index) {
             quote_open = !quote_open;
@@ -199,6 +230,91 @@ fn find_commands(tokens: &[Token]) -> Vec<Command> {
     }
     commands.sort_by_key(|command| command.index);
     commands
+}
+
+fn raw_body_mask(tokens: &[Token]) -> Vec<bool> {
+    let mut mask = vec![false; tokens.len()];
+    let mut quote_open = false;
+    let mut line_start = 0;
+
+    while line_start < tokens.len() {
+        let mut line_end = line_start;
+        while line_end < tokens.len() && !matches!(tokens[line_end], Token::NL | Token::EOF) {
+            line_end += 1;
+        }
+        let after_line = if matches!(tokens.get(line_end), Some(Token::NL)) {
+            line_end + 1
+        } else {
+            line_end
+        };
+
+        if !quote_open
+            && let Some((command_index, marked)) = command_at_line(tokens, line_start, line_end)
+            && let Some(command) = parse_command(tokens, command_index, marked)
+            && command.valid
+            && command.kind == CommandKind::Raw
+        {
+            let body_start = after_line;
+            let mut close_line_start = body_start;
+            let mut closed = false;
+            while close_line_start < tokens.len() {
+                let mut close_line_end = close_line_start;
+                while close_line_end < tokens.len()
+                    && !matches!(tokens[close_line_end], Token::NL | Token::EOF)
+                {
+                    close_line_end += 1;
+                }
+                let close_after_line = if matches!(tokens.get(close_line_end), Some(Token::NL)) {
+                    close_line_end + 1
+                } else {
+                    close_line_end
+                };
+                let is_close = command_at_line(tokens, close_line_start, close_line_end)
+                    .and_then(|(index, marked)| parse_command(tokens, index, marked))
+                    .is_some_and(|command| command.kind == CommandKind::EndRaw && command.valid);
+                if is_close {
+                    mask[body_start..close_line_start].fill(true);
+                    line_start = close_after_line;
+                    closed = true;
+                    break;
+                }
+                if close_after_line == close_line_start {
+                    break;
+                }
+                close_line_start = close_after_line;
+            }
+            if !closed {
+                mask[body_start..].fill(true);
+                break;
+            }
+            continue;
+        }
+
+        for index in line_start..after_line {
+            if matches!(tokens[index], Token::DQUOTE) && !is_escaped_quote(tokens, index) {
+                quote_open = !quote_open;
+            }
+        }
+        if after_line == line_start {
+            break;
+        }
+        line_start = after_line;
+    }
+
+    mask
+}
+
+fn command_at_line(tokens: &[Token], line_start: usize, line_end: usize) -> Option<(usize, bool)> {
+    let first = skip_spaces(tokens, line_start);
+    if first >= line_end {
+        return None;
+    }
+    if matches!(tokens[first], Token::MARK { .. }) {
+        let command = skip_spaces(tokens, first + 1);
+        (command < line_end).then_some((command, true))
+    } else {
+        Some((first, false))
+    }
 }
 
 fn is_escaped_quote(tokens: &[Token], index: usize) -> bool {
@@ -267,6 +383,20 @@ fn parse_command(tokens: &[Token], index: usize, marked: bool) -> Option<Command
                 None,
             )
         }
+        Token::IDENT { str } if str == "raw" || str == "endraw" => {
+            let raw_end = trim_raw_carriage_returns(tokens, end);
+            let colon = exact_colon_after(tokens, index, raw_end);
+            let kind = if matches!(&tokens[index], Token::IDENT { str } if str == "raw") {
+                CommandKind::Raw
+            } else {
+                CommandKind::EndRaw
+            };
+            let valid = match colon {
+                Some(colon) => only_raw_boundary_whitespace(tokens, colon + 1, raw_end),
+                None => only_raw_boundary_whitespace(tokens, index + 1, raw_end),
+            };
+            (kind, valid, colon, None)
+        }
         token if is_simple_command(token) => {
             let (valid, colon) = parse_simple_header(tokens, index, end);
             (CommandKind::Simple, valid, colon, None)
@@ -278,12 +408,17 @@ fn parse_command(tokens: &[Token], index: usize, marked: bool) -> Option<Command
         return None;
     }
 
+    let repair_end = if matches!(kind, CommandKind::Raw | CommandKind::EndRaw) {
+        trim_raw_carriage_returns(tokens, end)
+    } else {
+        end
+    };
     let mut repairs = Vec::new();
     if !marked && colon.is_some() {
         repairs.push(Repair::AddMarker(index));
     }
     if colon.is_none() && marked {
-        repairs.push(Repair::AddColon(end));
+        repairs.push(Repair::AddColon(repair_end));
     }
     if !marked
         && colon.is_none()
@@ -294,10 +429,12 @@ fn parse_command(tokens: &[Token], index: usize, marked: bool) -> Option<Command
                 | CommandKind::Match
                 | CommandKind::Case
                 | CommandKind::End
+                | CommandKind::Raw
+                | CommandKind::EndRaw
         )
     {
         repairs.push(Repair::AddMarker(index));
-        repairs.push(Repair::AddColon(end));
+        repairs.push(Repair::AddColon(repair_end));
     }
 
     Some(Command {
@@ -322,6 +459,13 @@ fn command_end(tokens: &[Token], start: usize) -> usize {
         index += 1;
     }
     index
+}
+
+fn trim_raw_carriage_returns(tokens: &[Token], mut end: usize) -> usize {
+    while end > 0 && matches!(tokens.get(end - 1), Some(Token::IDENT { str }) if str == "\r") {
+        end -= 1;
+    }
+    end
 }
 
 fn is_simple_command(token: &Token) -> bool {
@@ -545,6 +689,12 @@ fn only_spaces(tokens: &[Token], start: usize, end: usize) -> bool {
     tokens[start..end]
         .iter()
         .all(|token| matches!(token, Token::SPACE))
+}
+
+fn only_raw_boundary_whitespace(tokens: &[Token], start: usize, end: usize) -> bool {
+    tokens[start..end].iter().all(|token| {
+        matches!(token, Token::SPACE) || matches!(token, Token::IDENT { str } if str == "\r")
+    })
 }
 
 fn is_name(token: Option<&Token>) -> bool {

@@ -176,6 +176,10 @@ impl Parser {
                 self.ptr_next();
                 nodes.push(self.handle_for()?);
             }
+            Token::IDENT { str } if str == "raw" => {
+                self.ptr_next();
+                nodes.push(self.handle_raw_block()?);
+            }
             Token::INCLUDE => {
                 self.ptr_next();
                 self.handle_include(&mut nodes)?;
@@ -216,6 +220,91 @@ impl Parser {
             }
         }
         Ok(())
+    }
+
+    fn handle_raw_block(&mut self) -> Result<Node> {
+        while matches!(self.peek(), Token::SPACE) {
+            self.ptr_next();
+        }
+        if !matches!(self.pop(), Token::DD) {
+            return Err(parser_error(CompilationError::InvalidRawBlockHeader, self));
+        }
+        while matches!(self.peek(), Token::SPACE) {
+            self.ptr_next();
+        }
+        while is_carriage_return(&self.peek()) {
+            self.ptr_next();
+        }
+        if !matches!(self.peek(), Token::NL) {
+            return Err(parser_error(CompilationError::InvalidRawBlockHeader, self));
+        }
+        self.ptr_next();
+        self.line += 1;
+
+        let body_start = self.ptr;
+        let mut line_start = body_start;
+        while line_start < self.tokens.len() {
+            let mut command = line_start;
+            while matches!(self.tokens.get(command), Some(Token::SPACE)) {
+                command += 1;
+            }
+            if matches!(self.tokens.get(command), Some(Token::MARK { .. })) {
+                command += 1;
+                while matches!(self.tokens.get(command), Some(Token::SPACE)) {
+                    command += 1;
+                }
+                if matches!(self.tokens.get(command), Some(Token::IDENT { str }) if str == "endraw")
+                {
+                    let mut after_command = command + 1;
+                    while matches!(self.tokens.get(after_command), Some(Token::SPACE)) {
+                        after_command += 1;
+                    }
+                    if matches!(self.tokens.get(after_command), Some(Token::DD)) {
+                        after_command += 1;
+                        while matches!(self.tokens.get(after_command), Some(Token::SPACE)) {
+                            after_command += 1;
+                        }
+                        while self
+                            .tokens
+                            .get(after_command)
+                            .is_some_and(is_carriage_return)
+                        {
+                            after_command += 1;
+                        }
+                        if matches!(self.tokens.get(after_command), Some(Token::NL | Token::EOF)) {
+                            let data = self.tokens[body_start..line_start]
+                                .iter()
+                                .map(Token::val)
+                                .collect();
+                            self.line += self.tokens[body_start..line_start]
+                                .iter()
+                                .filter(|token| matches!(token, Token::NL))
+                                .count();
+                            if matches!(self.tokens.get(after_command), Some(Token::NL)) {
+                                after_command += 1;
+                                self.line += 1;
+                            }
+                            self.ptr = after_command;
+                            return Ok(Node::RAW { data });
+                        }
+                    }
+                }
+            }
+
+            while !matches!(
+                self.tokens.get(line_start),
+                Some(Token::NL | Token::EOF) | None
+            ) {
+                line_start += 1;
+            }
+            if matches!(self.tokens.get(line_start), Some(Token::NL)) {
+                line_start += 1;
+            } else {
+                break;
+            }
+        }
+
+        Err(parser_error(CompilationError::UnterminatedRawBlock, self))
     }
 
     fn handle_def(&mut self, nodes: &mut ParsingResult) -> Result<()> {
@@ -655,6 +744,15 @@ impl Parser {
                 let node = self.handle_for()?;
                 body.push(node);
             }
+            Token::IDENT { str } if str == "raw" => {
+                self.ptr_next();
+                body.push(Node::DATA {
+                    data: body_str.to_string(),
+                    line: self.line,
+                });
+                *body_str = String::new();
+                body.push(self.handle_raw_block()?);
+            }
             Token::CREATE => {
                 self.ptr_next();
                 body.push(Node::DATA {
@@ -838,4 +936,8 @@ impl Parser {
             line: line_start,
         });
     }
+}
+
+fn is_carriage_return(token: &Token) -> bool {
+    matches!(token, Token::IDENT { str } if str == "\r")
 }

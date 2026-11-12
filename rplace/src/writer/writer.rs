@@ -260,6 +260,9 @@ impl Writer {
             Node::DATA { data, line: _ } => {
                 text.push_str(data);
             }
+            Node::RAW { data } => {
+                text.push_str(data);
+            }
             Node::VARTEMPLATE { val } => {
                 let name = &val.value;
                 text.push_str(&format!("$#{}", name));
@@ -296,6 +299,9 @@ impl Writer {
                 Node::DATA { data, line: _ } => {
                     text.push_str(&data);
                 }
+                Node::RAW { data } => {
+                    text.push_str(data);
+                }
                 _ => {}
             }
         }
@@ -328,6 +334,9 @@ impl Writer {
                 }
                 Node::DATA { data, line: _ } => {
                     text.push_str(&data);
+                }
+                Node::RAW { data } => {
+                    text.push_str(data);
                 }
                 Node::GLOBALVARTEMPLATE { val } => {
                     text.push_str(&self.render_global_variable(val)?);
@@ -494,6 +503,9 @@ impl Writer {
                 // here is handled anything inside the def
                 Node::DATA { data, line: _ } => {
                     // just text
+                    text.push_str(data);
+                }
+                Node::RAW { data } => {
                     text.push_str(data);
                 }
                 Node::MATCH {

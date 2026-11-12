@@ -17,7 +17,7 @@ use crate::package_manager::web::fetch::{
 use crate::package_manager::web::structs::ResponsePackageData;
 use crate::package_manager::web::user::create_user;
 use crate::run::run_options::run_parse;
-use crate::run::run_options::{parse_get_all_paths, run_inline, run_pipe};
+use crate::run::run_options::{parse_get_all_paths, run_compile_command, run_inline, run_pipe};
 use crate::term::terminal_handler::CliArgs;
 use crate::term::terminal_handler::handle_args;
 use anyhow::Result;
@@ -77,6 +77,23 @@ async fn main() -> Result<()> {
                 Err(_e) => (args, config),
             };
             let stops_at_parser = args.stops_at_parser;
+            let (before_compile_command, after_compile_command) = data
+                .as_ref()
+                .ok()
+                .and_then(|data| data.config.as_ref())
+                .map(|settings| {
+                    (
+                        settings.before_compile_comand.clone(),
+                        settings.after_compile_comand.clone(),
+                    )
+                })
+                .unwrap_or_default();
+            let allow_compile_commands = config.allow_compile_commands;
+            if !stops_at_parser && allow_compile_commands {
+                if let Some(command) = before_compile_command.as_deref() {
+                    run_compile_command(command, "before_compile_comand")?;
+                }
+            }
 
             let to_write = match data {
                 Ok(d) => {
@@ -91,6 +108,11 @@ async fn main() -> Result<()> {
             to_write.into_iter().for_each(|output| {
                 output.write();
             });
+            if allow_compile_commands {
+                if let Some(command) = after_compile_command.as_deref() {
+                    run_compile_command(command, "after_compile_comand")?;
+                }
+            }
             Ok(())
         }
         CliArgs::ReloadConfig => {

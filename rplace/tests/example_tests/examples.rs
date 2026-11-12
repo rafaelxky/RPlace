@@ -222,6 +222,78 @@ pub fn raw_text_test() -> Result<()> {
     assert_eq!(str, code);
     Ok(())
 }
+
+#[test]
+fn raw_block_preserves_nested_rplace_syntax() -> Result<()> {
+    let code = "//- raw:\n//- def greeting:\nHello, $#name!\n//- end:\n//- endraw:";
+
+    assert_eq!(
+        parse(code)?,
+        "//- def greeting:\nHello, $#name!\n//- end:\n"
+    );
+    Ok(())
+}
+
+#[test]
+fn raw_block_output_can_be_compiled_as_a_template() -> Result<()> {
+    let generated = run_inline(
+        "//- raw:\n//- def greeting:\nHello, $#name!\n//- end:\n//- place greeting where name=world:\n//- endraw:",
+        CompilerConfig::default(),
+        vec![],
+    )?;
+    let rendered = run_inline(&generated, CompilerConfig::default(), vec![])?;
+
+    assert_eq!(rendered, "Hello, world!\n");
+    Ok(())
+}
+
+#[test]
+fn raw_block_allows_outer_variables_around_generated_template() -> Result<()> {
+    let code = "//- def outer:\nPrefix $#prefix\n//- raw:\n//- def greeting:\nHello, $#name!\n//- end:\n//- endraw:\nSuffix $#suffix\n//- end:\n//- place outer where prefix=before, suffix=after:";
+
+    assert_eq!(
+        parse(code)?,
+        "Prefix before\n//- def greeting:\nHello, $#name!\n//- end:\nSuffix after\n"
+    );
+    Ok(())
+}
+
+#[test]
+fn raw_block_preserves_crlf_content() -> Result<()> {
+    let code = "//- raw:\r\n//- def greeting:\r\nHello, $#name!\r\n//- end:\r\n//- endraw:";
+
+    assert_eq!(
+        parse(code)?,
+        "//- def greeting:\r\nHello, $#name!\r\n//- end:\r\n"
+    );
+    Ok(())
+}
+
+#[test]
+fn raw_word_remains_usable_as_a_regular_value() -> Result<()> {
+    let code = "//- def value:$#name//- end://- place value where name=raw:";
+
+    assert_eq!(parse(code)?, "raw");
+    Ok(())
+}
+
+#[test]
+fn raw_block_requires_a_closing_delimiter() {
+    let result = run_inline(
+        "//- raw:\ninner template text",
+        CompilerConfig::default(),
+        vec![],
+    );
+
+    assert!(result.is_err());
+    assert!(
+        result
+            .expect_err("Unterminated raw block should fail")
+            .to_string()
+            .contains("Unterminated raw block")
+    );
+}
+
 #[test]
 pub fn text_test_nl() -> Result<()> {
     let code = "

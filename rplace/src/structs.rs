@@ -163,6 +163,9 @@ pub enum Node {
         data: String,
         line: usize,
     },
+    RAW {
+        data: String,
+    },
     // def variables
     VARTEMPLATE {
         val: TemplateValue,

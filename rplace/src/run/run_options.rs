@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fs::OpenOptions;
-use std::process::exit;
+use std::process::{Command, exit};
 use std::sync::{Arc, RwLock};
 
 use crate::config::config::CompilerConfig;
@@ -17,6 +17,18 @@ use crate::term::terminal_handler::ParseArgs;
 use crate::writer::writer::Writer;
 use crate::writer::writer_structs::WriterResult;
 use anyhow::{Result, anyhow};
+
+pub fn run_compile_command(command: &str, hook: &str) -> Result<()> {
+    #[cfg(windows)]
+    let status = Command::new("cmd").args(["/C", command]).status()?;
+    #[cfg(not(windows))]
+    let status = Command::new("sh").args(["-c", command]).status()?;
+
+    if !status.success() {
+        return Err(anyhow!("{hook} command failed with status {status}"));
+    }
+    Ok(())
+}
 
 pub fn parse_get_all_paths(data: PackageData, config: CompilerConfig) -> Result<Vec<String>> {
     let project_src = data.package.root;
@@ -198,4 +210,30 @@ pub fn run_parse(
     }
 
     return Ok(to_write);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::run_compile_command;
+
+    #[test]
+    fn compile_command_runs_successfully() {
+        #[cfg(windows)]
+        let command = "exit /b 0";
+        #[cfg(not(windows))]
+        let command = "exit 0";
+
+        run_compile_command(command, "before_compile_comand")
+            .expect("Successful compile command should return Ok");
+    }
+
+    #[test]
+    fn compile_command_reports_nonzero_exit_status() {
+        #[cfg(windows)]
+        let command = "exit /b 1";
+        #[cfg(not(windows))]
+        let command = "exit 1";
+
+        assert!(run_compile_command(command, "before_compile_comand").is_err());
+    }
 }

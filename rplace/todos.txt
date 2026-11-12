@@ -270,10 +270,12 @@ end:
  - need to use fuzzification and baesian networks for this 
  - probab going to be hard but very usefull
 
- - ex: rplace fz file 
-- fuzzy grammar mistake fix
+ - ex: rplace fz file X
+- fuzzy grammar mistake fix 
 - might add other keywords that are missing other than the marks 
 
 - add shortcut ..10 wich is equivalent to 0..10 (in regular parser)
 
 - add support for trailing commas in arrays and struct and others so like ([a,b,c,],[],[],),: is allowed
+
+- after compile and before compile script - X
