@@ -293,3 +293,11 @@ Implement with hashmap for extention
     - do remove every " "
     - do after R"regex" add "\n"
 - media queries
+
+- has feature, supports
+- timer
+- user
+- os
+- exists()
+- defined()
+- 
