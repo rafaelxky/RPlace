@@ -279,3 +279,17 @@ end:
 - add support for trailing commas in arrays and struct and others so like ([a,b,c,],[],[],),: is allowed
 
 - after compile and before compile script - X
+
+- aritmetic operations and calc()
+- static evaluation math operations
+    -Max()
+    -Min()
+    -Clamp()
+    -Map()
+    -Lerp()
+Implement with hashmap for extention
+- do 
+    - do after every " " add "\n"
+    - do remove every " "
+    - do after R"regex" add "\n"
+- media queries
